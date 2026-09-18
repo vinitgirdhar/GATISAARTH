@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Everything is HTTPS-only by default (e.g. Stadia map tiles). -->
+    <base-config cleartextTrafficPermitted="false" />
+
+    <!-- Optional telemetry backend over plain HTTP: ONLY these hosts, exactly
+         the candidates in lib/core/platform/network/backend_telemetry_client.dart.
+         127.0.0.1 = this device, 172.20.10.3 = phone-hotspot LAN,
+         10.0.2.2 = Android emulator's alias for the dev machine. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">172.20.10.3</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

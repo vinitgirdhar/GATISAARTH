@@ -1,0 +1,9 @@
+﻿{
+    "name": "GatiSaarth",
+    "short_name": "GatiSaarth",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0B0F19",
+    "theme_color": "#00E5FF",
+    "description": "Tactical Vehicle Dead Reckoning System using Multi-GNSS and Edge AI"
+}

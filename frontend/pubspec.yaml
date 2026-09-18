@@ -1,0 +1,89 @@
+name: gatisaarth
+description: "GatiSaarth - High-Precision Vehicle Navigation System using Dead Reckoning, Multi-GNSS/NavIC, and Edge AI"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  ffi: ^2.1.3
+  http: ^1.6.0
+  flutter_map: ^7.0.2
+  sensors_plus: ^6.1.1
+  tflite_flutter: ^0.12.1
+  geolocator: ^13.0.1
+  shared_preferences: ^2.3.3
+  latlong2: ^0.9.1
+  path_provider: ^2.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_native_splash: ^2.4.3
+
+flutter_native_splash:
+  color: "#F2F2F7"
+  color_dark: "#000000"
+  image: assets/icons/logo.png
+  android_12:
+    image: assets/icons/logo_mark.png
+    icon_background_color: "#F2F2F7"
+    icon_background_color_dark: "#000000"
+    branding: assets/icons/wordmark.png
+    branding_mode: bottom
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/
+    - assets/maps/
+    - assets/maps/tiles/
+    - assets/maps/tiles/11/1462/
+    - assets/maps/tiles/11/1463/
+    - assets/maps/tiles/12/2924/
+    - assets/maps/tiles/12/2925/
+    - assets/maps/tiles/12/2926/
+    - assets/maps/tiles/13/5848/
+    - assets/maps/tiles/13/5849/
+    - assets/maps/tiles/13/5850/
+    - assets/maps/tiles/13/5851/
+    - assets/maps/tiles/13/5852/
+    - assets/maps/tiles/13/5853/
+    - assets/maps/tiles/14/11697/
+    - assets/maps/tiles/14/11698/
+    - assets/maps/tiles/14/11699/
+    - assets/maps/tiles/14/11700/
+    - assets/maps/tiles/14/11701/
+    - assets/maps/tiles/14/11702/
+    - assets/maps/tiles/14/11703/
+    - assets/maps/tiles/14/11704/
+    - assets/maps/tiles/14/11705/
+    - assets/maps/tiles/14/11706/
+    - assets/maps/tiles/14/11707/
+    - assets/maps/tiles/15/23396/
+    - assets/maps/tiles/15/23397/
+    - assets/maps/tiles/15/23398/
+    - assets/maps/tiles/15/23399/
+    - assets/maps/tiles/15/23400/
+    - assets/maps/tiles/15/23410/
+    - assets/maps/tiles/15/23411/
+    - assets/maps/tiles/15/23412/
+    - assets/maps/tiles/16/46795/
+    - assets/maps/tiles/16/46796/
+    - assets/maps/tiles/16/46797/
+    - assets/maps/tiles/16/46798/
+    - assets/maps/tiles/16/46799/
+    - assets/maps/tiles/16/46822/
+    - assets/maps/tiles/16/46823/
+    - assets/maps/tiles/16/46824/
+    - assets/icons/
+    - assets/config/
+  fonts:
+    - family: .SF Pro Text
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf

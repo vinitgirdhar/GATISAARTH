@@ -1,0 +1,7 @@
+# The repository is small, so binaries are stored directly (no Git LFS):
+# a plain clone must be able to build and run the app.
+*.tflite binary
+*.onnx binary
+*.pth binary
+*.pbf binary
+*.bin binary

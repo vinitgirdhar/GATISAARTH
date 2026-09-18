@@ -1,0 +1,15 @@
+{
+  "test_track_id": "traj_04_seg_00",
+  "duration_seconds": 299.8,
+  "ground_truth_traversed_m": 3000.49,
+  "naive_double_integration": {
+    "final_error_m": 255.71,
+    "drift_rate_m_per_min": 51.18,
+    "error_pct_of_distance": 8.52
+  },
+  "heuristic_zupt_baseline": {
+    "final_error_m": 2213.2,
+    "drift_rate_m_per_min": 442.94,
+    "error_pct_of_distance": 73.76
+  }
+}
