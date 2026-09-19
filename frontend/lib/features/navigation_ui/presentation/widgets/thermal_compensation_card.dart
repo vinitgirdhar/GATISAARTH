@@ -40,7 +40,7 @@ class ThermalCompensationCard extends StatelessWidget {
                   child: Text(
                     '${thermalState.temperature.toStringAsFixed(1)}°C · '
                     '${thermalState.biasCorrection.toStringAsFixed(4)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -63,7 +63,7 @@ class ThermalCompensationCard extends StatelessWidget {
                   child: Text(
                     '${_sentence(vibrationLevel)} · '
                     '${vibrationRms.toStringAsFixed(2)} g',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,

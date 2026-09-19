@@ -85,7 +85,7 @@ class SessionStatusCard extends StatelessWidget {
                     'Roll ${session.rollDegrees.toStringAsFixed(1)}°',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -184,7 +184,7 @@ class SessionStatusCard extends StatelessWidget {
           subtitle: 'Running on inertial sensors only.',
         );
       case LocationStatus.initializing:
-        return const _StatusView(
+        return _StatusView(
           icon: Icons.hourglass_top_rounded,
           color: AppColors.textSecondary,
           alert: false,

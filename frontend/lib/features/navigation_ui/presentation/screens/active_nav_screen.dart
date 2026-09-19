@@ -146,7 +146,7 @@ class _ImuStrip extends StatelessWidget {
           children: [
             TextSpan(
               text: '$label ',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,

@@ -63,7 +63,7 @@ class AiInferencePanel extends StatelessWidget {
                           inferenceStats.latencyMs == null
                               ? '--'
                               : '${inferenceStats.latencyMs} ms',
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.textPrimary,
                               fontWeight: FontWeight.w700,
                               fontSize: 24)),

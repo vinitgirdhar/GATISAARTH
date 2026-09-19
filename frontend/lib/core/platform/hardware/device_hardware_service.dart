@@ -103,6 +103,17 @@ class DeviceHardwareService implements DeviceHardware {
   }
 
   @override
+  Future<void> setKeepScreenOn(bool on) async {
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        await _channel.invokeMethod('setKeepScreenOn', {'on': on});
+      }
+    } catch (e) {
+      debugPrint('[DeviceHardwareService] keep-screen-on failed: $e');
+    }
+  }
+
+  @override
   void stop() {
     _isRunning = false;
     _tempPollTimer?.cancel();

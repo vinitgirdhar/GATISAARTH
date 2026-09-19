@@ -25,7 +25,7 @@ class SensorHealthBar extends StatelessWidget {
           children: [
             Text(
               name,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
@@ -73,7 +73,7 @@ class SensorHealthBar extends StatelessWidget {
               Flexible(
                 child: Text(
                   sensorHealth.barometer ? 'Baro OK' : 'Baro: N/A (GPS alt)',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

@@ -13,7 +13,7 @@ class Speedometer extends StatelessWidget {
       children: [
         Text(
           speed.toStringAsFixed(1),
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 40,
             fontWeight: FontWeight.w700,

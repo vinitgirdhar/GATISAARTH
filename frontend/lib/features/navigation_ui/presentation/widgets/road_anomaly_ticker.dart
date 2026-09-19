@@ -27,7 +27,7 @@ class RoadAnomalyTicker extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (anomalyEvents.isEmpty)
-            const Text(
+            Text(
               'None yet — bumps and potholes appear here as they are felt.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
@@ -44,7 +44,7 @@ class RoadAnomalyTicker extends StatelessWidget {
                             const SizedBox(width: 6),
                             Text(
                               event.type.replaceAll('_', ' '),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: AppColors.textPrimary,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600),
@@ -53,7 +53,7 @@ class RoadAnomalyTicker extends StatelessWidget {
                         ),
                         Text(
                           '${(event.confidence * 100).round()}% confidence',
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12),
                         ),

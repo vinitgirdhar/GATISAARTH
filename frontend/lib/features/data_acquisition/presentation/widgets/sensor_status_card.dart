@@ -13,7 +13,7 @@ class SensorStatusCard extends StatelessWidget {
         borderRadius: AppRadius.cardRadius,
         boxShadow: AppShadow.card,
       ),
-      child: const Text(
+      child: Text(
         'Sensor status',
         style: TextStyle(
           color: AppColors.textPrimary,

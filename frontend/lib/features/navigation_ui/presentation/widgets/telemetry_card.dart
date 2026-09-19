@@ -69,7 +69,7 @@ class TelemetryCard extends StatelessWidget {
                 subtitle!,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 12,
                 ),

@@ -4,6 +4,8 @@ import '../../../../core/constants/dr_constants.dart';
 import '../../../../core/platform/network/backend_telemetry_client.dart'
     show BackendSyncState;
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_controller.dart';
+import '../../../../core/widgets/motion.dart';
 import '../controllers/live_session_controller.dart';
 import 'fusion_confidence_badge.dart';
 import 'fusion_mode_badge.dart';
@@ -27,25 +29,24 @@ class DashboardHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppConstants.appTitle,
-                      style: theme.headlineMedium?.copyWith(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppConstants.appTitle,
+                    style: theme.headlineMedium?.copyWith(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 4),
-                    Text(AppConstants.appSubTitle, style: theme.bodyMedium),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(AppConstants.appSubTitle, style: theme.bodyMedium),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 4),
+            const BrightnessToggle(),
+            const SizedBox(width: 4),
             FusionConfidenceBadge(
               confidence: estimate?.confidence,
               marginMeters: estimate?.marginMeters,
@@ -126,6 +127,40 @@ class StatusChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Switches the app between light and dark. The choice is remembered across
+/// launches (see [ThemeController]).
+class BrightnessToggle extends StatelessWidget {
+  const BrightnessToggle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ThemeScope.of(context);
+    final isDark = controller.isDark;
+    return Semantics(
+      button: true,
+      label: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+      excludeSemantics: true,
+      child: PressableScale(
+        onTap: controller.toggle,
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            shape: BoxShape.circle,
+            boxShadow: AppShadow.card,
+          ),
+          child: Icon(
+            isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+            size: 18,
+            color: isDark ? AppColors.warning : AppColors.textSecondary,
+          ),
+        ),
       ),
     );
   }

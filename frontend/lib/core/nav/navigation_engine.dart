@@ -1,0 +1,902 @@
+import 'dart:math' as math;
+
+import 'alignment/mount_alignment.dart';
+import 'calibration/sensor_calibration.dart';
+import 'ekf/navigation_filter.dart';
+import 'gnss/gnss_quality.dart';
+import 'ins/ins_state.dart';
+import 'map/map_matcher.dart';
+import 'map/road_graph.dart';
+import 'math/nav_math.dart';
+import 'model/nav_snapshot.dart';
+import 'motion/motion_classifier.dart';
+import 'nav_config.dart';
+import 'sensors/barometer.dart';
+import 'sensors/sensor_fault_detector.dart';
+import 'sensors/sensor_sample.dart';
+import 'sensors/time_sync.dart';
+
+/// Rolling per-source accounting for the "Why this position?" panel (§51).
+///
+/// Each accepted measurement contributes the horizontal position variance
+/// it actually removed (m²), decayed over a few seconds and normalised.
+/// Every source therefore reports in the same unit and the shares mean
+/// something: "of the position certainty we have right now, this is where
+/// it came from". It is not a probability that any source is correct.
+class _ContributionTracker {
+  static const double _halfLifeSeconds = 6;
+
+  double _gnss = 0;
+  double _inertial = 0;
+  double _ai = 0;
+  double _map = 0;
+  int? _lastUs;
+
+  void decayTo(int monotonicUs) {
+    final last = _lastUs;
+    _lastUs = monotonicUs;
+    if (last == null) return;
+    final dt = (monotonicUs - last) / 1e6;
+    if (dt <= 0) return;
+    final factor = math.pow(0.5, dt / _halfLifeSeconds).toDouble();
+    _gnss *= factor;
+    _inertial *= factor;
+    _ai *= factor;
+    _map *= factor;
+  }
+
+  /// Adds the position variance (m²) a source just removed.
+  void add(String source, double varianceRemoved) {
+    if (!(varianceRemoved > 0) || !varianceRemoved.isFinite) return;
+    final information = varianceRemoved;
+    switch (source) {
+      case 'gnss':
+        _gnss += information;
+        break;
+      case 'inertial':
+        _inertial += information;
+        break;
+      case 'ai':
+        _ai += information;
+        break;
+      case 'map':
+        _map += information;
+        break;
+    }
+  }
+
+  FusionContribution get snapshot {
+    final total = _gnss + _inertial + _ai + _map;
+    if (total <= 0) return FusionContribution.none;
+    return FusionContribution(
+      gnss: _gnss / total,
+      inertial: _inertial / total,
+      ai: _ai / total,
+      map: _map / total,
+    );
+  }
+
+  void reset() {
+    _gnss = 0;
+    _inertial = 0;
+    _ai = 0;
+    _map = 0;
+    _lastUs = null;
+  }
+}
+
+/// The navigation engine: the one place that turns sensors and fixes into a
+/// position (§72).
+///
+/// Pure Dart, no Flutter, no plugins, no timers — every input is pushed in and
+/// every output is a value. That is what makes it replay-deterministic (§37)
+/// and unit-testable without a device.
+///
+/// Inputs are **phone-frame** and raw; the engine calibrates them, works out
+/// the phone-to-vehicle transform, and only then runs the filter.
+class NavigationEngine {
+  NavigationEngine({
+    NavConfig config = NavConfig.defaults,
+    SensorCalibration? calibration,
+    VehicleClass vehicleClass = VehicleClass.car,
+    RoadGraph? roadGraph,
+  })  : _config = config,
+        _matcher = MapMatcher(
+          graph: roadGraph ?? RoadGraph.empty(),
+          config: config,
+          vehicle: vehicleClass == VehicleClass.twoWheeler
+              ? VehicleAccess.twoWheelers
+              : VehicleAccess.cars,
+        ),
+        _calibration = calibration ?? SensorCalibration.none,
+        _filter = NavigationFilter(config: config),
+        _gnssQuality = GnssQualityEngine(config: config),
+        _alignmentEstimator = MountAlignmentEstimator(config: config),
+        _motion = MotionClassifier(config: config, vehicleClass: vehicleClass),
+        _timeSync = TimeSync(config: config),
+        _faults = SensorFaultDetector(config: config),
+        _barometer = BarometerProcessor(config: config);
+
+  final NavConfig _config;
+  final NavigationFilter _filter;
+  final GnssQualityEngine _gnssQuality;
+  final MountAlignmentEstimator _alignmentEstimator;
+  final MotionClassifier _motion;
+  final TimeSync _timeSync;
+  final MapMatcher _matcher;
+  final SensorFaultDetector _faults;
+  final BarometerProcessor _barometer;
+  final _ContributionTracker _contribution = _ContributionTracker();
+
+  SensorCalibration _calibration;
+
+  NavMode _mode = NavMode.boot;
+  NavigationSnapshot? _snapshot;
+  final List<ModeTransition> _transitions = [];
+  final List<MeasurementResult> _recentMeasurements = [];
+
+  int _sequence = 0;
+  int? _lastImuUs;
+  int? _lastGnssUs;
+  int _lastMatchUs = 0;
+  double? _lastGnssSpeed;
+  int? _reacquiringUntilUs;
+  int? _outageStartedUs;
+  double _outageDistanceM = 0;
+  double? _lastTemperatureC;
+  GnssAssessment? _lastAssessment;
+
+  /// The last usable fix received before the mount was known. It is the
+  /// reported position during calibration.
+  GnssObservation? _lastUnalignedFix;
+  int _lastSnapshotUs = 0;
+
+  static const int _maxTransitions = 200;
+  static const int _maxRecentMeasurements = 50;
+
+  // ---------------------------------------------------------------- getters
+
+  NavConfig get config => _config;
+  NavigationSnapshot? get snapshot => _snapshot;
+  NavMode get mode => _mode;
+  SensorCalibration get calibration => _calibration;
+  MountAlignment? get alignment => _alignmentEstimator.alignment;
+  NavigationFilter get filter => _filter;
+  MotionSnapshot get motion => _motion.snapshot;
+
+  /// Mode transitions, oldest first, each with its trigger (§25, §53).
+  List<ModeTransition> get transitions => List.unmodifiable(_transitions);
+
+  /// The last measurement results, for the research view (§79).
+  List<MeasurementResult> get recentMeasurements =>
+      List.unmodifiable(_recentMeasurements);
+
+  MapMatchResult? get mapMatch => _matcher.last;
+
+  /// Per-sensor fault diagnoses (§29).
+  Map<SensorType, SensorDiagnosis> get sensorDiagnoses =>
+      _faults.diagnoses;
+
+  /// Latest barometric estimate, or null without a barometer (§18).
+  BarometerEstimate? get barometer => _barometer.last;
+
+  /// How much evidence the mount alignment has gathered (§79 research view).
+  /// Useful when it is *not* converging and someone needs to know why.
+  int get alignmentSamples => _alignmentEstimator.acceptedSamples;
+  int get alignmentEvents => _alignmentEstimator.speedChangeEvents;
+  bool get hasLevelling => _alignmentEstimator.hasLevelling;
+
+  /// True when a road graph is loaded at all (§83).
+  bool get hasRoadGraph => _matcher.isAvailable;
+
+  set vehicleClass(VehicleClass value) {
+    _motion.vehicleClass = value;
+    _matcher.vehicle = value == VehicleClass.twoWheeler
+        ? VehicleAccess.twoWheelers
+        : VehicleAccess.cars;
+  }
+  VehicleClass get vehicleClass => _motion.vehicleClass;
+
+  void setCalibration(SensorCalibration calibration) {
+    _calibration = calibration;
+  }
+
+  // ------------------------------------------------------------------ input
+
+  /// Feeds one raw IMU frame in the **phone** frame.
+  ///
+  /// Returns a fresh snapshot when one is due (at most at the configured UI
+  /// rate), else null. Callers notify observers only on a non-null return.
+  NavigationSnapshot? onImu({
+    required Vector3 accelPhone,
+    required Vector3 gyroPhone,
+    required int monotonicUs,
+    Vector3? magPhone,
+    double? pressureHpa,
+    double? temperatureC,
+  }) {
+    if (temperatureC != null && temperatureC.isFinite) {
+      _lastTemperatureC = temperatureC;
+    }
+
+    // Fault detection first: a frozen or absurd sensor must be caught before
+    // anything downstream integrates it (§29).
+    _faults.observe(
+      type: SensorType.accelerometer,
+      values: [accelPhone.x, accelPhone.y, accelPhone.z],
+      monotonicUs: monotonicUs,
+    );
+    _faults.observe(
+      type: SensorType.gyroscope,
+      values: [gyroPhone.x, gyroPhone.y, gyroPhone.z],
+      monotonicUs: monotonicUs,
+    );
+    if (magPhone != null) {
+      _faults.observe(
+        type: SensorType.magnetometer,
+        values: [magPhone.x, magPhone.y, magPhone.z],
+        monotonicUs: monotonicUs,
+      );
+    }
+    if (pressureHpa != null && pressureHpa.isFinite) {
+      _faults.observe(
+        type: SensorType.barometer,
+        values: [pressureHpa],
+        monotonicUs: monotonicUs,
+      );
+      _updateBarometer(pressureHpa, monotonicUs);
+    }
+    _faults.checkStaleness(monotonicUs);
+
+    // Push through the time sync so drops and rates are measured even when the
+    // engine consumes the samples directly (§4, §64).
+    _timeSync.add(SensorSample(
+      type: SensorType.accelerometer,
+      monotonicUs: monotonicUs,
+      values: [accelPhone.x, accelPhone.y, accelPhone.z],
+    ));
+    _timeSync.add(SensorSample(
+      type: SensorType.gyroscope,
+      monotonicUs: monotonicUs,
+      values: [gyroPhone.x, gyroPhone.y, gyroPhone.z],
+    ));
+    if (magPhone != null) {
+      _timeSync.add(SensorSample(
+        type: SensorType.magnetometer,
+        monotonicUs: monotonicUs,
+        values: [magPhone.x, magPhone.y, magPhone.z],
+      ));
+    }
+    _timeSync.drain(monotonicUs);
+
+    if (!_finite(accelPhone) || !_finite(gyroPhone)) {
+      return _maybeSnapshot(monotonicUs, force: false);
+    }
+
+    final accel = _calibration.correctAccel(accelPhone);
+    final gyro = _calibration.correctGyro(gyroPhone);
+    final magUsable = magPhone != null &&
+        _faults.isUsable(SensorType.magnetometer);
+    final mag = magUsable ? _calibration.correctMag(magPhone) : null;
+
+    _alignmentEstimator.add(
+      accelPhone: accel,
+      gyroPhone: gyro,
+      monotonicUs: monotonicUs,
+      gnssSpeedMps: _gnssSpeedForAlignment(monotonicUs),
+      gnssUs: _lastGnssUs,
+    );
+
+    final mount = _alignmentEstimator.alignment;
+    if (mount == null) {
+      // Without a phone-to-vehicle transform the body frame is unknown, so
+      // there is nothing meaningful to propagate. Say so rather than
+      // integrating in the wrong frame (§6, §83).
+      _setMode(
+        NavMode.calibrating,
+        'phone-to-vehicle transform not established',
+        monotonicUs,
+      );
+      return _maybeSnapshot(monotonicUs, force: false);
+    }
+
+    final accelVehicle = mount.toVehicle(accel);
+    final gyroVehicle = mount.toVehicle(gyro);
+    final magVehicle = mag == null ? null : mount.toVehicle(mag);
+
+    final dt = _stepSeconds(monotonicUs);
+    _lastImuUs = monotonicUs;
+
+    final state = _filter.state;
+    _motion.addSample(
+      accelBody: accelVehicle,
+      gyroBody: gyroVehicle,
+      monotonicUs: monotonicUs,
+      gnssSpeedMps: _liveGnssSpeed(monotonicUs),
+      filterSpeedMps: state?.groundSpeed,
+      rollRad: state == null
+          ? null
+          : NavMath.eulerFromQuaternion(state.qBodyToNav)[0],
+    );
+
+    if (dt != null && _filter.isInitialised) {
+      final moved = _filter.state;
+      _filter.predict(
+        accelBody: accelVehicle,
+        gyroBody: gyroVehicle,
+        dt: dt,
+      );
+      _accumulateOutageDistance(moved, _filter.state);
+      _applyConstraints(gyroVehicle: gyroVehicle, magVehicle: magVehicle);
+      _contribution.decayTo(monotonicUs);
+      _runMapMatch(monotonicUs);
+    }
+
+    _updateMode(monotonicUs);
+    return _maybeSnapshot(monotonicUs, force: false);
+  }
+
+  /// Feeds one GNSS fix. Every fix goes in, accepted or not — the quality
+  /// engine needs the rejected ones to judge the source (§13).
+  NavigationSnapshot? onGnss(GnssObservation fix) {
+    final state = _filter.state;
+    final assessment = _gnssQuality.assess(
+      fix,
+      inertialHeadingDeg: state?.headingDeg,
+      inertialSpeedMps: state?.groundSpeed,
+    );
+    _lastAssessment = assessment;
+    _lastGnssUs = fix.monotonicUs;
+    _lastGnssSpeed = assessment.usable ? fix.speedMps : null;
+
+    if (!assessment.usable) {
+      _updateMode(fix.monotonicUs);
+      return _maybeSnapshot(fix.monotonicUs, force: true);
+    }
+
+    if (!_filter.isInitialised) {
+      // No body frame yet means no propagation is possible, and a filter
+      // that cannot propagate would sit still while the vehicle drives off
+      // and then reject every fix as an impossible jump. Until the mount is
+      // known the GNSS fix *is* the position, and the snapshot says so.
+      if (_alignmentEstimator.alignment == null) {
+        _lastUnalignedFix = fix;
+        _updateMode(fix.monotonicUs);
+        return _maybeSnapshot(fix.monotonicUs, force: true);
+      }
+      _filter.initialise(
+        latitudeDeg: fix.latitudeDeg,
+        longitudeDeg: fix.longitudeDeg,
+        altitudeM: fix.altitudeM ?? 0,
+        headingRad: (fix.bearingDeg ?? 0) * NavMath.degToRad,
+        gravityBody: _levelledGravity(),
+        positionSigma: assessment.horizontalSigmaM,
+        initialVelocityNed: _velocityFrom(fix),
+        headingSigma: (fix.bearingDeg == null || (fix.speedMps ?? 0) < 3)
+            ? null
+            : 0.35,
+        timestampUs: fix.monotonicUs,
+      );
+      _contribution.decayTo(fix.monotonicUs);
+      _endOutage();
+      _setMode(NavMode.gnssLocked, 'first usable fix', fix.monotonicUs);
+      return _maybeSnapshot(fix.monotonicUs, force: true);
+    }
+
+    final wasDeadReckoning = _mode.isDeadReckoning;
+    // With adaptive covariance off, the receiver's own accuracy is taken at
+    // face value — which is the behaviour the ablation baseline needs.
+    final horizontalSigma = _config.features.adaptiveGnssCovariance
+        ? assessment.horizontalSigmaM
+        : fix.accuracyM;
+    final result = _filter.updatePosition(
+      latitudeDeg: fix.latitudeDeg,
+      longitudeDeg: fix.longitudeDeg,
+      altitudeM: fix.altitudeM,
+      horizontalSigma: horizontalSigma,
+      verticalSigma: _config.features.adaptiveGnssCovariance
+          ? assessment.verticalSigmaM
+          : fix.verticalAccuracyM,
+    );
+    _record(result);
+    if (result.accepted) {
+      _contribution.decayTo(fix.monotonicUs);
+      _contribution.add('gnss', result.positionVarianceReduction);
+      _endOutage();
+      _anchorBarometer(fix);
+    }
+
+    if (_config.features.gnssVelocity &&
+        assessment.useVelocity &&
+        fix.speedMps != null &&
+        fix.bearingDeg != null) {
+      final bearing = fix.bearingDeg! * NavMath.degToRad;
+      final sigma = assessment.velocitySigmaMps ?? 1.0;
+      final velocityResult = _filter.updateVelocityNed(
+        velocityNed: Vector3(
+          fix.speedMps! * math.cos(bearing),
+          fix.speedMps! * math.sin(bearing),
+          0,
+        ),
+        sigmas: Vector3(sigma, sigma, sigma * 3),
+      );
+      _record(velocityResult);
+      if (velocityResult.accepted) {
+        _contribution.add('gnss', velocityResult.positionVarianceReduction);
+      }
+    }
+
+    // Reacquisition is a real state correction, then a settling window during
+    // which the UI says so (§26).
+    if (wasDeadReckoning && result.accepted) {
+      _reacquiringUntilUs =
+          fix.monotonicUs + const Duration(seconds: 3).inMicroseconds;
+    }
+
+    _updateMode(fix.monotonicUs);
+    return _maybeSnapshot(fix.monotonicUs, force: true);
+  }
+
+  /// Tells the engine GNSS is gone (switched off, permission revoked, tunnel).
+  void onGnssLost(int monotonicUs) {
+    _lastGnssSpeed = null;
+    _startOutage(monotonicUs);
+    _updateMode(monotonicUs);
+  }
+
+  /// Ties the barometer's absolute scale to a GNSS altitude, but only a good
+  /// one: a bad vertical fix would poison every height afterwards.
+  void _anchorBarometer(GnssObservation fix) {
+    final altitude = fix.altitudeM;
+    final pressure = _barometer.last?.pressureHpa;
+    if (altitude == null || pressure == null) return;
+    final vertical = fix.verticalAccuracyM ?? fix.accuracyM * 2;
+    if (vertical > _config.barometer.maxUsableSigmaM) return;
+    _barometer.anchorToGnss(
+      altitudeM: altitude,
+      pressureHpa: pressure,
+      monotonicUs: fix.monotonicUs,
+    );
+  }
+
+  void reset() {
+    _filter.reset();
+    _gnssQuality.reset();
+    _alignmentEstimator.reset();
+    _motion.reset();
+    _timeSync.reset();
+    _matcher.reset();
+    _faults.reset();
+    _barometer.reset();
+    _contribution.reset();
+    _mode = NavMode.boot;
+    _snapshot = null;
+    _transitions.clear();
+    _recentMeasurements.clear();
+    _sequence = 0;
+    _lastImuUs = null;
+    _lastGnssUs = null;
+    _lastGnssSpeed = null;
+    _reacquiringUntilUs = null;
+    _outageStartedUs = null;
+    _outageDistanceM = 0;
+    _lastUnalignedFix = null;
+    _lastMatchUs = 0;
+    _lastSnapshotUs = 0;
+  }
+
+  // ------------------------------------------------------------- internals
+
+  /// GNSS speed for the alignment regression — only while fixes are fresh, and
+  /// never a dead-reckoned value, which would make the fit circular (§6).
+  double? _gnssSpeedForAlignment(int monotonicUs) {
+    final last = _lastGnssUs;
+    if (last == null || _lastGnssSpeed == null) return null;
+    if (monotonicUs - last > _config.gnss.staleAfter.inMicroseconds) {
+      return null;
+    }
+    return _lastGnssSpeed;
+  }
+
+  double? _liveGnssSpeed(int monotonicUs) => _gnssSpeedForAlignment(monotonicUs);
+
+  double? _stepSeconds(int monotonicUs) {
+    final last = _lastImuUs;
+    if (last == null) return null;
+    final dt = (monotonicUs - last) / 1e6;
+    if (dt <= 0) return null;
+    // Cap the prediction rate: predicting faster buys nothing and costs
+    // battery (§31).
+    if (dt < 1 / _config.sensors.maxFusionHz) return null;
+    return dt;
+  }
+
+  /// Nav-frame velocity implied by a fix, when it reports both speed and
+  /// bearing. Starting the filter at zero while the vehicle is already
+  /// moving guarantees the first few fixes look like impossible jumps.
+  Vector3? _velocityFrom(GnssObservation fix) {
+    final speed = fix.speedMps;
+    final bearing = fix.bearingDeg;
+    if (speed == null || bearing == null || speed < 0.5) return null;
+    final rad = bearing * NavMath.degToRad;
+    return Vector3(speed * math.cos(rad), speed * math.sin(rad), 0);
+  }
+
+  Vector3? _levelledGravity() {
+    final up = _alignmentEstimator.upInPhone;
+    final mount = _alignmentEstimator.alignment;
+    if (up == null || mount == null) return null;
+    // Gravity as the *vehicle* frame sees it.
+    return mount.toVehicle(up * NavMath.gravity);
+  }
+
+  void _applyConstraints({
+    required Vector3 gyroVehicle,
+    Vector3? magVehicle,
+  }) {
+    final snapshot = _motion.snapshot;
+
+    final features = _config.features;
+    if (snapshot.isStationary) {
+      if (features.zeroVelocityUpdate) {
+        _recordInertial(_filter.updateZeroVelocity());
+      }
+      if (features.zeroAngularRateUpdate) {
+        _recordInertial(
+            _filter.updateZeroAngularRate(gyroBody: gyroVehicle));
+      }
+    } else if (snapshot.nhcApplicable &&
+        features.nonHolonomicConstraint) {
+      _recordInertial(_filter.updateNonHolonomic(
+        lateralSigma: _motion.nhcLateralSigma,
+      ));
+    }
+
+    // The magnetometer is the only absolute heading reference a phone has
+    // offline, but it is also the easiest to disturb. It is only used when the
+    // calibration actually fitted a hard-iron offset (§29).
+    if (magVehicle != null &&
+        features.magnetometerHeading &&
+        _calibration.magQuality != null) {
+      final quality = _calibration.magQuality!;
+      final sigma = _config.ekf.magYawSigma / math.max(quality, 0.1);
+      _recordInertial(
+          _filter.updateMagnetometer(magBody: magVehicle, sigma: sigma));
+    }
+  }
+
+  /// Records a measurement that came from the inertial side of the system:
+  /// the zero-velocity and non-holonomic constraints, and the magnetometer.
+  /// They are what carries the position between fixes.
+  void _recordInertial(MeasurementResult result) {
+    _record(result);
+    if (result.accepted) {
+      _contribution.add('inertial', result.positionVarianceReduction);
+    }
+  }
+
+  /// Feeds the barometer and, while its altitude is still anchored tightly
+  /// enough to be worth anything, hands it to the filter (§18).
+  ///
+  /// Secondary evidence, never truth: the sigma grows with time since the
+  /// last GNSS altitude, and past `maxUsableSigmaM` the update is simply not
+  /// made rather than made badly.
+  void _updateBarometer(double pressureHpa, int monotonicUs) {
+    final estimate = _barometer.add(
+      pressureHpa: pressureHpa,
+      monotonicUs: monotonicUs,
+    );
+    if (estimate == null || !_filter.isInitialised) return;
+    final altitude = estimate.absoluteAltitudeM;
+    final sigma = estimate.sigmaM;
+    if (altitude == null || sigma == null) return;
+    if (sigma > _config.barometer.maxUsableSigmaM) return;
+    _recordInertial(_filter.updateAltitude(
+      altitudeM: altitude,
+      sigma: sigma,
+    ));
+  }
+
+  /// Matches the fused position to the road network and, when the match is
+  /// strong enough, feeds the road's heading back as a soft measurement.
+  ///
+  /// Heading only. The map never pushes the *position* into the filter
+  /// state: doing so would let a wrong match hide a genuine sensor
+  /// disagreement, which is exactly what §58 forbids. The snapped position
+  /// is published for drawing, alongside the raw one.
+  void _runMapMatch(int monotonicUs) {
+    if (!_matcher.isAvailable) return;
+    final feedHeading = _config.features.mapHeading;
+    // Matching costs a spatial query and a bounded Dijkstra; twice a second
+    // is plenty for something that only changes when the vehicle moves.
+    if (monotonicUs - _lastMatchUs < 500000) return;
+    _lastMatchUs = monotonicUs;
+
+    final state = _filter.state;
+    final sigma = _filter.horizontalPositionSigma;
+    if (state == null || sigma == null) return;
+
+    final result = _matcher.update(
+      lat: state.latitudeDeg,
+      lon: state.longitudeDeg,
+      sigmaM: sigma,
+      headingRad: state.headingDeg * NavMath.degToRad,
+      speedMps: state.groundSpeed,
+    );
+    if (result == null || !result.snapped || !feedHeading) return;
+    if (result.confidence < _config.mapMatch.headingFeedbackMinConfidence) {
+      return;
+    }
+    final heading = result.matchedHeadingRad;
+    if (heading == null) return;
+
+    // A confident match still only constrains heading loosely: roads have
+    // width, lanes curve, and the polyline is a simplification.
+    final sigmaRad = _config.ekf.magYawSigma / result.confidence;
+    final applied = _filter.updateHeading(
+      measuredHeadingRad: heading,
+      sigma: sigmaRad,
+      name: 'map_heading',
+    );
+    _record(applied);
+    if (applied.accepted) {
+      _contribution.add('map', applied.positionVarianceReduction);
+    }
+  }
+
+  void _accumulateOutageDistance(InsState? before, InsState? after) {
+    if (_outageStartedUs == null || before == null || after == null) return;
+    _outageDistanceM += NavMath.horizontalDistance(
+      lat0: before.latitudeDeg,
+      lon0: before.longitudeDeg,
+      lat1: after.latitudeDeg,
+      lon1: after.longitudeDeg,
+    );
+  }
+
+  void _startOutage(int monotonicUs) {
+    if (_outageStartedUs != null) return;
+    _outageStartedUs = monotonicUs;
+    _outageDistanceM = 0;
+  }
+
+  void _endOutage() {
+    _outageStartedUs = null;
+    _outageDistanceM = 0;
+  }
+
+  void _record(MeasurementResult result) {
+    if (result.outcome == MeasurementOutcome.skipped) return;
+    _recentMeasurements.add(result);
+    while (_recentMeasurements.length > _maxRecentMeasurements) {
+      _recentMeasurements.removeAt(0);
+    }
+  }
+
+  void _updateMode(int monotonicUs) {
+    final availability = _timeSync.availability;
+    final sawAccelerometer =
+        _timeSync.statsFor(SensorType.accelerometer).received > 0;
+    if (sawAccelerometer &&
+        (!availability.hasMinimumViableSet ||
+            !_faults.hasMinimumViableSensors)) {
+      _setMode(NavMode.sensorFailure, 'minimum sensor set unavailable',
+          monotonicUs);
+      return;
+    }
+    if (_filter.hasFailed) {
+      _setMode(NavMode.sensorFailure,
+          _filter.failureReason ?? 'filter failed', monotonicUs);
+      return;
+    }
+    if (_alignmentEstimator.alignment == null) {
+      _setMode(NavMode.calibrating, 'awaiting phone-to-vehicle alignment',
+          monotonicUs);
+      return;
+    }
+    if (!_filter.isInitialised) {
+      _setMode(NavMode.gnssSearch, 'no position yet', monotonicUs);
+      return;
+    }
+
+    final reacquiringUntil = _reacquiringUntilUs;
+    if (reacquiringUntil != null && monotonicUs < reacquiringUntil) {
+      _setMode(NavMode.reacquiring, 'settling after a fix returned',
+          monotonicUs);
+      return;
+    }
+    _reacquiringUntilUs = null;
+
+    final lastGnss = _lastGnssUs;
+    final gnssFresh = lastGnss != null &&
+        monotonicUs - lastGnss <= _config.gnss.staleAfter.inMicroseconds;
+    final assessment = _lastAssessment;
+
+    if (!gnssFresh || assessment == null || !assessment.usable) {
+      _startOutage(monotonicUs);
+      final matched = _matcher.last;
+      _setMode(
+        matched != null && matched.snapped
+            ? NavMode.mapAssistedDeadReckoning
+            : NavMode.deadReckoning,
+        !gnssFresh
+            ? 'no fix within ${_config.gnss.staleAfter.inSeconds}s'
+            : 'fix rejected: ${assessment?.reason.name ?? 'unknown'}',
+        monotonicUs,
+      );
+      return;
+    }
+
+    if (assessment.integrity == GnssIntegrity.anomaly ||
+        assessment.integrity == GnssIntegrity.unreliable) {
+      _setMode(NavMode.gnssUnreliable, assessment.integrity.label,
+          monotonicUs);
+      return;
+    }
+    if (assessment.quality == GnssQualityClass.degraded ||
+        assessment.quality == GnssQualityClass.poor) {
+      _setMode(NavMode.gnssDegraded,
+          'fix quality ${assessment.quality.name}', monotonicUs);
+      return;
+    }
+    // A faulted non-critical sensor degrades a feature, not the position, but
+    // the driver is told rather than left to guess (§29).
+    final faulted = _faults.faultedSensors;
+    if (faulted.isNotEmpty) {
+      _setMode(
+        NavMode.sensorDegraded,
+        '${faulted.map((s) => s.label).join(', ')} unusable',
+        monotonicUs,
+      );
+      return;
+    }
+    _setMode(NavMode.gnssLocked, 'healthy fix stream', monotonicUs);
+  }
+
+  void _setMode(NavMode next, String reason, int monotonicUs) {
+    if (_mode == next) return;
+    _transitions.add(ModeTransition(
+      from: _mode,
+      to: next,
+      reason: reason,
+      monotonicUs: monotonicUs,
+    ));
+    while (_transitions.length > _maxTransitions) {
+      _transitions.removeAt(0);
+    }
+    _mode = next;
+  }
+
+  NavIntegrity _integrity() {
+    if (_filter.hasFailed) return NavIntegrity.invalid;
+    if (!_filter.isInitialised) return NavIntegrity.invalid;
+    final sigma = _filter.horizontalPositionSigma;
+    if (sigma == null || !sigma.isFinite) return NavIntegrity.invalid;
+    if (sigma > _config.ekf.maxPositionSigma) return NavIntegrity.invalid;
+
+    if (_motion.snapshot.state == VehicleState.sensorAnomaly) {
+      return NavIntegrity.low;
+    }
+    final gnssAnomaly =
+        _lastAssessment?.integrity == GnssIntegrity.anomaly;
+    if (gnssAnomaly) return NavIntegrity.low;
+
+    // A mount that has not converged means the body frame — and therefore the
+    // direction of travel — is only approximate, however tight the covariance.
+    if (!_alignmentEstimator.isConverged) return NavIntegrity.medium;
+
+    if (sigma > 60) return NavIntegrity.low;
+    if (sigma > 20) return NavIntegrity.medium;
+    return NavIntegrity.high;
+  }
+
+  NavigationSnapshot? _maybeSnapshot(int monotonicUs, {required bool force}) {
+    final minInterval = 1000000 ~/ _config.power.uiHz;
+    if (!force && monotonicUs - _lastSnapshotUs < minInterval) return null;
+    _lastSnapshotUs = monotonicUs;
+
+    final state = _filter.state;
+    final unaligned = state == null ? _lastUnalignedFix : null;
+    final notes = <String>[];
+    if (_alignmentEstimator.alignment == null) {
+      notes.add('Phone-to-vehicle alignment not established');
+    } else if (!_alignmentEstimator.isConverged) {
+      notes.add('Mount alignment still converging');
+    }
+    if (_calibration.isEmpty) {
+      notes.add('Sensors not calibrated');
+    } else if (_calibration.isStale(
+      nowMs: DateTime.fromMicrosecondsSinceEpoch(monotonicUs)
+          .millisecondsSinceEpoch,
+      temperatureC: _lastTemperatureC,
+      config: _config,
+    )) {
+      notes.add('Stored calibration is stale; re-calibrate');
+    }
+    final assessment = _lastAssessment;
+    if (assessment != null) notes.addAll(assessment.notes);
+    for (final diagnosis in _faults.diagnoses.values) {
+      if (diagnosis.samples > 0 && !diagnosis.usable) {
+        notes.add('${diagnosis.type.label}: ${diagnosis.fault.label}');
+      }
+    }
+
+    _snapshot = NavigationSnapshot(
+      sequence: ++_sequence,
+      monotonicUs: monotonicUs,
+      mode: _mode,
+      integrity: _integrity(),
+      latitude: state?.latitudeDeg ?? unaligned?.latitudeDeg,
+      longitude: state?.longitudeDeg ?? unaligned?.longitudeDeg,
+      altitude: state?.altitudeM ?? unaligned?.altitudeM,
+      speedMps: state?.groundSpeed ?? unaligned?.speedMps,
+      headingDeg: state?.headingDeg ?? unaligned?.bearingDeg,
+      horizontalSigmaM: _filter.horizontalPositionSigma,
+      verticalSigmaM: _filter.verticalPositionSigma,
+      speedSigmaMps: _filter.speedSigma,
+      headingSigmaDeg: _filter.headingSigmaDeg,
+      gnss: assessment,
+      motion: _motion.snapshot,
+      sensorStats: _timeSync.stats,
+      sensorFaults: _faults.diagnoses,
+      barometer: _barometer.last,
+      alignmentConfidence: _alignmentEstimator.alignment?.confidence,
+      calibrationQuality: _calibration.gyroBiasQuality,
+      contribution: _contribution.snapshot,
+      // Both stay unavailable until their subsystems genuinely exist (§83).
+      ai: _config.ai.enabled
+          ? const SubsystemHealth(
+              available: false,
+              source: DataSource.unavailable,
+              detail: 'Model not loaded',
+            )
+          : const SubsystemHealth(
+              available: false,
+              source: DataSource.unavailable,
+              detail: 'Neural velocity disabled',
+            ),
+      mapMatch: _mapHealth(),
+      mapMatchResult: _matcher.last,
+      outageDuration: _outageStartedUs == null
+          ? Duration.zero
+          : Duration(microseconds: monotonicUs - _outageStartedUs!),
+      outageDistanceM: _outageDistanceM,
+      positionSource: state == null
+          ? (unaligned == null
+              ? DataSource.unavailable
+              : DataSource.real)
+          : (_mode.isDeadReckoning
+              ? DataSource.estimated
+              : DataSource.real),
+      notes: notes,
+    );
+    return _snapshot;
+  }
+
+  SubsystemHealth _mapHealth() {
+    if (!_matcher.isAvailable) {
+      return const SubsystemHealth(
+        available: false,
+        source: DataSource.unavailable,
+        detail: 'No road graph',
+      );
+    }
+    final result = _matcher.last;
+    if (result == null) {
+      return const SubsystemHealth(
+        available: true,
+        source: DataSource.real,
+        detail: 'Waiting for a position to match',
+      );
+    }
+    return SubsystemHealth(
+      available: true,
+      source: DataSource.real,
+      score: result.snapped ? result.confidence : null,
+      detail: result.reason,
+    );
+  }
+
+  static bool _finite(Vector3 v) =>
+      v.x.isFinite && v.y.isFinite && v.z.isFinite;
+}

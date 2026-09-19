@@ -119,16 +119,18 @@ class _NavigationMapState extends State<NavigationMap> {
                     ),
                   ),
                   children: [
-                    TileLayer(
-                      // Placeholder only: BundledOfflineTileProvider ignores it.
-                      urlTemplate: 'https://tiles.invalid/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'GatiSaarth',
-                      tileProvider: _tileProvider,
-                      minNativeZoom: 11,
-                      maxNativeZoom: 16,
-                      minZoom: 10.0,
-                      maxZoom: 18.0,
-                      errorTileCallback: (tile, error, stackTrace) {},
+                    _DarkMapFilter(
+                      child: TileLayer(
+                        // Placeholder only: BundledOfflineTileProvider ignores it.
+                        urlTemplate: 'https://tiles.invalid/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'GatiSaarth',
+                        tileProvider: _tileProvider,
+                        minNativeZoom: 11,
+                        maxNativeZoom: 16,
+                        minZoom: 10.0,
+                        maxZoom: 18.0,
+                        errorTileCallback: (tile, error, stackTrace) {},
+                      ),
                     ),
                     MarkerLayer(
                       markers: [
@@ -278,5 +280,31 @@ class _FrostedPill extends StatelessWidget {
       ),
       child: child,
     );
+  }
+}
+
+/// Turns the bundled daylight OSM raster into a dark-mode map.
+///
+/// The tiles ship as one light set, so dark mode inverts them and pulls the
+/// saturation and brightness down — the usual treatment for raster basemaps,
+/// and far smaller than shipping a second tile pyramid. In light mode the
+/// child is returned untouched, so there is no filter layer to composite.
+class _DarkMapFilter extends StatelessWidget {
+  const _DarkMapFilter({required this.child});
+
+  final Widget child;
+
+  /// invert -> desaturate (45%) -> scale brightness to 88%.
+  static const ColorFilter _dark = ColorFilter.matrix(<double>[
+    -0.4989, -0.3462, -0.0349, 0, 224.4, //
+    -0.1029, -0.7422, -0.0349, 0, 224.4, //
+    -0.1029, -0.3462, -0.4309, 0, 224.4, //
+    0, 0, 0, 1, 0, //
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    if (!AppColors.isDark) return child;
+    return ColorFiltered(colorFilter: _dark, child: child);
   }
 }

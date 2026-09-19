@@ -13,7 +13,7 @@ class CustomCompass extends StatelessWidget {
       children: [
         Text(
           '${heading.round()}°',
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 32,
             fontWeight: FontWeight.w700,

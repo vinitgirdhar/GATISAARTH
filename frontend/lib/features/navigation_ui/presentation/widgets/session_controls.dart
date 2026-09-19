@@ -128,7 +128,7 @@ class SessionControls extends StatelessWidget {
                 child: Text(
                   label,
                   maxLines: 1,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

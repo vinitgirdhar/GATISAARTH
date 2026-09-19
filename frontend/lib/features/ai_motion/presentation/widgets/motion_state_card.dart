@@ -13,7 +13,7 @@ class MotionStateCard extends StatelessWidget {
         borderRadius: AppRadius.cardRadius,
         boxShadow: AppShadow.card,
       ),
-      child: const Text(
+      child: Text(
         'AI motion state',
         style: TextStyle(
           color: AppColors.textPrimary,

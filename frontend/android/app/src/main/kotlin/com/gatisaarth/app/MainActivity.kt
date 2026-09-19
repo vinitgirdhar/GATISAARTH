@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -28,6 +29,22 @@ class MainActivity: FlutterActivity() {
                     val durationMs = (call.argument<Int>("durationMs") ?: 200).toLong().coerceIn(1L, 2000L)
                     val amplitude = call.argument<Int>("amplitude") ?: VibrationEffect.DEFAULT_AMPLITUDE
                     vibratePhone(durationMs, amplitude)
+                    result.success(true)
+                }
+                "setKeepScreenOn" -> {
+                    // A recorded drive dies at screen timeout: Flutter reports
+                    // AppLifecycleState.paused and the session stops sensors and
+                    // GPS by design. Holding the window flag is the least
+                    // invasive fix -- no wake lock permission, no foreground
+                    // service, and it is released the moment recording stops.
+                    val on = call.argument<Boolean>("on") ?: false
+                    runOnUiThread {
+                        if (on) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
                     result.success(true)
                 }
                 else -> {

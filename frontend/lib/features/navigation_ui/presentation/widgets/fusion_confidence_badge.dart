@@ -39,7 +39,9 @@ class FusionConfidenceBadge extends StatelessWidget {
           : 'Position confidence $percent percent, margin ${margin?.round()} metres',
       excludeSemantics: true,
       child: Container(
-        width: 96,
+        // 68 for the ring plus its 12pt gutters — any wider and the app
+        // subtitle beside it loses its single line on a 411 dp phone.
+        width: 92,
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -74,13 +76,13 @@ class FusionConfidenceBadge extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: percent,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        const TextSpan(
+                        TextSpan(
                           text: '%',
                           style: TextStyle(
                             fontSize: 11,
@@ -95,7 +97,11 @@ class FusionConfidenceBadge extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text('Confidence', style: Theme.of(context).textTheme.labelSmall),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('Confidence',
+                  style: Theme.of(context).textTheme.labelSmall),
+            ),
             const SizedBox(height: 2),
             FittedBox(
               fit: BoxFit.scaleDown,

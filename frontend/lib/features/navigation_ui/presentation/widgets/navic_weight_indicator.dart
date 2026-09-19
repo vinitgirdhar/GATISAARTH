@@ -24,7 +24,7 @@ class NavicWeightIndicator extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'NavIC fusion weight',
                 style: TextStyle(
                     color: AppColors.textPrimary,
@@ -53,7 +53,7 @@ class NavicWeightIndicator extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Primary position fix priority assigned to NavIC S-band & L5 signals.',
             style: TextStyle(color: AppColors.textMuted, fontSize: 11),
           ),

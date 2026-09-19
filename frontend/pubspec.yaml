@@ -19,6 +19,9 @@ dependencies:
   shared_preferences: ^2.3.3
   latlong2: ^0.9.1
   path_provider: ^2.1.0
+  # Bundled with Flutter already (transitive); declared so the navigation core
+  # can use its Quaternion/Matrix3 instead of hand-rolled rotation maths.
+  vector_math: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -26,16 +29,17 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   flutter_native_splash: ^2.4.3
 
+# The OS splash is only a bridge into the in-app boot screen, so it uses that
+# screen's background in both brightnesses and shows no wordmark — the
+# branding lock-up is drawn by BootScreen with the right typography.
 flutter_native_splash:
-  color: "#F2F2F7"
-  color_dark: "#000000"
-  image: assets/icons/logo.png
+  color: "#050A14"
+  color_dark: "#050A14"
+  image: assets/icons/logo_mark.png
   android_12:
     image: assets/icons/logo_mark.png
-    icon_background_color: "#F2F2F7"
-    icon_background_color_dark: "#000000"
-    branding: assets/icons/wordmark.png
-    branding_mode: bottom
+    icon_background_color: "#050A14"
+    icon_background_color_dark: "#050A14"
 
 flutter:
   uses-material-design: true
@@ -82,6 +86,7 @@ flutter:
     - assets/maps/tiles/16/46823/
     - assets/maps/tiles/16/46824/
     - assets/icons/
+    - assets/images/
     - assets/config/
   fonts:
     - family: .SF Pro Text

@@ -9,6 +9,7 @@ import '../controllers/live_session_controller.dart';
 import '../controllers/live_session_scope.dart';
 import '../widgets/ai_inference_panel.dart';
 import '../widgets/dashboard_header.dart';
+import '../widgets/engine_status_card.dart';
 import '../widgets/fusion_confidence_badge.dart';
 import '../widgets/location_status_banner.dart';
 import '../widgets/navic_weight_indicator.dart';
@@ -48,9 +49,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: ListView(
+          // No top inset: the title sits directly under the status bar so
+          // the screen does not open on a band of empty background.
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.md,
-            AppSpacing.md,
+            AppSpacing.xs,
             AppSpacing.md,
             AppSpacing.xl,
           ),
@@ -99,6 +102,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SectionHeader(
+                    title: 'Navigation core',
+                    subtitle:
+                        'The filter takes over once it knows how the phone sits '
+                        'in the vehicle',
+                  ),
+                  EngineStatusCard(
+                    snapshot: session.navSnapshot,
+                    isLeading: session.isEngineLeading,
+                    blocker: session.engineHandoverBlocker,
+                    isRecording: session.isRecording,
+                    recordedDuration: session.recordedDuration,
+                    recordedLines: session.recordedLines,
+                    recordingError: session.recordingError,
+                    onStartRecording: () async {
+                      final path = await session.startRecording();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(path == null
+                              ? 'Could not start recording — storage unavailable'
+                              : 'Recording this drive. The screen stays on.'),
+                          backgroundColor:
+                              path == null ? AppColors.error : AppColors.cyan,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    },
+                    onStopRecording: () async {
+                      final file = await session.stopRecording();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(file == null
+                              ? 'Recording stopped'
+                              : 'Saved ${file.name} '
+                                  '(${file.sizeMb.toStringAsFixed(1)} MB)'),
+                          backgroundColor: AppColors.healthy,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    },
+                    onMarkEvent: () {
+                      session.markEvent('driver marker');
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Marked this moment in the log'),
+                          backgroundColor: AppColors.cyan,
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.md),
                   const SectionHeader(
                     title: 'Scenarios',
                     subtitle: 'Simulate GNSS loss to see dead reckoning take over',

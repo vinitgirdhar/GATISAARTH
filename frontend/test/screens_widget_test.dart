@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' show LocationPermission;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gatisaarth/app_widget.dart';
+import 'package:gatisaarth/core/router/app_router.dart';
 import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart';
 import 'package:gatisaarth/core/platform/location/live_location_service.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/controllers/live_session_controller.dart';
@@ -52,7 +53,11 @@ void _phone(WidgetTester tester, Size logical) {
 }
 
 Future<void> _pumpApp(WidgetTester tester, _Harness h) async {
-  await tester.pumpWidget(GatiSaarthApp(session: h.controller));
+  // Straight to the dashboard: the boot sequence has its own test.
+  await tester.pumpWidget(GatiSaarthApp(
+    session: h.controller,
+    initialRoute: AppRoutes.dashboard,
+  ));
   await tester.pump();
   await tester.pump(const Duration(seconds: 2));
   h.controller.tick(); // autoTick is off in tests; production ticks at 10 Hz
@@ -222,7 +227,11 @@ void main() {
 
     final h = _Harness();
     _phone(tester, const Size(360, 740));
-    await tester.pumpWidget(GatiSaarthApp(session: h.controller));
+    // Straight to the dashboard: the boot sequence has its own test.
+  await tester.pumpWidget(GatiSaarthApp(
+    session: h.controller,
+    initialRoute: AppRoutes.dashboard,
+  ));
     await tester.pump();
 
     final fade = tester.widget<FadeTransition>(

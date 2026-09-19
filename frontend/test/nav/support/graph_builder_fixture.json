@@ -1,0 +1,89 @@
+{
+  "region": "fixture",
+  "version": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "lat": 28.6,
+      "lon": 77.2
+    },
+    {
+      "id": 2,
+      "lat": 28.6045,
+      "lon": 77.2
+    },
+    {
+      "id": 3,
+      "lat": 28.609,
+      "lon": 77.2
+    },
+    {
+      "id": 4,
+      "lat": 28.6045,
+      "lon": 77.2051
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "from": 1,
+      "to": 2,
+      "polyline": [
+        28.6,
+        77.2,
+        28.6045,
+        77.2
+      ],
+      "class": "primary",
+      "oneWay": false,
+      "tunnel": true,
+      "bridge": false,
+      "access": [
+        "cars",
+        "twoWheelers"
+      ],
+      "maxSpeedMps": 16.67,
+      "name": "North Road"
+    },
+    {
+      "id": 2,
+      "from": 2,
+      "to": 3,
+      "polyline": [
+        28.6045,
+        77.2,
+        28.609,
+        77.2
+      ],
+      "class": "primary",
+      "oneWay": false,
+      "tunnel": true,
+      "bridge": false,
+      "access": [
+        "cars",
+        "twoWheelers"
+      ],
+      "maxSpeedMps": 16.67,
+      "name": "North Road"
+    },
+    {
+      "id": 3,
+      "from": 2,
+      "to": 4,
+      "polyline": [
+        28.6045,
+        77.2,
+        28.6045,
+        77.2051
+      ],
+      "class": "residential",
+      "oneWay": true,
+      "tunnel": false,
+      "bridge": false,
+      "access": [
+        "twoWheelers"
+      ],
+      "name": "Bike Lane"
+    }
+  ]
+}

@@ -42,6 +42,11 @@ class FakeHardware implements DeviceHardware {
   @override
   Future<void> triggerRoadAnomalyVibration(bool isPothole) async =>
       anomalyVibrations++;
+
+  bool keepScreenOn = false;
+
+  @override
+  Future<void> setKeepScreenOn(bool on) async => keepScreenOn = on;
 }
 
 class FakeSpeed implements SpeedEstimator {

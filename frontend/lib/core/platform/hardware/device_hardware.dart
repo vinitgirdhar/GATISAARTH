@@ -11,4 +11,11 @@ abstract class DeviceHardware {
   Future<void> vibrate({int durationMs = 200, int amplitude = 255});
   Future<void> triggerOutageAlarmVibration();
   Future<void> triggerRoadAnomalyVibration(bool isPothole);
+
+  /// Holds the screen awake, or releases it.
+  ///
+  /// Needed because the app stops sensors and GPS when it is backgrounded, and
+  /// a screen timeout backgrounds it — so a recorded drive would simply stop
+  /// partway. Only held while something actually needs it.
+  Future<void> setKeepScreenOn(bool on);
 }

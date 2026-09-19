@@ -4,6 +4,16 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/nav/gnss/gnss_quality.dart';
+import '../../../../core/nav/math/nav_math.dart' show Vector3;
+import '../../../../core/nav/model/nav_snapshot.dart';
+import '../../../../core/nav/motion/motion_classifier.dart'
+    show VehicleClass;
+import '../../../../core/nav/navigation_engine.dart';
+import '../../../../core/nav/replay/drive_log.dart';
+import '../../../../core/nav/replay/drive_recorder.dart';
+import '../../../../core/nav/sensors/sensor_sample.dart';
+import '../../../../core/platform/storage/drive_log_store.dart';
 import '../../../../core/platform/hardware/device_hardware.dart';
 import '../../../../core/platform/hardware/sensor_api.dart';
 import '../../../../core/platform/hardware/vehicle_alignment_engine.dart';
@@ -65,13 +75,15 @@ class LiveSessionController extends ChangeNotifier {
     required this.location,
     DateTime Function()? clock,
     bool autoTick = true,
+    DriveLogSink? logStore,
   })  : _sensors = sensors,
         _alignment = alignment,
         _hardware = hardware,
         _ml = speedEstimator,
         _telemetry = telemetry,
         _clock = clock ?? DateTime.now,
-        _autoTick = autoTick;
+        _autoTick = autoTick,
+        _logStore = logStore ?? DriveLogStore();
 
   final HardwareSensorInterface _sensors;
   final VehicleAlignmentEngine _alignment;
@@ -138,6 +150,46 @@ class LiveSessionController extends ChangeNotifier {
   final OutageTracker _outage = OutageTracker();
   final List<AnomalyEventModel> _anomalies = [];
 
+  /// The new navigation core (`lib/core/nav/`), running alongside the
+  /// pipeline above rather than replacing it.
+  ///
+  /// It is fed the same sensors and fixes and produces its own estimate,
+  /// but **nothing on screen comes from it yet**. The migration plan
+  /// (docs/architecture/EVOLUTION_PLAN.md, step 0.10) hands the position
+  /// over only once a replay of a recorded drive shows it beating the
+  /// heuristic on real phone data — simulation is not that evidence.
+  final NavigationEngine _engine = NavigationEngine();
+  NavigationSnapshot? _navSnapshot;
+  int _engineFeedCount = 0;
+  int _engineMicrosTotal = 0;
+  int _engineMicrosPeak = 0;
+  int _appliedEngineFixCount = 0;
+
+  /// The newest IMU event handed to the core, and when it was handed over.
+  ///
+  /// The core integrates against one monotonic timeline. `sensors_plus`
+  /// timestamps come from the platform sensor event (device uptime) while
+  /// `DateTime.now()` is epoch, so a GNSS fix has to be translated into the
+  /// sensor's base — mixing them left the core comparing 1e8 against 1.8e15,
+  /// and the mount alignment could never converge.
+  ///
+  /// Stamping a fix with the newest IMU timestamp *alone* is not enough either:
+  /// when frames queue up (a GC pause, a resume, a slow frame) several fixes
+  /// inherit nearly the same timestamp, their apparent spacing collapses to
+  /// milliseconds, and the GNSS quality engine rightly rejects them all as
+  /// impossible jumps. Adding the wall time elapsed since that sample restores
+  /// the real spacing, and needs no long-lived offset estimate that a clock
+  /// step could latch wrong.
+  int? _lastEngineImuUs;
+  DateTime? _lastEngineImuAt;
+
+  /// Drive recording (§36). Off unless the driver starts it: a drive log is
+  /// a complete record of where they went, so it is opt-in, local-only, and
+  /// deletable (§48).
+  final DriveLogSink _logStore;
+  DriveRecorder? _recorder;
+  String? _recordingPath;
+
   // ---------------------------------------------------------------- lifecycle
 
   Future<void> start() async {
@@ -195,6 +247,8 @@ class LiveSessionController extends ChangeNotifier {
     _hardware.stop();
     location.removeListener(_onLocationChanged);
     location.dispose();
+    // A half-written log is still worth keeping; close it properly.
+    unawaited(stopRecording());
     unawaited(_telemetry.stop());
     super.dispose();
   }
@@ -217,6 +271,9 @@ class LiveSessionController extends ChangeNotifier {
   void setVehicleProfile(VehicleProfile profile) {
     _vehicleProfile = profile;
     _alignment.vehicleProfile = profile;
+    _engine.vehicleClass = profile == VehicleProfile.twoWheeler
+        ? VehicleClass.twoWheeler
+        : VehicleClass.car;
     _touch();
   }
 
@@ -263,6 +320,9 @@ class LiveSessionController extends ChangeNotifier {
     final now = _clock();
     location.checkStaleness();
     _syncOutage(now);
+    // The core's answer replaces the heuristic one before the marker is
+    // eased, so the map draws the filtered position, not the raw fix.
+    _applyEngineSolution();
     _easePosition(now);
     if (_dirty) _touch();
   }
@@ -323,6 +383,7 @@ class LiveSessionController extends ChangeNotifier {
 
     _advanceMotion(_feedModel(nhc, gx, gy, gz, dt), dt, now);
     _detectAnomaly(netAccel, now);
+    _feedEngineImu(v, t);
 
     final last = _lastImuNotifyAt;
     if (_drActive || last == null || now.difference(last) >= _imuNotifyEvery) {
@@ -387,6 +448,11 @@ class LiveSessionController extends ChangeNotifier {
     _syncOutage(now);
     final bool mlReady = mlSpeed != null && _mlFrames >= _mlWarmFrames;
 
+    // Once the core leads, its strapdown INS and EKF own the propagation.
+    // Running the old speed-times-heading integration as well would move the
+    // marker twice.
+    if (isEngineLeading) return;
+
     if (_drActive) {
       // Zero-velocity update + AI dead reckoning. Until the model has a full
       // window, keep the last GNSS speed rather than snapping to zero.
@@ -431,7 +497,11 @@ class LiveSessionController extends ChangeNotifier {
     if (!starting) return;
 
     final missed = _speed * gap.inMilliseconds / 1000;
-    if (gap <= _maxCatchUp) {
+    if (isEngineLeading) {
+      // The core backdates its own outage from the fix timestamps; adding
+      // the missed travel here as well would double-count it.
+      _outage.addDistance(missed);
+    } else if (gap <= _maxCatchUp) {
       _integrate(missed);
     } else {
       _outage.addDistance(missed);
@@ -464,6 +534,223 @@ class LiveSessionController extends ChangeNotifier {
     );
     if (_anomalies.length > 5) _anomalies.removeLast();
     unawaited(_hardware.triggerRoadAnomalyVibration(isPothole));
+  }
+
+  // --------------------------------------------------------- handover
+
+  /// True when the navigation core's solution leads the position the driver
+  /// sees, instead of the heuristic pipeline above.
+  ///
+  /// Every condition here is a reason the core could be *worse* than the
+  /// heuristic, so it hands back rather than degrading the app:
+  ///
+  /// * no position yet, or the mount transform has not converged — without
+  ///   knowing which way the phone points in the car, the core cannot
+  ///   dead-reckon at all, and this is the reason it takes a couple of
+  ///   minutes of accelerating and braking before it takes over;
+  /// * integrity INVALID, or the filter reported a numerical failure;
+  /// * the minimum sensor set is gone.
+  ///
+  /// The consequence is the safety property worth stating plainly: the app
+  /// can never be worse than it was before the core existed, because the
+  /// core only ever takes over when it is demonstrably healthy.
+  bool get isEngineLeading {
+    final snapshot = _navSnapshot;
+    if (snapshot == null || !snapshot.hasPosition) return false;
+    if (snapshot.mode == NavMode.sensorFailure) return false;
+    if (snapshot.integrity == NavIntegrity.invalid) return false;
+    if (!snapshot.isMountCalibrated) return false;
+    final sigma = snapshot.horizontalSigmaM;
+    if (sigma == null || !sigma.isFinite) return false;
+    return true;
+  }
+
+  /// Why the core is not leading yet, for the UI to show instead of leaving
+  /// the driver guessing. Null once it is leading.
+  String? get engineHandoverBlocker {
+    if (isEngineLeading) return null;
+    final snapshot = _navSnapshot;
+    if (snapshot == null) return 'Navigation core starting';
+    if (snapshot.mode == NavMode.sensorFailure) return 'Sensor failure';
+    if (!snapshot.hasPosition) return 'Waiting for a first fix';
+    if (!snapshot.isMountCalibrated) {
+      final confidence = snapshot.alignmentConfidence;
+      return confidence == null
+          ? 'Calibrating the mount: drive straight, speed up and slow down'
+          : 'Calibrating the mount '
+              '(${(confidence * 100).round()} %)';
+    }
+    if (snapshot.integrity == NavIntegrity.invalid) {
+      return 'Navigation integrity too low';
+    }
+    return 'Navigation core not ready';
+  }
+
+  /// Copies the core's solution into the position the UI draws.
+  ///
+  /// Deliberately writes the *same* fields the heuristic pipeline uses, so
+  /// every screen, the map easing, telemetry and the last-position cache all
+  /// keep working untouched. Nothing in the UI knows the source changed.
+  void _applyEngineSolution() {
+    if (!isEngineLeading) return;
+    final snapshot = _navSnapshot!;
+    _targetLat = snapshot.latitude!;
+    _targetLon = snapshot.longitude!;
+    final speed = snapshot.speedMps;
+    if (speed != null && speed.isFinite) {
+      _speed = speed < _stationarySpeed ? 0 : speed;
+    }
+    final heading = snapshot.headingDeg;
+    if (heading != null && heading.isFinite) _heading = heading;
+    final altitude = snapshot.altitude;
+    if (altitude != null && altitude.isFinite) _altitude = altitude;
+    _positionSeeded = true;
+    _dirty = true;
+  }
+
+  // -------------------------------------------------------- recording
+
+  bool get isRecording => _recorder?.isRecording ?? false;
+  String? get recordingPath => _recordingPath;
+  int get recordedLines => _recorder?.recordCount ?? 0;
+  Duration get recordedDuration => _recorder?.duration ?? Duration.zero;
+
+  /// Recording error, or null. Surfaced rather than swallowed: a driver
+  /// who believes a drive was recorded and finds it was not has lost it.
+  Object? get recordingError => _logStore.lastError;
+
+  /// Starts recording this drive to the app's private storage.
+  ///
+  /// Returns the file path, or null when storage was unavailable. Nothing
+  /// is uploaded and nothing starts on its own (§48).
+  Future<String?> startRecording({
+    String? mountDescription,
+    String? roadType,
+    String? notes,
+  }) async {
+    if (isRecording || _disposed) return _recordingPath;
+    final startedAt = _clock();
+    final sessionId = 'drive-${startedAt.toIso8601String().replaceAll(RegExp(r'[^0-9A-Za-z]'), '')}';
+    final path = await _logStore.open(sessionId);
+    if (path == null) return null;
+
+    final recorder = DriveRecorder(sink: _logStore.write);
+    recorder.start(DriveMeta(
+      sessionId: sessionId,
+      startedAtMs: startedAt.millisecondsSinceEpoch,
+      vehicle: _vehicleProfile.name,
+      mountDescription: mountDescription,
+      roadType: roadType,
+      notes: notes,
+      configVersion: _engine.config.version,
+    ));
+    _recorder = recorder;
+    _recordingPath = path;
+    // Without this the drive ends at the screen timeout: backgrounding stops
+    // the sensors, by design.
+    unawaited(_hardware.setKeepScreenOn(true));
+    _touch();
+    return path;
+  }
+
+  /// Stops recording and closes the file.
+  Future<DriveLogFile?> stopRecording() async {
+    final recorder = _recorder;
+    if (recorder == null) return null;
+    recorder.stop();
+    _recorder = null;
+    _recordingPath = null;
+    unawaited(_hardware.setKeepScreenOn(false));
+    final file = await _logStore.close();
+    if (!_disposed) _touch();
+    return file;
+  }
+
+  /// Labels the moment: tunnel entry, pothole, whatever the driver taps
+  /// (§42 event labels). Ignored when not recording.
+  void markEvent(String label) {
+    final us = _engineNowUs;
+    if (us == null) return;
+    _recorder?.recordMarker(monotonicUs: us, label: label);
+  }
+
+  // ---------------------------------------------------------- nav core
+
+  /// Feeds one raw sensor frame to the navigation core.
+  ///
+  /// Deliberately raw and in the **phone** frame: the core does its own
+  /// calibration and works out the phone-to-vehicle transform itself, which
+  /// is the whole point of it (the pipeline above can only do pitch/roll).
+  void _feedEngineImu(List<double> v, double tSeconds) {
+    final stopwatch = Stopwatch()..start();
+    try {
+      final hasMag = v.length >= 10 && !(v[7] == 0 && v[8] == 0 && v[9] == 0);
+      final us = (tSeconds * 1e6).round();
+      _lastEngineImuUs = us;
+      _lastEngineImuAt = _clock();
+      _recorder?.recordImu(
+        monotonicUs: us,
+        accel: Vector3(v[0], v[1], v[2]),
+        gyro: Vector3(v[3], v[4], v[5]),
+        mag: hasMag ? Vector3(v[7], v[8], v[9]) : null,
+        pressureHpa: v.length > 10 && !v[10].isNaN ? v[10] : null,
+        temperatureC: _hardware.currentTemperature,
+      );
+      final snapshot = _engine.onImu(
+        accelPhone: Vector3(v[0], v[1], v[2]),
+        gyroPhone: Vector3(v[3], v[4], v[5]),
+        monotonicUs: us,
+        magPhone: hasMag ? Vector3(v[7], v[8], v[9]) : null,
+        pressureHpa: v.length > 10 && !v[10].isNaN ? v[10] : null,
+        temperatureC: _hardware.currentTemperature,
+      );
+      if (snapshot != null) _navSnapshot = snapshot;
+    } catch (e) {
+      // The core must never be able to take the app down with it while it
+      // is still a passenger.
+      debugPrint('[NavigationEngine] IMU feed failed: $e');
+    }
+    stopwatch.stop();
+    _engineFeedCount++;
+    _engineMicrosTotal += stopwatch.elapsedMicroseconds;
+    if (stopwatch.elapsedMicroseconds > _engineMicrosPeak) {
+      _engineMicrosPeak = stopwatch.elapsedMicroseconds;
+    }
+  }
+
+  /// Now, on the sensor timeline: the newest IMU sample plus the wall time
+  /// that has passed since it arrived. Null before the first sample.
+  int? get _engineNowUs {
+    final us = _lastEngineImuUs;
+    final at = _lastEngineImuAt;
+    if (us == null || at == null) return null;
+    final elapsed = _clock().difference(at).inMicroseconds;
+    return us + (elapsed > 0 ? elapsed : 0);
+  }
+
+  void _feedEngineFix(GnssFix fix) {
+    // On the sensor timeline, but spaced by the wall clock: see the note on
+    // [_clockOffsetUs]. Before the first IMU sample there is no shared
+    // timeline, and the core could not use the fix for anything anyway.
+    final us = _engineNowUs;
+    if (us == null) return;
+    try {
+      final observation = GnssObservation(
+        latitudeDeg: fix.latitude,
+        longitudeDeg: fix.longitude,
+        accuracyM: fix.accuracy,
+        monotonicUs: us,
+        altitudeM: fix.altitude == 0 ? null : fix.altitude,
+        speedMps: fix.speed,
+        isMocked: fix.isMocked,
+      );
+      _recorder?.recordGnss(observation);
+      final snapshot = _engine.onGnss(observation);
+      if (snapshot != null) _navSnapshot = snapshot;
+      _appliedEngineFixCount++;
+    } catch (e) {
+      debugPrint('[NavigationEngine] fix feed failed: $e');
+    }
   }
 
   static String _vibrationLevelFor(double rms) {
@@ -499,14 +786,22 @@ class LiveSessionController extends ChangeNotifier {
   }
 
   void _applyFix(GnssFix fix) {
-    _targetLat = fix.latitude;
-    _targetLon = fix.longitude;
-    _altitude = fix.altitude;
+    _feedEngineFix(fix);
     _accuracy = fix.accuracy;
-    _speed = fix.speed < 0.5 ? 0 : fix.speed;
     _stillSeconds = 0;
     _positionSeeded = true;
     _maybeCache(fix);
+
+    // While the core leads, a raw fix is a *measurement*, not the answer:
+    // the filter has already gated it and folded in what survived. Writing
+    // it straight to the marker here is exactly the teleport-on-one-bad-fix
+    // behaviour the gate exists to prevent.
+    if (isEngineLeading) return;
+
+    _targetLat = fix.latitude;
+    _targetLon = fix.longitude;
+    _altitude = fix.altitude;
+    _speed = fix.speed < 0.5 ? 0 : fix.speed;
   }
 
   void _seedFromLastKnown() {
@@ -606,8 +901,21 @@ class LiveSessionController extends ChangeNotifier {
       _lastSampleAt != null &&
       _clock().difference(_lastSampleAt!) < _sensorFresh;
 
-  Duration get outageElapsed => _outage.elapsed(_clock());
-  double get outageDistanceMeters => _outage.distanceMeters;
+  Duration get outageElapsed {
+    final snapshot = _navSnapshot;
+    if (isEngineLeading && snapshot != null && _drActive) {
+      return snapshot.outageDuration;
+    }
+    return _outage.elapsed(_clock());
+  }
+
+  double get outageDistanceMeters {
+    final snapshot = _navSnapshot;
+    if (isEngineLeading && snapshot != null && _drActive) {
+      return snapshot.outageDistanceM;
+    }
+    return _outage.distanceMeters;
+  }
 
   double get vibrationRms => _vibrationRms;
   String get vibrationLevel => _vibrationLevel;
@@ -654,6 +962,13 @@ class LiveSessionController extends ChangeNotifier {
   /// Modelled position uncertainty, or null while there is no basis for one
   /// (no fix yet and no outage in progress).
   UncertaintyEstimate? get uncertainty {
+    // Covariance beats the closed-form model whenever the core is leading:
+    // the old margin was `accuracy + 5 % of distance + 0.15 m/s`, chosen to
+    // stay inside the acceptance bar rather than measured from anything.
+    final snapshot = _navSnapshot;
+    if (isEngineLeading && snapshot?.horizontalSigmaM != null) {
+      return UncertaintyModel.fromMargin(snapshot!.horizontalSigmaM!);
+    }
     if (_drActive) return _outage.estimate(_clock());
     if (location.isLive) {
       return UncertaintyModel.live(
@@ -673,11 +988,58 @@ class LiveSessionController extends ChangeNotifier {
         fusionMode: fusionMode,
       );
 
-  SensorHealthModel get sensorHealth => SensorHealthModel(
-        accelerometer: _sampleCount > 0,
-        gyroscope: _sampleCount > 0,
-        magnetometer: _hasMagnetometer,
-        gnss: hasLiveGnss,
-        barometer: !_pressureHpa.isNaN,
-      );
+  /// Latest navigation-core estimate, or null before it has one.
+  ///
+  /// Diagnostics only for now — the map marker still comes from the
+  /// pipeline above (see [_engine]).
+  NavigationSnapshot? get navSnapshot => _navSnapshot;
+
+  NavMode get engineMode => _engine.mode;
+
+  /// Mode transitions with their reasons, newest last.
+  List<ModeTransition> get engineTransitions => _engine.transitions;
+
+  /// True only once the core's phone-to-vehicle transform has converged.
+  bool get isMountCalibrated =>
+      _navSnapshot?.isMountCalibrated ?? false;
+
+  /// Mount-alignment confidence, or null while it is unknown.
+  double? get mountConfidence => _navSnapshot?.alignmentConfidence;
+
+  /// Evidence the mount alignment has gathered, for diagnostics (§79).
+  int get alignmentSamples => _engine.alignmentSamples;
+  int get alignmentEvents => _engine.alignmentEvents;
+  bool get hasLevelling => _engine.hasLevelling;
+
+  /// Mean microseconds the navigation core takes per sensor frame, or
+  /// null before it has run. Measured, not estimated (§44).
+  double? get engineMeanMicros => _engineFeedCount == 0
+      ? null
+      : _engineMicrosTotal / _engineFeedCount;
+
+  int? get enginePeakMicros =>
+      _engineFeedCount == 0 ? null : _engineMicrosPeak;
+
+  int get engineFixCount => _appliedEngineFixCount;
+
+  /// Sensor health, from the core's fault detector once it has an opinion.
+  ///
+  /// "Present" is a weaker claim than "working": a magnetometer reading
+  /// 250 uT is present and useless. The detector knows the difference.
+  SensorHealthModel get sensorHealth {
+    final faults = _navSnapshot?.sensorFaults;
+    bool healthy(SensorType type, bool fallback) {
+      final diagnosis = faults?[type];
+      if (diagnosis == null || diagnosis.samples == 0) return fallback;
+      return diagnosis.usable;
+    }
+
+    return SensorHealthModel(
+      accelerometer: healthy(SensorType.accelerometer, _sampleCount > 0),
+      gyroscope: healthy(SensorType.gyroscope, _sampleCount > 0),
+      magnetometer: healthy(SensorType.magnetometer, _hasMagnetometer),
+      gnss: hasLiveGnss,
+      barometer: healthy(SensorType.barometer, !_pressureHpa.isNaN),
+    );
+  }
 }
