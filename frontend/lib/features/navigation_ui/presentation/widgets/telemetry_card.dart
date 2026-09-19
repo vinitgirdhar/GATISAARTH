@@ -21,7 +21,7 @@ class TelemetryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: AppRadius.cardRadius,
@@ -29,12 +29,22 @@ class TelemetryCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              label.toUpperCase(),
-              style: Theme.of(context).textTheme.labelSmall,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label.toUpperCase(),
+                maxLines: 1,
+                softWrap: false,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      letterSpacing: 0.6,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -47,16 +57,20 @@ class TelemetryCard extends StatelessWidget {
                     style: Theme.of(context)
                         .textTheme
                         .headlineMedium
-                        ?.copyWith(color: accentColor, fontSize: 30),
+                        ?.copyWith(
+                          color: accentColor,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   if (unit != null) ...[
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 3),
                     Text(
                       unit!,
                       style: TextStyle(
-                        color: accentColor.withValues(alpha: 0.7),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        color: accentColor.withValues(alpha: 0.75),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -65,13 +79,18 @@ class TelemetryCard extends StatelessWidget {
             ),
             if (subtitle != null) ...[
               const SizedBox(height: 4),
-              Text(
-                subtitle!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  subtitle!,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],

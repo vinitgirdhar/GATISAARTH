@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/standard_card.dart';
 
 class NavicWeightIndicator extends StatelessWidget {
   final double navicWeight;
@@ -10,52 +11,44 @@ class NavicWeightIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final weightPercent = (navicWeight * 100).round();
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.cardRadius,
-        boxShadow: AppShadow.card,
+    final isDark = AppColors.isDark;
+
+    return StandardCard(
+      titleText: 'NAVIC FUSION WEIGHT',
+      trailing: Text(
+        '$weightPercent%',
+        style: const TextStyle(
+          color: AppColors.navIC,
+          fontWeight: FontWeight.w800,
+          fontSize: 16,
+          fontFamily: 'Inter',
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'NavIC fusion weight',
-                style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.2),
-              ),
-              Text(
-                '$weightPercent%',
-                style: const TextStyle(
-                    color: AppColors.navIC,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.pill),
             child: LinearProgressIndicator(
               value: navicWeight,
               minHeight: 8,
-              backgroundColor: AppColors.surfaceBorder,
+              backgroundColor: isDark
+                  ? const Color(0xFF334155)
+                  : const Color(0xFFE2E8F0),
               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.navIC),
-              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
             'Primary position fix priority assigned to NavIC S-band & L5 signals.',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+            style: TextStyle(
+              color: isDark
+                  ? const Color(0xFF94A3B8)
+                  : const Color(0xFF64748B),
+              fontSize: 12,
+              height: 1.3,
+              fontFamily: 'Inter',
+            ),
           ),
         ],
       ),

@@ -82,7 +82,6 @@ class _GatiSaarthAppState extends State<GatiSaarthApp> with WidgetsBindingObserv
             // colours in `const` subtrees pick the new values up too.
             AppColors.isDark = _theme.isDark;
             return MaterialApp(
-              key: ValueKey<bool>(_theme.isDark),
               title: AppConstants.appTitle,
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,

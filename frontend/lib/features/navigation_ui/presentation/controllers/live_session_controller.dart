@@ -120,6 +120,9 @@ class LiveSessionController extends ChangeNotifier {
   int _appliedFixCount = 0;
   DateTime? _lastEaseAt;
   DateTime? _lastCacheAt;
+  double? _lastFixLat;
+  double? _lastFixLon;
+  DateTime? _lastFixAt;
 
   // IMU snapshot.
   int _sampleCount = 0;
@@ -283,6 +286,12 @@ class LiveSessionController extends ChangeNotifier {
     _outage.reset();
     _syncOutage(_clock());
     _stillSeconds = 0;
+    // When starting tunnel test, if vehicle was stationary or slow, initialize
+    // a realistic tunnel cruise speed (45 km/h = 12.5 m/s) so simulation demonstrates
+    // dead reckoning actively moving across the map in real time.
+    if (_speed < 5.0) {
+      _speed = 12.5;
+    }
     unawaited(_hardware.triggerOutageAlarmVibration());
     _touch();
   }
@@ -291,6 +300,9 @@ class LiveSessionController extends ChangeNotifier {
     _simTunnel = false;
     _simCanyon = true;
     _outage.reset();
+    if (_speed < 5.0) {
+      _speed = 8.33; // 30 km/h urban speed
+    }
     unawaited(_hardware.vibrate(durationMs: 150, amplitude: 180));
     _touch();
   }
@@ -300,7 +312,7 @@ class LiveSessionController extends ChangeNotifier {
     _simTunnel = false;
     _simCanyon = false;
     _outage.reset();
-    _speed = 0;
+    _speed = location.lastLiveFix?.speed ?? 0;
     unawaited(_hardware.vibrate(durationMs: 80, amplitude: 100));
     _touch();
   }
@@ -787,10 +799,41 @@ class LiveSessionController extends ChangeNotifier {
 
   void _applyFix(GnssFix fix) {
     _feedEngineFix(fix);
-    _accuracy = fix.accuracy;
+    _accuracy = _simCanyon ? 25.0 : fix.accuracy;
     _stillSeconds = 0;
     _positionSeeded = true;
     _maybeCache(fix);
+
+    final now = _clock();
+    double resolvedSpeed = fix.speed;
+
+    // Real-time speed & heading calibration:
+    // When Android device doesn't populate fix.speed or reports 0 during walking/low speeds,
+    // accurately derive ground speed and course heading from consecutive GPS positions.
+    if (_lastFixLat != null && _lastFixLon != null && _lastFixAt != null) {
+      final dt = now.difference(_lastFixAt!).inMilliseconds / 1000.0;
+      if (dt >= 0.5 && dt <= 10.0) {
+        final dLatM = (fix.latitude - _lastFixLat!) * _metresPerDegree;
+        final dLonM = (fix.longitude - _lastFixLon!) *
+            _metresPerDegree *
+            cos(fix.latitude * pi / 180);
+        final dist = sqrt(dLatM * dLatM + dLonM * dLonM);
+        final derivedSpeed = dist / dt;
+
+        if (resolvedSpeed < 0.35 && derivedSpeed >= 0.35 && derivedSpeed < 70.0) {
+          resolvedSpeed = derivedSpeed;
+        }
+
+        if (dist > 1.0) {
+          final courseDeg = (atan2(dLonM, dLatM) * 180 / pi + 360) % 360;
+          _heading = courseDeg;
+        }
+      }
+    }
+
+    _lastFixLat = fix.latitude;
+    _lastFixLon = fix.longitude;
+    _lastFixAt = now;
 
     // While the core leads, a raw fix is a *measurement*, not the answer:
     // the filter has already gated it and folded in what survived. Writing
@@ -798,10 +841,20 @@ class LiveSessionController extends ChangeNotifier {
     // behaviour the gate exists to prevent.
     if (isEngineLeading) return;
 
-    _targetLat = fix.latitude;
-    _targetLon = fix.longitude;
+    if (_simCanyon) {
+      final t = now.millisecondsSinceEpoch / 1000.0;
+      final driftLat = (sin(t * 0.5) * 15.0) / _metresPerDegree;
+      final driftLon = (cos(t * 0.7) * 15.0) /
+          (_metresPerDegree * cos(fix.latitude * pi / 180));
+      _targetLat = fix.latitude + driftLat;
+      _targetLon = fix.longitude + driftLon;
+    } else {
+      _targetLat = fix.latitude;
+      _targetLon = fix.longitude;
+    }
+
     _altitude = fix.altitude;
-    _speed = fix.speed < 0.5 ? 0 : fix.speed;
+    _speed = resolvedSpeed < 0.35 ? 0 : resolvedSpeed;
   }
 
   void _seedFromLastKnown() {

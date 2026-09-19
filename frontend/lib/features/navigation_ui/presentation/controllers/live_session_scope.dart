@@ -17,7 +17,10 @@ LiveSessionController createLiveSession() => LiveSessionController(
       hardware: DeviceHardwareService(),
       speedEstimator: MlSpeedEstimator(),
       telemetry: BackendTelemetrySink(),
-      location: LiveLocationService(gateway: const GeolocatorGateway()),
+      location: LiveLocationService(
+        gateway: const GeolocatorGateway(),
+        staleAfter: const Duration(seconds: 18),
+      ),
     );
 
 /// Makes the one [LiveSessionController] available to every screen.

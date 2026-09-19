@@ -65,6 +65,14 @@ class AppColors {
   static const Color blue = Color(0xFF007AFF);
   static const Color indigo = Color(0xFF5856D6);
 
+  // UI/UX Board Theme Tokens
+  static const Color primary = Color(0xFF3882F6);
+  static const Color secondary = Color(0xFF06B6D4);
+  static const Color accent = Color(0xFFF59E0B);
+  static const Color success = Color(0xFF10B981);
+  static const Color boardWarning = Color(0xFFFACC15);
+  static const Color boardError = Color(0xFFEF4444);
+
   // Fusion Modes (iOS systemGreen / systemOrange / systemRed / systemPurple)
   static const Color gnssLocked = Color(0xFF34C759);
   static const Color gnssDegraded = Color(0xFFFF9500);
