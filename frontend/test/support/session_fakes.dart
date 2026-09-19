@@ -86,6 +86,8 @@ class FakeSpeed implements SpeedEstimator {
   @override
   bool get isModelLoaded => true;
   @override
+  bool get isReady => true;
+  @override
   void reset() => resets++;
 }
 

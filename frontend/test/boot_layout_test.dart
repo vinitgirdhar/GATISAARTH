@@ -6,6 +6,7 @@ import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart'
 import 'package:gatisaarth/core/platform/location/live_location_service.dart';
 import 'package:gatisaarth/features/boot/presentation/boot_screen.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/controllers/live_session_controller.dart';
+import 'package:gatisaarth/features/navigation_ui/presentation/screens/dashboard_screen.dart';
 
 import 'support/fake_location_gateway.dart';
 import 'support/load_fonts.dart';
@@ -34,7 +35,7 @@ void main() {
   // screen out at the smallest phone we support is the assertion.
   for (final size in const [Size(320, 568), Size(360, 740), Size(411, 915)]) {
     testWidgets('boot screen lays out on ${size.width.toInt()}x'
-        '${size.height.toInt()} dp', (tester) async {
+        '${size.height.toInt()} dp and transitions to dashboard', (tester) async {
       tester.view.devicePixelRatio = 2;
       tester.view.physicalSize = size * 2;
       addTearDown(tester.view.reset);
@@ -45,12 +46,11 @@ void main() {
       expect(find.byType(BootScreen), findsOneWidget);
       expect(tester.takeException(), isNull);
 
-      // Drain the boot sequence so no timer is left pending at teardown.
-      for (var i = 0; i < 400; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-        if (find.byType(BootScreen).evaluate().isEmpty) break;
-      }
+      // Advance past the 1400ms animation duration + 300ms transition
+      await tester.pump(const Duration(milliseconds: 1500));
       await tester.pumpAndSettle();
+
+      expect(find.byType(DashboardScreen), findsOneWidget);
     });
   }
 }

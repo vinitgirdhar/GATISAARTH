@@ -1,191 +1,124 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import '../../../core/router/app_router.dart';
-import '../../navigation_ui/presentation/controllers/live_session_scope.dart';
-import 'boot_sequence.dart';
 
-/// Brand colours for the boot screen only. It is always dark, whatever the
-/// app theme is, so it does not use the light/dark palette.
-class _Boot {
-  static const Color ink = Color(0xFF050A14);
-  static const Color inkTop = Color(0xFF0C1B30);
-  static const Color accent = Color(0xFF4FC3F7);
-  static const Color accentDeep = Color(0xFF1E70E0);
-  static const Color faint = Color(0x4DFFFFFF);
-}
-
-/// Full-screen start-up sequence: displays the designed booting image artwork with
-/// a dynamic progress bar wired to the real boot work (see [BootSequence]).
 class BootScreen extends StatefulWidget {
-  const BootScreen({super.key});
+  const BootScreen({Key? key}) : super(key: key);
 
   @override
   State<BootScreen> createState() => _BootScreenState();
 }
 
-class _BootScreenState extends State<BootScreen> {
-  BootSequence? _boot;
+class _BootScreenState extends State<BootScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _progressAnimation;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_boot != null) return;
-    final sequence = BootSequence(session: LiveSessionScope.of(context));
-    _boot = sequence;
-    sequence.run().then((_) {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    _progressAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubic,
+    );
+
+    _controller.forward().then((_) {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                AppRoutes.routes[AppRoutes.dashboard]!(context),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 300),
+          ),
+        );
+      }
     });
   }
 
   @override
   void dispose() {
-    _boot?.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final boot = _boot!;
-    final size = MediaQuery.sizeOf(context);
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: _Boot.ink,
+        systemNavigationBarColor: Color(0xFF050A14),
         systemNavigationBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: _Boot.ink,
+        backgroundColor: const Color(0xFF050A14),
         body: Stack(
-          fit: StackFit.expand,
           children: [
-            const _BootBackground(),
+            // Centered brand logo matching the native Android splash screen
+            Center(
+              child: Image.asset(
+                'assets/icons/splash_icon.png',
+                width: 288,
+                height: 288,
+                fit: BoxFit.contain,
+              ),
+            ),
+            // Sleek aesthetic loading bar at the bottom
             Positioned(
-              left: 28,
-              right: 28,
-              top: size.height * 0.865,
-              child: AnimatedBuilder(
-                animation: boot,
-                builder: (context, _) => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _ProgressBar(value: boot.progress),
-                    const SizedBox(height: 14),
-                    _Spaced(
-                      boot.isFinished ? 'READY' : '${boot.label}...',
-                      size: 10,
-                      tracking: 3,
-                      color: _Boot.faint,
-                    ),
-                  ],
+              left: 0,
+              right: 0,
+              bottom: 80,
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: _progressAnimation,
+                  builder: (context, _) {
+                    return Container(
+                      width: 180,
+                      height: 3.5,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          width: 180 * _progressAnimation.value,
+                          height: 3.5,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFFFF7A00),
+                                Color(0xFF0A84FF),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(2),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    const Color(0xFF0A84FF).withOpacity(0.4),
+                                blurRadius: 6,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// The launch artwork background image, with a painted gradient fallback.
-class _BootBackground extends StatelessWidget {
-  const _BootBackground();
-
-  static const Widget _fallback = DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [_Boot.inkTop, _Boot.ink, Color(0xFF02060D)],
-        stops: [0, 0.55, 1],
-      ),
-    ),
-    child: SizedBox.expand(),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/boot_background.png',
-      fit: BoxFit.fill,
-      errorBuilder: (context, error, stack) => _fallback,
-    );
-  }
-}
-
-/// Boot progress. Width follows real completed work, eased so the bar glides
-/// between stages instead of jumping.
-class _ProgressBar extends StatelessWidget {
-  const _ProgressBar({required this.value});
-
-  final double value;
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(end: value.clamp(0.0, 1.0)),
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeOutCubic,
-      builder: (context, animated, _) => ClipRRect(
-        borderRadius: BorderRadius.circular(3),
-        child: Container(
-          height: 4.5,
-          color: const Color(0x1FFFFFFF),
-          alignment: Alignment.centerLeft,
-          child: FractionallySizedBox(
-            widthFactor: animated,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(3),
-                gradient: const LinearGradient(
-                  colors: [_Boot.accent, _Boot.accentDeep],
-                ),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x664FC3F7), blurRadius: 10),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Centred, letter-spaced caps — the only type style this screen uses.
-class _Spaced extends StatelessWidget {
-  const _Spaced(
-    this.text, {
-    required this.size,
-    required this.tracking,
-    required this.color,
-  });
-
-  final String text;
-  final double size;
-  final double tracking;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      textAlign: TextAlign.center,
-      maxLines: 1,
-      overflow: TextOverflow.visible,
-      style: TextStyle(
-        color: color,
-        fontSize: size,
-        fontWeight: FontWeight.w400,
-        // The trailing space of the last glyph is part of the tracking, so the
-        // line optically sits a little left; that matches the artwork.
-        letterSpacing: tracking,
-        height: 1.2,
       ),
     );
   }

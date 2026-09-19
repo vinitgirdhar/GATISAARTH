@@ -35,9 +35,9 @@ dev_dependencies:
 flutter_native_splash:
   color: "#050A14"
   color_dark: "#050A14"
-  image: assets/icons/logo_mark.png
   android_12:
-    image: assets/icons/logo_mark.png
+    color: "#050A14"
+    color_dark: "#050A14"
     icon_background_color: "#050A14"
     icon_background_color_dark: "#050A14"
 

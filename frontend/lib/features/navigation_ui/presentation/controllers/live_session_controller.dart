@@ -931,6 +931,7 @@ class LiveSessionController extends ChangeNotifier {
   /// meaningless (and shown as `--`) before that.
   bool get hasModelInference => _ml.hasModelInference;
   bool get isModelLoaded => _ml.isModelLoaded;
+  bool get isSpeedEstimatorReady => _ml.isReady;
   int get inferenceLatencyMs => _ml.latencyMs;
   double get inferenceConfidence => _ml.confidence;
   double get inferenceSpeed => _ml.estimatedSpeed;

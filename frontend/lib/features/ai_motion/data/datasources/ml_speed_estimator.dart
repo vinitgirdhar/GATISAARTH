@@ -19,6 +19,7 @@ class MlSpeedEstimator implements SpeedEstimator {
   Interpreter? _interpreter;
   bool _isModelLoaded = false;
   bool _isLoading = false;
+  bool _initialized = false;
 
   // Window size: 20 samples at 10 Hz (2 s temporal context)
   static const int windowSize = 20;
@@ -77,6 +78,8 @@ class MlSpeedEstimator implements SpeedEstimator {
   bool get hasModelInference => _modelRuns > 0;
   @override
   bool get isModelLoaded => _isModelLoaded;
+  @override
+  bool get isReady => _initialized;
 
   @override
   Future<void> initialize() async {
@@ -96,6 +99,7 @@ class MlSpeedEstimator implements SpeedEstimator {
       _isModelLoaded = false;
     } finally {
       _isLoading = false;
+      _initialized = true;
     }
   }
 

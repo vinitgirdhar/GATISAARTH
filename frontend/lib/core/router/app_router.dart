@@ -5,8 +5,8 @@ import '../../features/navigation_ui/presentation/screens/active_nav_screen.dart
 import '../../features/navigation_engine/presentation/screens/diagnostics_screen.dart';
 
 class AppRoutes {
-  static const String boot = '/boot';
-  static const String dashboard = '/';
+  static const String boot = '/';
+  static const String dashboard = '/dashboard';
   static const String session = '/session';
   static const String diagnostics = '/diagnostics';
 

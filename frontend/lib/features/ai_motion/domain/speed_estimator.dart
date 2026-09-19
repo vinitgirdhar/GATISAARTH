@@ -30,6 +30,9 @@ abstract class SpeedEstimator {
   /// estimator uses a rule-based fallback.
   bool get isModelLoaded;
 
+  /// True once the initialization attempt has finished (either loaded or fallback active).
+  bool get isReady;
+
   /// Drop the temporal window (used when the estimator has been idle).
   void reset();
 }
