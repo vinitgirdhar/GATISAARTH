@@ -207,23 +207,8 @@ class ProfileTab extends StatelessWidget {
               _ProfileMenuTile(
                 icon: Icons.explore_rounded,
                 title: 'GatiSaarth Navigation Engine',
-                subtitle: 'v1.0.0 · Bharat Moves Smarter 🇮🇳',
-                trailing: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'OFFLINE READY',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.success,
-                    ),
-                  ),
-                ),
+                subtitle: 'v1.0.0 · Offline Ready 🇮🇳',
+                trailing: const Icon(Icons.chevron_right_rounded, size: 22),
               ),
               const Divider(height: 1),
               const _ProfileMenuTile(

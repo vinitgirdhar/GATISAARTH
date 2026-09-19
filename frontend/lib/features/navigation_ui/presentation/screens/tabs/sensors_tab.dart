@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/constants/dr_constants.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/motion.dart';
 import '../../../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../controllers/live_session_controller.dart';
 import '../../controllers/live_session_scope.dart';
-import '../../widgets/ai_inference_panel.dart';
 import '../../widgets/engine_status_card.dart';
 import '../../widgets/navic_weight_indicator.dart';
-import '../../widgets/road_anomaly_ticker.dart';
 import '../../widgets/satellite_breakdown.dart';
-import '../../widgets/thermal_compensation_card.dart';
 
 class SensorsTab extends StatelessWidget {
   const SensorsTab({Key? key}) : super(key: key);
@@ -254,39 +250,7 @@ class SensorsTab extends StatelessWidget {
           },
         ),
 
-        const SizedBox(height: AppSpacing.lg),
 
-        // 5. AI Inference & Thermal Compensation
-        const SectionHeader(
-          title: 'Edge AI & telemetry',
-          subtitle:
-              'On-device neural inference, thermal compensation & road conditions',
-        ),
-        AiInferencePanel(
-          inferenceStats: InferenceStatsModel(
-            latencyMs: session.hasModelInference
-                ? session.inferenceLatencyMs
-                : null,
-            modelVersion: session.isModelLoaded
-                ? AppConstants.defaultModelVersion
-                : 'Model not loaded',
-            confidence: session.hasModelInference
-                ? session.inferenceConfidence
-                : null,
-            estimatedSpeed: session.hasModelInference
-                ? session.inferenceSpeed
-                : null,
-          ),
-        ),
-        ThermalCompensationCard(
-          thermalState: ThermalStateModel(
-            temperature: session.temperature,
-            biasCorrection: session.thermalBias,
-          ),
-          vibrationLevel: session.vibrationLevel,
-          vibrationRms: session.vibrationRms,
-        ),
-        RoadAnomalyTicker(anomalyEvents: session.anomalies),
       ],
     );
   }

@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/constants/dr_constants.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/motion.dart';
+import '../../../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../controllers/live_session_controller.dart';
 import '../../controllers/live_session_scope.dart';
+import '../../widgets/ai_inference_panel.dart';
 import '../../widgets/dashboard_header.dart';
 import '../../widgets/fusion_mode_badge.dart';
 import '../../widgets/location_status_banner.dart';
+import '../../widgets/road_anomaly_ticker.dart';
 import '../../widgets/session_controls.dart';
 import '../../widgets/session_status_card.dart';
+import '../../widgets/thermal_compensation_card.dart';
 import 'package:gatisaarth/core/platform/network/backend_telemetry_client.dart'
     show BackendSyncState;
 import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart';
@@ -38,7 +43,7 @@ class HomeTab extends StatelessWidget {
         AppSpacing.md,
         AppSpacing.xs,
         AppSpacing.md,
-        AppSpacing.xxl,
+        AppSpacing.lg,
       ),
       children: [
         // 1. Dashboard Header with subtle entrance animation (Brand Title & Subtitle)
@@ -62,10 +67,44 @@ class HomeTab extends StatelessWidget {
 
         const SizedBox(height: AppSpacing.md),
 
-        // 4. Actionable Location Banner (only when GPS disabled/denied)
+        // 4. Edge AI & Telemetry (moved from Sensors tab for visibility)
+        const SectionHeader(
+          title: 'Edge AI & Telemetry',
+          subtitle:
+              'On-device neural inference, thermal compensation & road conditions',
+        ),
+        AiInferencePanel(
+          inferenceStats: InferenceStatsModel(
+            latencyMs: session.hasModelInference
+                ? session.inferenceLatencyMs
+                : null,
+            modelVersion: session.isModelLoaded
+                ? AppConstants.defaultModelVersion
+                : 'Model not loaded',
+            confidence: session.hasModelInference
+                ? session.inferenceConfidence
+                : null,
+            estimatedSpeed: session.hasModelInference
+                ? session.inferenceSpeed
+                : null,
+          ),
+        ),
+        ThermalCompensationCard(
+          thermalState: ThermalStateModel(
+            temperature: session.temperature,
+            biasCorrection: session.thermalBias,
+          ),
+          vibrationLevel: session.vibrationLevel,
+          vibrationRms: session.vibrationRms,
+        ),
+        RoadAnomalyTicker(anomalyEvents: session.anomalies),
+
+        const SizedBox(height: AppSpacing.md),
+
+        // 5. Actionable Location Banner (only when GPS disabled/denied)
         LocationStatusBanner(location: session.location),
 
-        // 5. Nominal GNSS Lock Card (Last item, as requested)
+        // 6. Nominal GNSS Lock Card (Last item, as requested)
         SessionStatusCard(session: session),
 
         // Test compatibility hooks: invisible to user (opacity 0.001), but correctly hit-testable in automated tests
