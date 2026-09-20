@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>GatiSaarth brag</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script src="assets/audio-data.js"></script>
+  </head>
+  <body>
+    <div data-hf-id="hf-aqn4" id="root" data-composition-id="main" data-start="0" data-duration="21.7" data-width="1920" data-height="1080">
+      <!-- backdrop: light acts, dark tunnel act, audio-reactive glow behind the phone -->
+      <div data-hf-id="hf-8qlz" id="bg-light" class="layer"></div>
+      <div data-hf-id="hf-rvex" id="bg-dark" class="layer"></div>
+      <div data-hf-id="hf-pscr" id="glow" data-layout-ignore=""><i data-hf-id="hf-jo0g" id="glow-red"></i><i data-hf-id="hf-vs4w" id="glow-green"></i></div>
+
+      <!-- Scene 1 — hook -->
+      <section data-hf-id="hf-gl8m" id="s1" class="clip scene" data-start="0" data-duration="3.7">
+        <div data-hf-id="hf-wghq" class="hook-wrap">
+          <div data-hf-id="hf-762q" id="s1-pill" class="pill-stack big">
+            <div data-hf-id="hf-tejg" class="pill p-locked"><i data-hf-id="hf-wt6k"></i><span data-hf-id="hf-z2zs">GNSS locked</span></div>
+            <div data-hf-id="hf-0360" class="pill p-dead"><i data-hf-id="hf-zeb8"></i><span data-hf-id="hf-gcmm">Dead reckoning · inertial</span></div>
+          </div>
+          <h1 data-hf-id="hf-wjjy" id="s1-l1" class="hook">Your GPS just died.</h1>
+          <h1 data-hf-id="hf-4vgd" id="s1-l2" class="hook blue">Your phone didn't.</h1>
+        </div>
+      </section>
+
+      <!-- Scene 2 — reveal -->
+      <section data-hf-id="hf-rj62" id="s2" class="clip scene" data-start="3.7" data-duration="3.68">
+        <div data-hf-id="hf-09oy" class="left-col">
+          <div data-hf-id="hf-1l90" class="brand-row">
+            <div data-hf-id="hf-zjoo" id="s2-logo" class="app-icon"><img data-hf-id="hf-r5ly" src="assets/brand/logo_mark.png" alt="GatiSaarth logo mark"></div>
+            <img data-hf-id="hf-g84e" id="s2-word" class="wordmark" src="assets/brand/wordmark.png" alt="GatiSaarth">
+          </div>
+          <p data-hf-id="hf-d7by" id="s2-tag" class="tagline">Intelligent Navigation Beyond GNSS</p>
+        </div>
+      </section>
+
+      <!-- Scene 3 — the tunnel -->
+      <section data-hf-id="hf-3mt5" id="s3" class="clip scene dark" data-start="7.38" data-duration="3.68">
+        <div data-hf-id="hf-yr86" class="left-col">
+          <p data-hf-id="hf-qmlt" id="s3-eyebrow" class="eyebrow">Scenarios</p>
+          <h2 data-hf-id="hf-zjbt" id="s3-h" class="headline">Enter a tunnel.</h2>
+          <p data-hf-id="hf-x3yd" id="s3-sub" class="sub">Inertial sensors keep tracking.</p>
+        </div>
+      </section>
+
+      <!-- Scene 4 — modelled drift -->
+      <section data-hf-id="hf-y3s1" id="s4" class="clip scene dark" data-start="11.06" data-duration="4.75">
+        <div data-hf-id="hf-z5j7" class="left-col">
+          <h2 data-hf-id="hf-4jje" id="s4-h" class="headline md"><span data-hf-id="hf-iycj" class="ln">It tells you how</span><span data-hf-id="hf-43c4" class="ln">lost it is.</span></h2>
+          <div data-hf-id="hf-x6xl" id="s4-count" class="counter"><span data-hf-id="hf-izc7" id="c-val">±3</span><span data-hf-id="hf-0v0e" class="unit">m</span></div>
+          <p data-hf-id="hf-oc9m" id="s4-label" class="label">Modelled drift margin</p>
+          <div data-hf-id="hf-6pu7" id="s4-clock" class="clock-row"><span data-hf-id="hf-18cw" id="c-clock">T+0s</span><div data-hf-id="hf-64lp" class="track"><i data-hf-id="hf-faea" id="c-fill"></i></div><span data-hf-id="hf-6i3r" class="end">60 s</span></div>
+          <p data-hf-id="hf-mnnr" id="s4-fine" class="fine">40 km/h · 60 s outage · modelled, not measured</p>
+        </div>
+      </section>
+
+      <!-- Scene 5 — recovery -->
+      <section data-hf-id="hf-bdk6" id="s5" class="clip scene" data-start="15.81" data-duration="2.1">
+        <div data-hf-id="hf-zju8" class="left-col">
+          <div data-hf-id="hf-wk3a" id="s5-pill" class="pill-stack big">
+            <div data-hf-id="hf-ogjb" class="pill p-reacq" id="s5-reacq"><i data-hf-id="hf-y7e5"></i><span data-hf-id="hf-egzy">Reacquiring GNSS signal</span></div>
+            <div data-hf-id="hf-lwbg" class="pill p-locked" id="s5-locked" style="opacity:0"><i data-hf-id="hf-ylp6"></i><span data-hf-id="hf-oixs">GNSS locked</span></div>
+          </div>
+          <h2 data-hf-id="hf-6tli" id="s5-h" class="headline md">GNSS comes back.</h2>
+        </div>
+      </section>
+
+      <!-- Scene 6 — outro -->
+      <section data-hf-id="hf-mmkq" id="s6" class="clip scene" data-start="17.91" data-duration="3.79">
+        <div data-hf-id="hf-lcck" class="end-wrap">
+          <div data-hf-id="hf-wh5e" id="s6-logo" class="app-icon xl"><img data-hf-id="hf-zs6k" src="assets/brand/logo_mark_end.png" alt="GatiSaarth logo mark"></div>
+          <img data-hf-id="hf-pwe6" id="s6-word" class="wordmark xl" src="assets/brand/wordmark_end.png" alt="GatiSaarth">
+          <p data-hf-id="hf-sqjr" id="s6-tag" class="tagline center">Intelligent Navigation Beyond GNSS</p>
+          <p data-hf-id="hf-eeqf" id="s6-foot" class="footer">Not the final product — new features are still being added.</p>
+        </div>
+      </section>
+
+      <!-- Phone: recreated from the Flutter dashboard (strings verbatim from the source) -->
+      <div data-hf-id="hf-e184" id="phone" data-layout-ignore="">
+        <div data-hf-id="hf-q65t" class="phone-body">
+          <div data-hf-id="hf-cdmk" class="screen">
+            <div data-hf-id="hf-sz55" class="statusbar">
+              <span data-hf-id="hf-zwmt">9:41</span>
+              <span data-hf-id="hf-npt7" class="sb-icons"><i data-hf-id="hf-yz24" style="width:3px;height:6px"></i><i data-hf-id="hf-h0xv" style="width:3px;height:9px"></i><i data-hf-id="hf-3fxn" style="width:3px;height:12px"></i><i data-hf-id="hf-znnn" style="width:24px;height:12px;margin-left:6px;border-radius:4px"></i></span>
+            </div>
+            <div data-hf-id="hf-7sfr" class="island"></div>
+
+            <div data-hf-id="hf-e086" id="page" class="page">
+              <div data-hf-id="hf-ypt8" class="hdr-top">
+                <div data-hf-id="hf-y4hn" class="hdr-title">
+                  <h3 data-hf-id="hf-0s34" class="app-title">GatiSaarth</h3>
+                  <p data-hf-id="hf-myq2" class="app-sub">Intelligent Navigation Beyond GNSS</p>
+                </div>
+                <div data-hf-id="hf-50rw" class="conf-badge">
+                  <div data-hf-id="hf-fzlr" class="ring-wrap">
+                    <svg data-hf-id="hf-t4m9" viewBox="0 0 68 68">
+                      <circle data-hf-id="hf-dvxh" id="ring-track" class="ring-track" cx="34" cy="34" r="30.5" />
+                      <circle data-hf-id="hf-jt14" id="ring" class="ring" cx="34" cy="34" r="30.5" transform="rotate(-90 34 34)" />
+                    </svg>
+                    <div data-hf-id="hf-c765" class="ring-txt"><div data-hf-id="hf-jcrm" class="rt"><span data-hf-id="hf-f907" id="ring-pct">98</span><small data-hf-id="hf-ew4z">%</small></div></div>
+                  </div>
+                  <p data-hf-id="hf-jres" class="conf-label">Confidence</p>
+                  <p data-hf-id="hf-yl54" id="conf-margin" class="conf-margin">±3 m</p>
+                </div>
+              </div>
+              <div data-hf-id="hf-exrd" class="chips">
+                <div data-hf-id="hf-42ja" id="pill-slot" class="pill-stack">
+                  <div data-hf-id="hf-s4kl" class="pill p-locked" id="pp-locked"><i data-hf-id="hf-0l8b"></i><span data-hf-id="hf-nc0p">GNSS locked</span></div>
+                  <div data-hf-id="hf-47px" class="pill p-dead" id="pp-dead"><i data-hf-id="hf-0zjc"></i><span data-hf-id="hf-7s36">Dead reckoning · inertial</span></div>
+                  <div data-hf-id="hf-o97v" class="pill p-reacq" id="pp-reacq"><i data-hf-id="hf-zsm9"></i><span data-hf-id="hf-334i">Reacquiring GNSS signal</span></div>
+                </div>
+              </div>
+              <p data-hf-id="hf-pdje" class="notice">Not the final product — new features are still being added.</p>
+
+              <div data-hf-id="hf-cqxo" class="card status">
+                <div data-hf-id="hf-p3jk" id="st-alert" class="alert-bg"></div>
+                <div data-hf-id="hf-5gup" id="st-locked" class="st">
+                  <div data-hf-id="hf-8bh4" class="st-ico" style="background:rgba(10,132,255,.14)"><svg data-hf-id="hf-oa51" viewBox="0 0 24 24" fill="#0a84ff"><path data-hf-id="hf-8wnc" d="M7.76 16.24C6.67 15.16 6 13.66 6 12s.67-3.16 1.76-4.24l1.42 1.42C8.45 9.9 8 10.9 8 12c0 1.1.45 2.1 1.17 2.83l-1.41 1.41zm8.48 0C17.33 15.16 18 13.66 18 12s-.67-3.16-1.76-4.24l-1.42 1.42C15.55 9.9 16 10.9 16 12c0 1.1-.45 2.1-1.17 2.83l1.41 1.41zM12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm8 2c0 2.21-.9 4.21-2.35 5.65l1.42 1.42C20.88 17.26 22 14.76 22 12s-1.12-5.26-2.93-7.07l-1.42 1.42C19.1 7.79 20 9.79 20 12zM6.35 6.35L4.93 4.93C3.12 6.74 2 9.24 2 12s1.12 5.26 2.93 7.07l1.42-1.42C4.9 16.21 4 14.21 4 12s.9-4.21 2.35-5.65z" /></svg></div>
+                  <div data-hf-id="hf-yeow"><b data-hf-id="hf-o67t">Nominal GNSS lock</b><p data-hf-id="hf-vl1z">Real-time sensors · Vibration smooth</p></div>
+                </div>
+                <div data-hf-id="hf-no7z" id="st-outage" class="st st-outage">
+                  <div data-hf-id="hf-7rfn" class="st-ico" style="background:rgba(255,59,48,.14)"><svg data-hf-id="hf-0zou" viewBox="0 0 24 24" fill="#ff3b30"><path data-hf-id="hf-wlgd" d="M20.94 11A8.994 8.994 0 0 0 13 3.06V1h-2v2.06c-1.13.12-2.19.46-3.16.97l1.5 1.5C10.16 5.19 11.06 5 12 5c3.87 0 7 3.13 7 7 0 .94-.19 1.84-.52 2.65l1.5 1.5c.5-.96.84-2.02.97-3.15H23v-2h-2.06zM3 4.27l2.04 2.04A8.914 8.914 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06c1.77-.2 3.38-.91 4.69-1.98L19.73 21 21 19.73 4.27 3 3 4.27zm13.27 13.27A6.995 6.995 0 0 1 12 19c-3.87 0-7-3.13-7-7 0-1.93.78-3.68 2.05-4.95l9.22 9.22z" /></svg></div>
+                  <div data-hf-id="hf-y7yw"><b data-hf-id="hf-20mk" style="color:#c4271c">Outage active · pure INS</b><p data-hf-id="hf-9gyv" id="st-sub">T+0s · 0.0 m travelled · ±3 m</p></div>
+                </div>
+              </div>
+
+              <div data-hf-id="hf-egfb" class="sec"><h4 data-hf-id="hf-ko46">Live position</h4><p data-hf-id="hf-b4el">GNSS position with dead reckoning as fallback</p></div>
+              <div data-hf-id="hf-r1ik" class="map" style="margin-top:-16px">
+                <img data-hf-id="hf-nemt" id="map-img" class="map-img" src="assets/map/map_z16.png" alt="Offline map tiles, Vikaspuri Delhi">
+                <div data-hf-id="hf-wkp6" class="halo-box"><div data-hf-id="hf-aqn6" id="halo" class="halo"></div></div>
+                <div data-hf-id="hf-ql2f" class="puck"><div data-hf-id="hf-hnan" class="disc"></div><svg data-hf-id="hf-dabt" viewBox="0 0 24 24" fill="#0a84ff"><path data-hf-id="hf-40vy" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" /></svg></div>
+                <div data-hf-id="hf-hke7" class="fpill map-mode">
+                  <svg data-hf-id="hf-509g" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" stroke-linejoin="round"><path data-hf-id="hf-tyqd" d="M12 3l9 5-9 5-9-5 9-5z" /><path data-hf-id="hf-b5e7" d="M3 12l9 5 9-5M3 16l9 5 9-5" opacity=".7" /></svg>
+                  <span data-hf-id="hf-d1x4" id="mm-locked" class="mm-locked">GNSS locked</span>
+                  <span data-hf-id="hf-p161" id="mm-dead" class="mm-dead">Dead reckoning</span>
+                  <span data-hf-id="hf-4p9o" id="mm-reacq" class="mm-reacq">Reacquiring GNSS</span>
+                </div>
+                <div data-hf-id="hf-x0zs" class="map-attr">© OpenStreetMap · Stadia Maps</div>
+                <div data-hf-id="hf-ze9x" class="fpill map-bot"><span data-hf-id="hf-zce5" id="map-coord">28.6712°N, 77.0567°E</span><span data-hf-id="hf-npb8" id="map-margin">±3 m</span></div>
+              </div>
+
+              <div data-hf-id="hf-thy4" class="row">
+                <div data-hf-id="hf-xdfy" class="tcard"><div data-hf-id="hf-uza3" class="tl">Speed</div><div data-hf-id="hf-ebx4" class="tv" style="color:#0a84ff">11.1<u data-hf-id="hf-pp21">m/s</u></div><div data-hf-id="hf-exa4" class="ts">40.0 km/h</div></div>
+                <div data-hf-id="hf-l4r6" class="tcard"><div data-hf-id="hf-ftn2" class="tl">Heading</div><div data-hf-id="hf-lw1b" class="tv" style="color:#007aff">45°</div><div data-hf-id="hf-tojv" class="ts">Magnetometer</div></div>
+              </div>
+              <div data-hf-id="hf-lt04" class="row">
+                <div data-hf-id="hf-lj27" class="tcard"><div data-hf-id="hf-5ggj" class="tl">Position</div><div data-hf-id="hf-afff" id="pos-lat" class="tv sm" style="color:#0a84ff">28.6712°N</div><div data-hf-id="hf-yl22" id="pos-sub" class="ts">77.0567°E · GNSS fix</div></div>
+                <div data-hf-id="hf-lxd8" class="tcard"><div data-hf-id="hf-i4fp" class="tl">Accuracy</div><div data-hf-id="hf-8h9u" class="tv"><span data-hf-id="hf-41qb" id="acc-val">±3</span><u data-hf-id="hf-ysrq" id="acc-unit">m</u></div><div data-hf-id="hf-fttr" id="acc-sub" class="ts">GNSS accuracy</div></div>
+              </div>
+
+              <div data-hf-id="hf-pk3f" class="sec" style="margin-top:8px"><h4 data-hf-id="hf-4etu">Vehicle profile</h4><p data-hf-id="hf-1l7w">Tunes lean and bump handling for the filter</p></div>
+              <div data-hf-id="hf-u3zc" class="seg" style="margin-top:-16px;margin-bottom:24px">
+                <div data-hf-id="hf-ioh7" class="on"><svg data-hf-id="hf-kees" viewBox="0 0 24 24" fill="#007aff"><path data-hf-id="hf-9i19" d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" /></svg>Car</div>
+                <div data-hf-id="hf-hzrv"><svg data-hf-id="hf-3axo" viewBox="0 0 24 24" fill="#8e8e93"><path data-hf-id="hf-iz8t" d="M19 7c0-1.1-.9-2-2-2h-3v2h3v2.65L13.52 14H10V9H6c-2.21 0-4 1.79-4 4v3h2c0 1.66 1.34 3 3 3s3-1.34 3-3h4.48L19 10.35V7zM7 17c-.55 0-1-.45-1-1h2c0 .55-.45 1-1 1zM19 13c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z" /></svg>Two-wheeler</div>
+              </div>
+
+              <div data-hf-id="hf-2lmr" class="sec" style="margin-top:0"><h4 data-hf-id="hf-6ap4">Scenarios</h4><p data-hf-id="hf-mkre">Simulate GNSS loss to see dead reckoning take over</p></div>
+              <div data-hf-id="hf-fum2" class="card controls" id="controls" style="margin-top:-16px">
+                <div data-hf-id="hf-w65b" id="ctl-tunnel" class="ctl"><div data-hf-id="hf-gg16" class="ico" style="background:rgba(255,59,48,.15)"><svg data-hf-id="hf-w2ia" viewBox="0 0 24 24" fill="#ff3b30"><path data-hf-id="hf-9sq9" d="M20.94 11A8.994 8.994 0 0 0 13 3.06V1h-2v2.06c-1.13.12-2.19.46-3.16.97l1.5 1.5C10.16 5.19 11.06 5 12 5c3.87 0 7 3.13 7 7 0 .94-.19 1.84-.52 2.65l1.5 1.5c.5-.96.84-2.02.97-3.15H23v-2h-2.06zM3 4.27l2.04 2.04A8.914 8.914 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06c1.77-.2 3.38-.91 4.69-1.98L19.73 21 21 19.73 4.27 3 3 4.27zm13.27 13.27A6.995 6.995 0 0 1 12 19c-3.87 0-7-3.13-7-7 0-1.93.78-3.68 2.05-4.95l9.22 9.22z" /></svg></div><span data-hf-id="hf-zt3l">Tunnel test</span></div>
+                <div data-hf-id="hf-21iz" class="ctl"><div data-hf-id="hf-8mn0" class="ico" style="background:rgba(255,149,0,.15)"><svg data-hf-id="hf-74ui" viewBox="0 0 24 24" fill="#ff9500"><path data-hf-id="hf-zm9k" d="M15 11V5l-3-3-3 3v2H3v14h18V11h-6zm-8 8H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm6 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm6 12h-2v-2h2v2zm0-4h-2v-2h2v2z" /></svg></div><span data-hf-id="hf-wm1h">Urban canyon</span></div>
+                <div data-hf-id="hf-ya3i" id="ctl-reset" class="ctl"><div data-hf-id="hf-jvx5" class="ico" style="background:rgba(52,199,89,.15)"><svg data-hf-id="hf-9r5h" viewBox="0 0 24 24" fill="#34c759"><path data-hf-id="hf-9ats" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z" /></svg></div><span data-hf-id="hf-s4sz">Reset GNSS</span></div>
+                <div data-hf-id="hf-qakb" class="ctl"><div data-hf-id="hf-ms5t" class="ico" style="background:rgba(10,132,255,.15)"><svg data-hf-id="hf-eh8w" viewBox="0 0 24 24" fill="#0a84ff"><path data-hf-id="hf-4pw8" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z" /></svg></div><span data-hf-id="hf-li7n">Diagnostics</span></div>
+              </div>
+              <div data-hf-id="hf-hej7" class="cta"><svg data-hf-id="hf-i4bo" viewBox="0 0 24 24" fill="#fff"><path data-hf-id="hf-95ya" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" /></svg>Start fullscreen navigation</div>
+            </div>
+
+            <div data-hf-id="hf-i5z4" id="snack-red" class="snack">Simulating a GNSS blackout — pure INS dead reckoning</div>
+            <div data-hf-id="hf-u3ig" id="snack-green" class="snack">Simulation cleared — back to live GNSS status</div>
+            <div data-hf-id="hf-i260" class="homebar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- simulated touch (tap on Tunnel test / Reset GNSS) -->
+      <div data-hf-id="hf-i6xx" id="touch" data-layout-ignore=""><div data-hf-id="hf-3x8l" class="rip"></div><div data-hf-id="hf-lu65" class="dot"></div></div>
+
+      <!-- audio: warm bed + sparse motion-matched accents (ids required by the mixer) -->
+      <audio data-hf-id="hf-fxtt" id="bgm" src="assets/music/happy-beats-business-moves-vol-11-by-ende-dot-app.mp3" data-start="0" data-duration="21.7" data-track-index="10" data-volume="1"></audio>
+      <audio data-hf-id="hf-oxcp" id="sfx-pill" src="assets/sfx/ui/rollover2.ogg" data-start="0.93" data-duration="0.06" data-track-index="11" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-insq" id="sfx-line2" src="assets/sfx/impact/impactSoft_medium_001.ogg" data-start="1.55" data-duration="0.18" data-track-index="12" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-xf0q" id="sfx-phone" src="assets/sfx/casino/card-slide-1.ogg" data-start="3.62" data-duration="0.6" data-track-index="13" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-x27o" id="sfx-tag" src="assets/sfx/interface/bong_001.ogg" data-start="4.72" data-duration="0.12" data-track-index="14" data-volume="0.45"></audio>
+      <audio data-hf-id="hf-r692" id="sfx-tap1" src="assets/sfx/ui/click2.ogg" data-start="8.94" data-duration="0.06" data-track-index="15" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-cejd" id="sfx-blackout" src="assets/sfx/impact/impactSoft_medium_003.ogg" data-start="9.0" data-duration="0.14" data-track-index="16" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-h1z2" id="sfx-amber" src="assets/sfx/ui/rollover2.ogg" data-start="12.1" data-duration="0.06" data-track-index="17" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-80hi" id="sfx-red" src="assets/sfx/impact/impactSoft_heavy_003.ogg" data-start="14.74" data-duration="0.54" data-track-index="18" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-gvz8" id="sfx-tap2" src="assets/sfx/ui/click2.ogg" data-start="15.79" data-duration="0.06" data-track-index="19" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-ugx3" id="sfx-locked" src="assets/sfx/impact/impactGlass_light_001.ogg" data-start="16.86" data-duration="0.21" data-track-index="20" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-7zk9" id="sfx-bell" src="assets/sfx/impact/impactBell_heavy_000.ogg" data-start="17.91" data-duration="1.48" data-track-index="21" data-volume="0.65"></audio>
+    </div>
+    <script>
+/* GatiSaarth brag — one paused GSAP timeline, registered on window.__timelines["main"].
+   Every dynamic number is a pure function of time (render(t)), driven by the app's real
+   UncertaintyModel (frontend/lib/features/navigation_engine/domain/uncertainty_model.dart). */
+(function () {
+  "use strict";
+
+  var DUR = 21.7;
+  // beat-locked moments (vol-11, 114.84 BPM): 1.60 / 8.96 / 17.91 strong cues, 12.12 / 14.76 / 15.81 / 16.86 beat grid
+  var HOOK2 = 1.6, PHONE_IN = 3.7, TAP = 8.96, TL0 = 11.3, TL1 = 14.76, RESET = 15.81, LOCKED = 16.86, OUTRO = 17.91;
+  var V = 40 / 3.6; // m/s — 40 km/h illustrative speed
+  var R0 = 3, PER_M = 0.05, PER_S = 0.15, SCALE_M = 150; // UncertaintyModel constants
+  var T0 = TL0 - TAP; // outage seconds already elapsed when the time-lapse starts
+  var MPP = 2.096; // metres per z16 tile pixel at Delhi latitude
+  var HEADING = (45 * Math.PI) / 180;
+  var P0 = { x: 222, y: 379 }; // puck start on the bundled tile mosaic (Road 236)
+  var SY = 760; // page scroll that brings the Scenarios card into view
+  var SCALE = 1.06, PHONE_CX = 1450, PHONE_CY = 560;
+  var CIRC = 2 * Math.PI * 30.5;
+  var GREEN = [52, 199, 89], AMBER = [255, 149, 0], RED = [255, 59, 48];
+
+  function $(s) { return document.querySelector(s); }
+  function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+  function rgba(c, a) { return "rgba(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + "," + a + ")"; }
+  function lerpC(a, b, k) { return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; }
+
+  // ---- model (pure functions of time) ----
+  function outageT(t) {
+    if (t < TAP || t >= RESET) return null;
+    if (t < TL0) return t - TAP;
+    if (t < TL1) return T0 + ((t - TL0) / (TL1 - TL0)) * (60 - T0);
+    return 60;
+  }
+  function marginAt(T) { return T == null ? R0 : Math.max(3, R0 + PER_M * V * T + PER_S * T); }
+  function confOf(m) { return Math.min(0.99, Math.max(0.3, 1 - m / SCALE_M)); }
+  function confColor(c) { return c >= 0.9 ? GREEN : c >= 0.7 ? AMBER : RED; }
+  function driven(t) {
+    var base = V * Math.max(0, Math.min(t, TAP) - PHONE_IN);
+    if (t < TAP) return base;
+    var T = outageT(t);
+    return base + V * (T == null ? 60 : T);
+  }
+  function latlon(px, py) {
+    var n = Math.pow(2, 24), X = 46796 * 256 + px, Y = 27321 * 256 + py;
+    return [(Math.atan(Math.sinh(Math.PI * (1 - (2 * Y) / n))) * 180) / Math.PI, (X / n) * 360 - 180];
+  }
+
+  var el = {};
+  function cache() {
+    ["ring", "ring-track", "ring-pct", "conf-margin", "st-sub", "map-img", "halo", "map-coord", "map-margin", "pos-lat", "pos-sub",
+      "acc-val", "acc-unit", "acc-sub", "c-val", "c-clock", "c-fill", "glow"].forEach(function (id) { el[id] = document.getElementById(id); });
+    el.ring.style.strokeDasharray = CIRC;
+  }
+
+  function render(t) {
+    var T = outageT(t), out = T != null;
+    var m = marginAt(T), c = confOf(m), col = confColor(c), cs = rgba(col, 1);
+    var f = Math.max(0, Math.min(AUDIO_DATA.frames - 1, Math.round(t * AUDIO_DATA.fps)));
+    var bass = AUDIO_DATA.bass[f] || 0, rms = AUDIO_DATA.rms[f] || 0;
+
+    // confidence ring (draws in as the phone lands, then follows the model)
+    var fill = 1 - Math.pow(1 - clamp01((t - 4.55) / 0.9), 3);
+    el.ring.style.strokeDashoffset = CIRC * (1 - c * fill);
+    el.ring.style.stroke = cs;
+    el["ring-track"].style.stroke = rgba(col, 0.16);
+    el["ring-pct"].textContent = Math.round(c * 100 * fill);
+    var mt = "±" + Math.round(m) + " m";
+    el["conf-margin"].textContent = mt;
+    el["conf-margin"].style.color = cs;
+
+    // status card, accuracy + position cards
+    if (out) el["st-sub"].textContent = "T+" + Math.floor(T) + "s · " + (V * T).toFixed(1) + " m travelled · " + mt;
+    el["acc-val"].textContent = "±" + Math.round(m);
+    el["acc-val"].style.color = cs;
+    el["acc-unit"].style.color = cs;
+    el["acc-sub"].textContent = out ? "Modelled drift margin" : "GNSS accuracy";
+
+    // map: puck stays centred, tiles move under it (as flutter_map does)
+    var D = driven(t);
+    var px = P0.x + (Math.sin(HEADING) * D) / MPP, py = P0.y - (Math.cos(HEADING) * D) / MPP;
+    el["map-img"].style.transform = "translate(" + (190 - px).toFixed(2) + "px," + (130 - py).toFixed(2) + "px)";
+    var ll = latlon(px, py);
+    var lat = ll[0].toFixed(4) + "°N", lon = ll[1].toFixed(4) + "°E";
+    el["map-coord"].textContent = lat + ", " + lon;
+    el["map-margin"].textContent = mt;
+    el["map-margin"].style.color = cs;
+    el["pos-lat"].textContent = lat;
+    el["pos-lat"].style.color = out ? "#ff3b30" : "#0a84ff";
+    el["pos-sub"].textContent = lon + " · " + (out ? "dead reckoning" : "GNSS fix");
+
+    // ConfidenceHalo (confidence_halo.dart) + subtle audio-reactive breathing
+    var dia = (60 + (1 - c) * 60) * (1 + 0.035 * bass), core = 0.1 + c * 0.3, hc = lerpC(RED, GREEN, c);
+    el.halo.style.width = dia.toFixed(1) + "px";
+    el.halo.style.height = dia.toFixed(1) + "px";
+    el.halo.style.background = "radial-gradient(circle," + rgba(hc, core) + " 0%," + rgba(hc, core * 0.3) + " 50%," + rgba(hc, 0) + " 100%)";
+
+    // Scene 4 counter block
+    el["c-val"].textContent = "±" + Math.round(m);
+    el["c-val"].style.color = cs;
+    el["c-clock"].textContent = "T+" + Math.floor(T || 0) + "s";
+    el["c-fill"].style.transform = "scaleX(" + ((T || 0) / 60).toFixed(4) + ")";
+
+    // backdrop glow breathes with the bed (scale/opacity only; no waveform graphics)
+    el.glow.style.transform = "scale(" + (1 + 0.05 * bass).toFixed(4) + ")";
+    el.glow.style.opacity = (0.82 + 0.22 * rms).toFixed(3);
+  }
+
+  function phoneToCanvas(lx, ly) {
+    return { x: PHONE_CX + SCALE * (lx - 218), y: PHONE_CY + SCALE * (ly - 458) };
+  }
+  // centre of a Scenarios icon in canvas px while the page is scrolled to SY (layout-derived once, at setup)
+  function tapTarget(id) {
+    var ctl = document.getElementById(id), card = document.getElementById("controls");
+    var bx = card.offsetLeft + ctl.offsetLeft + ctl.offsetWidth / 2;
+    var by = card.offsetTop + ctl.offsetTop + 24;
+    return phoneToCanvas(12 + bx, 12 + 48 + by - SY);
+  }
+
+  function build() {
+    cache();
+    var tl = gsap.timeline({ paused: true });
+    // a repeated fromTo on one target must not re-apply its from-values at authoring time (would break seeks before the first tween)
+    var seen = {};
+    var ft = function (target, from, to, at) {
+      var key = typeof target === "string" ? target : JSON.stringify(target);
+      if (seen[key]) to.immediateRender = false;
+      seen[key] = true;
+      return tl.fromTo(target, from, to, at);
+    };
+    var xfade = function (a, b, t) {
+      ft(a, { opacity: 1 }, { opacity: 0, duration: 0.28, ease: "power1.inOut" }, t);
+      ft(b, { opacity: 0 }, { opacity: 1, duration: 0.28, ease: "power1.inOut" }, t);
+    };
+
+    // ---- backdrop + glow ----
+    ft("#bg-dark", { opacity: 0 }, { opacity: 1, duration: 0.72, ease: "power2.inOut" }, 7.38);
+    ft("#bg-dark", { opacity: 1 }, { opacity: 0, duration: 0.7, ease: "power2.inOut" }, RESET);
+    ft("#glow-green", { opacity: 0 }, { opacity: 0.7, duration: 0.9, ease: "power2.out" }, 3.9);
+    ft("#glow-green", { opacity: 0.7 }, { opacity: 0, duration: 0.8, ease: "power2.inOut" }, 8.3);
+    ft("#glow-red", { opacity: 0 }, { opacity: 1, duration: 0.9, ease: "power2.out" }, TAP);
+    ft("#glow-red", { opacity: 1 }, { opacity: 0, duration: 0.7, ease: "power2.inOut" }, RESET);
+    ft("#glow-green", { opacity: 0 }, { opacity: 0.9, duration: 0.8, ease: "power2.out" }, 16.3);
+    ft("#glow-green", { opacity: 0.9 }, { opacity: 0, duration: 0.7, ease: "power2.inOut" }, 17.6);
+
+    // ---- scene 1: hook ----
+    tl.set("#phone", { scale: SCALE }, 0);
+    tl.set("#s5-reacq", { opacity: 1 }, 0);
+    ft("#s1-pill", { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 0.15);
+    tl.to("#s1 .p-locked", { opacity: 0, duration: 0.25, ease: "power1.inOut" }, 0.93);
+    tl.to("#s1 .p-dead", { opacity: 1, duration: 0.25, ease: "power1.inOut" }, 0.93);
+    ft("#s1-l1", { y: 44, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.35);
+    // beat-locked: 1.60s
+    ft("#s1-l2", { y: 64, opacity: 0, scale: 0.965, transformOrigin: "0% 50%" }, { y: 0, opacity: 1, scale: 1, duration: 0.42, ease: "power4.out" }, HOOK2);
+    tl.to(["#s1-pill", "#s1-l1", "#s1-l2"], { x: -90, opacity: 0, duration: 0.32, ease: "power2.in" }, 3.38);
+
+    // ---- scene 2: reveal ----
+    // beat-locked: 3.70s (strong cue)
+    ft("#phone", { y: 1250 }, { y: 0, duration: 0.8, ease: "power3.out" }, PHONE_IN);
+    ft("#s2-logo", { scale: 0.78, opacity: 0, y: 28 }, { scale: 1, opacity: 1, y: 0, duration: 0.55, ease: "back.out(1.5)" }, 3.95);
+    ft("#s2-word", { x: -36, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 4.23);
+    // beat-grid: tagline on 4.75s
+    ft("#s2-tag", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 4.75);
+    tl.to(["#s2-logo", "#s2-word", "#s2-tag"], { x: -70, opacity: 0, duration: 0.32, ease: "power2.in" }, 7.04);
+
+    // ---- scene 3: the tunnel ----
+    ft("#page", { y: 0 }, { y: -SY, duration: 0.7, ease: "power3.inOut" }, 7.45);
+    ft("#s3-eyebrow", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" }, 7.62);
+    ft("#s3-h", { y: 36, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 7.72);
+    var t1 = tapTarget("ctl-tunnel");
+    ft("#touch", { x: t1.x + 260, y: t1.y + 230, opacity: 0, scale: 1 }, { x: t1.x, y: t1.y, opacity: 1, duration: 0.75, ease: "power2.inOut" }, 8.15);
+    // beat-locked: tap on Tunnel test at 8.96s (strong cue)
+    tl.to("#touch", { scale: 0.82, duration: 0.09, ease: "power2.out" }, TAP);
+    tl.to("#touch", { scale: 1, duration: 0.2, ease: "power2.out" }, TAP + 0.09);
+    ft("#touch .rip", { scale: 0.6, opacity: 0.7 }, { scale: 2.4, opacity: 0, duration: 0.55, ease: "power2.out" }, TAP);
+    tl.to("#touch", { opacity: 0, duration: 0.25, ease: "power1.out" }, 9.25);
+    tl.to("#ctl-tunnel", { scale: 0.92, duration: 0.09, ease: "power2.out" }, TAP);
+    tl.to("#ctl-tunnel", { scale: 1, duration: 0.2, ease: "power2.out" }, TAP + 0.09);
+    ft("#snack-red", { y: 70, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power3.out" }, TAP + 0.02);
+    tl.to("#snack-red", { y: 50, opacity: 0, duration: 0.3, ease: "power2.in" }, 10.8);
+    ft("#s3-sub", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 9.12);
+    // beat-grid: scroll back to the header on 9.50s
+    ft("#page", { y: -SY }, { y: 0, duration: 0.62, ease: "power3.inOut" }, 9.5);
+    tl.to(["#s3-eyebrow", "#s3-h", "#s3-sub"], { opacity: 0, x: -40, duration: 0.22, ease: "power2.in" }, 10.84);
+    // app state flips on the tap
+    xfade("#pp-locked", "#pp-dead", TAP + 0.05);
+    xfade("#mm-locked", "#mm-dead", TAP + 0.05);
+    xfade("#st-locked", "#st-outage", TAP + 0.05);
+    ft("#st-alert", { opacity: 0 }, { opacity: 1, duration: 0.28 }, TAP + 0.05);
+
+    // ---- scene 4: modelled drift ----
+    ft("#s4-h", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 11.06);
+    ft("#s4-count", { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 11.22);
+    ft(["#s4-label", "#s4-clock"], { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power3.out", stagger: 0.08 }, 11.36);
+    ft("#s4-fine", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 11.6);
+    tl.to(["#s4-h", "#s4-count", "#s4-label", "#s4-clock", "#s4-fine"], { opacity: 0, duration: 0.2, ease: "power2.in" }, 15.6);
+
+    // ---- scene 5: recovery ----
+    ft("#page", { y: 0 }, { y: -SY, duration: 0.65, ease: "power3.inOut" }, 15.1);
+    var t2 = tapTarget("ctl-reset");
+    ft("#touch", { x: t2.x + 240, y: t2.y + 240, opacity: 0, scale: 1 }, { x: t2.x, y: t2.y, opacity: 1, duration: 0.6, ease: "power2.inOut" }, 15.12);
+    // beat-grid: tap on Reset GNSS at 15.81s
+    tl.to("#touch", { scale: 0.82, duration: 0.09, ease: "power2.out" }, RESET);
+    tl.to("#touch", { scale: 1, duration: 0.2, ease: "power2.out" }, RESET + 0.09);
+    ft("#touch .rip", { scale: 0.6, opacity: 0.7 }, { scale: 2.4, opacity: 0, duration: 0.55, ease: "power2.out" }, RESET);
+    tl.to("#touch", { opacity: 0, duration: 0.25, ease: "power1.out" }, 16.1);
+    tl.to("#ctl-reset", { scale: 0.92, duration: 0.09, ease: "power2.out" }, RESET);
+    tl.to("#ctl-reset", { scale: 1, duration: 0.2, ease: "power2.out" }, RESET + 0.09);
+    ft("#snack-green", { y: 70, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power3.out" }, RESET + 0.04);
+    tl.to("#snack-green", { y: 50, opacity: 0, duration: 0.3, ease: "power2.in" }, 17.4);
+    ft("#page", { y: -SY }, { y: 0, duration: 0.62, ease: "power3.inOut" }, 16.3);
+    xfade("#pp-dead", "#pp-reacq", RESET + 0.05);
+    xfade("#mm-dead", "#mm-reacq", RESET + 0.05);
+    xfade("#st-outage", "#st-locked", RESET + 0.05);
+    ft("#st-alert", { opacity: 1 }, { opacity: 0, duration: 0.28 }, RESET + 0.05);
+    // beat-grid: GNSS locked on 16.86s
+    xfade("#pp-reacq", "#pp-locked", LOCKED);
+    xfade("#mm-reacq", "#mm-locked", LOCKED);
+    ft("#s5-pill", { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" }, 16.05);
+    ft("#s5-h", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 16.3);
+    tl.to("#s5-reacq", { opacity: 0, duration: 0.25, ease: "power1.inOut" }, LOCKED);
+    tl.to("#s5-locked", { opacity: 1, duration: 0.25, ease: "power1.inOut" }, LOCKED);
+    tl.to(["#s5-pill", "#s5-h"], { x: -60, opacity: 0, duration: 0.14, ease: "power2.in" }, 17.76);
+
+    // ---- scene 6: outro (beat-locked: 17.91s strong cue) ----
+    ft("#phone", { y: 0 }, { y: 1250, duration: 0.6, ease: "power3.in" }, OUTRO);
+    ft("#s6-logo", { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.6)" }, OUTRO);
+    ft("#s6-word", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, OUTRO + 0.22);
+    ft("#s6-tag", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, OUTRO + 0.5);
+    ft("#s6-foot", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, OUTRO + 0.85);
+
+    // ---- music bed: fade in, duck through the tunnel act, back on recovery, fade out ----
+    ft("#bgm", { volume: 0 }, { volume: 0.35, duration: 0.8, ease: "none" }, 0);
+    ft("#bgm", { volume: 0.35 }, { volume: 0.26, duration: 0.6, ease: "none" }, 8.7);
+    ft("#bgm", { volume: 0.26 }, { volume: 0.35, duration: 0.8, ease: "none" }, RESET);
+    ft("#bgm", { volume: 0.35 }, { volume: 0, duration: 1.4, ease: "power1.in" }, 20.3);
+
+    // ---- one clock drives every dynamic number ----
+    var clock = { t: 0 };
+    tl.to(clock, { t: DUR, duration: DUR, ease: "none", onUpdate: function () { render(clock.t); } }, 0);
+
+    render(0);
+    window.__timelines["main"] = tl;
+  }
+
+  Promise.all([document.fonts.load("800 32px Inter"), document.fonts.load("500 14px Inter")]).then(build, build);
+})();
+</script>
+  </body>
+</html>

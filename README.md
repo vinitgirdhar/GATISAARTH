@@ -419,7 +419,7 @@ GatiSaarth features a fully offline vector basemap powered by **OpenStreetMap** 
 ```bash
 # 1. Clone repository
 git clone https://github.com/vidhy/gathisarthi.git
-cd gathisarthi/SIH_DEAD_RECKONING-main
+cd gathisarthi
 
 # 2. Change into frontend directory and fetch dependencies
 cd frontend
@@ -509,7 +509,7 @@ In the interest of rigorous engineering integrity and technical transparency, th
 ## Repository Layout
 
 ```
-SIH_DEAD_RECKONING-main/
+gathisarthi/
 ├── frontend/                     # Primary Product: Flutter Android Application
 │   ├── lib/
 │   │   ├── main.dart             # Application entry point & lifecycle management

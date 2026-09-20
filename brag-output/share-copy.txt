@@ -1,0 +1,1 @@
+When GPS drops in a tunnel, GatiSaarth keeps tracking on the phone's own sensors and shows how wrong it might be: ±45 m after 60 s at 40 km/h (modelled, not measured). Next-generation dead-reckoning navigation prototype.
