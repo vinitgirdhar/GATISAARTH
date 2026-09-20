@@ -2,10 +2,12 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gatisaarth/core/platform/hardware/haptics.dart';
 import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart';
 import 'package:gatisaarth/core/platform/location/live_location_service.dart';
 import 'package:gatisaarth/features/navigation_engine/domain/entities/navigation_state.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/controllers/live_session_controller.dart';
+import 'package:gatisaarth/features/navigation_ui/presentation/controllers/track_trail.dart';
 
 import 'support/fake_location_gateway.dart';
 import 'support/session_fakes.dart';
@@ -60,6 +62,7 @@ void main() {
       ),
       clock: () => now,
       autoTick: false,
+      haptics: Haptics(hardware, clock: () => now, pause: (_) async {}),
     );
   });
 
@@ -245,6 +248,22 @@ void main() {
     expect(controller.speed, 10, reason: 'model not warm yet');
   });
 
+  test('the model can stop the marker but never sets its speed', () async {
+    await goLive();
+    now = now.add(const Duration(seconds: 7));
+    controller.tick();
+    speedFake.speed = 25; // far above the last fix (10 m/s)
+    await feed(100); // well past the model's warm-up
+    expect(controller.speed, 10);
+  });
+
+  test('with no fix at all the model does not invent a speed', () async {
+    await controller.start();
+    speedFake.speed = 25;
+    await feed(100);
+    expect(controller.speed, 0);
+  });
+
   test('zero-velocity update stops integration after sustained stillness',
       () async {
     await goLive();
@@ -348,7 +367,8 @@ void main() {
       'on reset', () async {
     await goLive();
     controller.startTunnelTest();
-    expect(hardware.outageAlarms, 1);
+    await settle();
+    expect(hardware.vibrations, [250, 350]);
     expect(controller.isSimulatingTunnel, isTrue);
     expect(controller.fusionMode, FusionMode.deadReckoning);
     expect(controller.hasLiveGnss, isFalse);
@@ -445,14 +465,89 @@ void main() {
     expect(controller.pressureHpa, 1009.5);
   });
 
-  test('a big bump is logged once and triggers haptics once', () async {
+  test('a big bump is logged once and never vibrates the phone', () async {
     await controller.start();
     sensors.frames.add(_frame(1, az: 25));
     sensors.frames.add(_frame(1.02, az: 25));
     await settle();
     expect(controller.anomalies, hasLength(1));
     expect(controller.anomalies.single.type, 'pothole');
-    expect(hardware.anomalyVibrations, 1);
+    expect(hardware.vibrations, isEmpty);
+  });
+
+  group('haptics fire only where they should', () {
+    test('losing the GNSS signal buzzes once', () async {
+      await goLive();
+      now = now.add(const Duration(seconds: 7));
+      controller.tick();
+      await settle();
+      expect(controller.inOutage, isTrue);
+      expect(hardware.vibrations, [250, 350]);
+
+      controller.tick(); // still in the same outage
+      await settle();
+      expect(hardware.vibrations.length, 2);
+    });
+
+    test('an outage right after coming back from the background is quiet',
+        () async {
+      await goLive();
+      await controller.pause();
+      now = now.add(const Duration(seconds: 30));
+      await controller.resume();
+      controller.tick();
+      await settle();
+      expect(controller.inOutage, isTrue, reason: 'the scenario is real');
+      expect(hardware.vibrations, isEmpty);
+    });
+
+    test('a location switch the user turned off does not buzz', () async {
+      await goLive();
+      gateway.serviceEnabled = false;
+      gateway.serviceChanges.add(false);
+      await settle();
+      controller.tick();
+      await settle();
+      expect(controller.inOutage, isTrue);
+      expect(hardware.vibrations, isEmpty);
+    });
+
+    test('the demo buttons other than the tunnel test are silent', () async {
+      await goLive();
+      controller.startUrbanCanyon();
+      controller.resetSimulation();
+      await settle();
+      expect(hardware.vibrations, isEmpty);
+    });
+
+    test('switching haptics off silences everything and is remembered',
+        () async {
+      await controller.start();
+      controller.setHapticsEnabled(false);
+      await settle();
+      controller.startTunnelTest();
+      await settle();
+      expect(hardware.vibrations, isEmpty);
+      expect(controller.hapticsEnabled, isFalse);
+
+      final restarted = LiveSessionController(
+        sensors: FakeSensors(),
+        alignment: VehicleAlignmentEngine(),
+        hardware: FakeHardware(),
+        speedEstimator: FakeSpeed(),
+        telemetry: FakeTelemetry(),
+        location: LiveLocationService(
+          gateway: FakeLocationGateway(),
+          clock: () => now,
+          errorRetryDelay: Duration.zero,
+        ),
+        clock: () => now,
+        autoTick: false,
+      );
+      addTearDown(restarted.dispose);
+      await restarted.start();
+      expect(restarted.hapticsEnabled, isFalse);
+    });
   });
 
   test('pause releases sensors and GPS; resume restores them', () async {
@@ -511,5 +606,85 @@ void main() {
     }
     expect(controller.latitude, closeTo(19.4504, 1e-6));
     expect(sqrt(pow(controller.longitude - 72.81, 2)), lessThan(1e-9));
+  });
+
+  group('track trail', () {
+    GnssFix fixAt(double lat, {double speed = 10}) => GnssFix(
+          latitude: lat,
+          longitude: 72.81,
+          altitude: 12,
+          accuracy: 5,
+          speed: speed,
+        );
+
+    Future<void> drive(int steps) async {
+      for (var i = 1; i <= steps; i++) {
+        gateway.fixController.add(fixAt(19.45 + i * 0.0002));
+        await settle();
+        for (var t = 0; t < 10; t++) {
+          now = now.add(const Duration(milliseconds: 100));
+          controller.tick();
+        }
+      }
+    }
+
+    test('records nothing until there is a position that means something',
+        () async {
+      await controller.start();
+      controller.tick();
+      expect(controller.trail.isEmpty, isTrue);
+    });
+
+    test('draws a GNSS line while fixes arrive', () async {
+      await goLive();
+      await drive(6);
+      expect(controller.trail.length, greaterThan(3));
+      expect(controller.trail.segments.single.kind, TrailKind.gnss);
+    });
+
+    test('an outage continues the same line as dead reckoning', () async {
+      await goLive();
+      await drive(4);
+      final before = controller.trail.length;
+      // No fix for longer than the freshness window: dead reckoning takes over
+      // and extrapolates at the last GNSS speed.
+      for (var i = 0; i < 100; i++) {
+        now = now.add(const Duration(milliseconds: 100));
+        controller.tick();
+      }
+      expect(controller.inOutage, isTrue);
+      expect(controller.trail.length, greaterThan(before));
+      final kinds = controller.trail.segments.map((s) => s.kind).toList();
+      expect(kinds.first, TrailKind.gnss);
+      expect(kinds.last, TrailKind.deadReckoning);
+    });
+
+    test('a remembered start is not drawn as a track to the first fix',
+        () async {
+      // The app starts on the last position it knew, ~110 m from where the
+      // first fix lands. The marker must jump there, not glide (and trail).
+      SharedPreferences.setMockInitialValues({
+        'last_known_lat': 19.449,
+        'last_known_lon': 72.81,
+      });
+      await goLive();
+      for (var t = 0; t < 30; t++) {
+        now = now.add(const Duration(milliseconds: 100));
+        controller.tick();
+      }
+      expect(controller.latitude, closeTo(19.45, 1e-9));
+      expect(controller.trail.length, 1, reason: 'one point, no line yet');
+      expect(controller.trail.segments, isEmpty);
+    });
+
+    test('clearTrail forgets the track and tells listeners', () async {
+      await goLive();
+      await drive(4);
+      var notified = 0;
+      controller.addListener(() => notified++);
+      controller.clearTrail();
+      expect(controller.trail.isEmpty, isTrue);
+      expect(notified, greaterThanOrEqualTo(1));
+    });
   });
 }

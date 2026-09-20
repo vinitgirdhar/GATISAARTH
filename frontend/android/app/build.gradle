@@ -28,6 +28,12 @@ android {
         }
     }
 
+    // Offline map archives are read in place from the APK (offset + length), so
+    // they must be stored, not deflated. They are already compressed inside.
+    androidResources {
+        noCompress += ["pmtiles"]
+    }
+
     packaging {
         jniLibs {
             useLegacyPackaging = true

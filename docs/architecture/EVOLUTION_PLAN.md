@@ -575,8 +575,51 @@ python -m maps.tools.graph_builder overpass.json out.json --region delhi
 | Ablation harness (§40), seed-averaged | **DONE** (4 tests) | `test/nav/ablation_test.dart` |
 | Dataset format + event labels (§42) | **DONE** | `replay/drive_log.dart` `DriveMeta`, markers |
 | Drive recorder wired into the live app, opt-in and local-only | **DONE** (11 tests) | `platform/storage/drive_log_store.dart`, `live_session_controller.dart` |
+| Outage benchmark on **any recorded drive**, any phone (§39, §76): withholds GNSS, scores against the withheld fixes, vs a hold-last-velocity baseline | **DONE** (10 + 6 tests, on-device screen: Profile > Outage Benchmark) | `core/nav/benchmark/`, `features/benchmark/` |
 | Per-vehicle benchmarks (§41) | TODO - the harness takes a `VehicleClass`, no two-wheeler drive profile yet | - |
-| Device capability profile (§43) | TODO | - |
+| Device capability profile (§43) | PARTLY - the benchmark report records IMU/GNSS rate, GNSS accuracy floor and which sensors a phone has; no on-device capability probe yet | `benchmark/outage_report.dart` `LogProfile` |
+
+#### Outage benchmark (replaces the notebook's drift-reduction figure)
+
+`ml/evaluation/metrics/08_gnss_outage_benchmark_results.json` (`-309 %`) must not
+be quoted: its "classical DR" baseline is raw-`ax` double integration with
+gravity left in, on one 5-minute track at one outage start, so its errors are
+luck (0.08 m at 5 s, 1.27 m at 30 s, 0.26 m at 60 s) and every percentage
+divides by them.
+
+`OutageBenchmark` replaces it. For each of up to 16 start times it replays the
+log with GNSS withheld from that moment and compares what each method believed
+with the fix it was denied. **Truth is the phone's own GNSS**, so it needs no
+reference receiver and works on a recording from any phone; the floor under
+every figure is that truth's own accuracy, reported with the result. One replay
+per start time serves every outage length (the engine cannot see the future),
+scored only while the core is healthy enough to lead - the same
+`NavigationSnapshot.canLeadPosition` test the app hands over on. Baseline:
+hold the last fix's speed and course. A `benchmark start` marker in a log says
+"score from here" (used to skip set-up driving). Regenerate the bundled
+simulated reference drive with
+`UPDATE_REFERENCE_DRIVE=1 flutter test test/nav/reference_drive_asset_test.dart`,
+which also prints the report headless.
+
+Reference city drive (**simulated**, 5.3 min, 50 Hz, no magnetometer; identical
+on host and on a Pixel emulator):
+
+| Outage | n | Hold last velocity, median (P95) | Core, median (P95) | Core drift |
+|---|---|---|---|---|
+| 10 s | 9 | 2 m (61) | 2 m (3) | 1.7 % |
+| 30 s | 10 | 189 m (362) | 12 m (41) | 3.1 % |
+| 60 s | 9 | 516 m (730) | 25 m (409) | 3.2 % |
+| 120 s | 6 | 1171 m (1765) | 281 m (893) | 19.5 % |
+
+The core is far better than holding the last velocity through bends and stops,
+but **long outages are its weak spot**: at 120 s the median is 281 m and its own
+3-sigma covered the real error in only 3 of 6. Consistent with the known limit
+that nothing observes yaw once GNSS is gone; the simulator has no magnetometer,
+which a real phone does. Real recorded drives are the missing evidence.
+
+The neural speed model is deliberately **not** in this benchmark (it needs real
+phone data and a native TFLite runtime), so it is advisory: it may stop the
+fallback marker via its rule-based stillness gate but no longer sets the speed.
 
 #### Recording a real drive
 

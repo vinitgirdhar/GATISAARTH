@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/geo_format.dart';
-import '../../controllers/live_session_controller.dart';
 import '../../controllers/live_session_scope.dart';
 import '../../widgets/fusion_confidence_badge.dart';
+import '../../widgets/map_controls.dart';
 import '../../widgets/navigation_map.dart';
 import '../../widgets/session_controls.dart';
 import '../../widgets/telemetry_card.dart';
@@ -138,26 +138,20 @@ class MapTab extends StatelessWidget {
                 child: NavigationMap(
                   navigationState: session.navigationState,
                   marginMeters: margin,
+                  trail: session.trail.segments,
                   expand: true,
+                  gestures: MapGestures.full,
                   bottomInset: _sheetRadius + 12,
-                ),
-              ),
-
-              // Floating Controls (below the OSM credit line, which the map
-              // draws top-right and licensing requires to stay readable)
-              Positioned(
-                right: 16,
-                top: 40,
-                child: Column(
-                  children: [
-                    _FloatingMapButton(
-                      icon: Icons.fullscreen_rounded,
+                  onClearTrail: session.clearTrail,
+                  actions: [
+                    MapControlButton(
+                      icon: Icon(
+                        Icons.fullscreen_rounded,
+                        size: 22,
+                        color: AppColors.textPrimary,
+                      ),
+                      semanticLabel: 'Open live navigation',
                       onTap: () => Navigator.pushNamed(context, '/session'),
-                    ),
-                    const SizedBox(height: 8),
-                    _FloatingMapButton(
-                      icon: Icons.my_location_rounded,
-                      onTap: () {},
                     ),
                   ],
                 ),
@@ -228,47 +222,6 @@ class MapTab extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _FloatingMapButton extends StatelessWidget {
-  const _FloatingMapButton({
-    required this.icon,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = AppColors.isDark;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.1)
-                : AppColors.lightSurfaceBorder,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(icon, size: 20, color: AppColors.textPrimary),
-      ),
     );
   }
 }

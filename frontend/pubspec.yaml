@@ -22,16 +22,18 @@ dependencies:
   # Bundled with Flutter already (transitive); declared so the navigation core
   # can use its Quaternion/Matrix3 instead of hand-rolled rotation maths.
   vector_math: ^2.4.0
+  share_plus: ^13.3.0
+  # Bounded concurrent reads of the offline map archives (already a transitive
+  # dependency of `pmtiles`).
+  pool: ^1.5.1
+  vector_map_tiles: ^8.0.0
+  vector_map_tiles_pmtiles: ^1.5.0
+  pmtiles: ^1.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  flutter_native_splash: ^2.4.3
-
-# The OS splash is only a bridge into the in-app boot screen, so it uses that
-# screen's background in both brightnesses and shows no wordmark — the
-# branding lock-up is drawn by BootScreen with the right typography.
 flutter_native_splash:
   color: "#050A14"
   color_dark: "#050A14"
@@ -45,7 +47,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/models/
+    - assets/benchmarks/
     - assets/maps/
+    - assets/maps/packs/
     - assets/maps/tiles/
     - assets/maps/tiles/11/1462/
     - assets/maps/tiles/11/1463/

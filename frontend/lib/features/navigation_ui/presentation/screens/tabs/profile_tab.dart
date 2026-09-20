@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/constants/dr_constants.dart';
 import '../../../../../core/platform/hardware/vehicle_alignment_engine.dart';
+import '../../../../../core/platform/maps/map_download_service.dart';
+import '../../../../../core/platform/maps/offline_catalog.dart';
+import '../../../../../core/platform/maps/offline_map_service.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/theme/theme_controller.dart';
 import '../../../../../core/widgets/motion.dart';
-import '../../controllers/live_session_controller.dart';
 import '../../controllers/live_session_scope.dart';
 import '../../widgets/vehicle_profile_selector.dart';
 
@@ -16,6 +19,8 @@ class ProfileTab extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final isDark = AppColors.isDark;
     final isTwoWheeler = session.vehicleProfile == VehicleProfile.twoWheeler;
+    final maps = OfflineMapsScope.maybeOf(context);
+    final downloads = MapDownloadsScope.maybeOf(context);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -118,9 +123,8 @@ class ProfileTab extends StatelessWidget {
           child: Column(
             children: [
               _ProfileMenuTile(
-                icon: isDark
-                    ? Icons.dark_mode_rounded
-                    : Icons.light_mode_rounded,
+                icon:
+                    isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                 title: 'Appearance',
                 subtitle: isDark ? 'Dark mode enabled' : 'Light mode enabled',
                 trailing: Switch(
@@ -131,19 +135,31 @@ class ProfileTab extends StatelessWidget {
               ),
               const Divider(height: 1),
               _ProfileMenuTile(
+                icon: Icons.vibration_rounded,
+                title: 'Haptic alerts',
+                subtitle: 'Buzz only when GNSS is lost and when a recording '
+                    'starts or stops',
+                trailing: Switch(
+                  value: session.hapticsEnabled,
+                  activeColor: AppColors.primary,
+                  onChanged: session.setHapticsEnabled,
+                ),
+              ),
+              const Divider(height: 1),
+              _ProfileMenuTile(
                 icon: Icons.map_rounded,
                 title: 'Offline Maps',
-                subtitle: 'Pre-bundled Delhi coverage & disk cache',
+                subtitle: _offlineMapsSubtitle(maps, downloads),
                 trailing: const Icon(Icons.chevron_right_rounded, size: 22),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Offline tile caching active and ready.'),
-                      backgroundColor: AppColors.primary,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
+                onTap: () => Navigator.pushNamed(context, '/offline-maps'),
+              ),
+              const Divider(height: 1),
+              _ProfileMenuTile(
+                icon: Icons.speed_rounded,
+                title: 'Outage Benchmark',
+                subtitle: 'Score dead reckoning with GNSS switched off',
+                trailing: const Icon(Icons.chevron_right_rounded, size: 22),
+                onTap: () => Navigator.pushNamed(context, '/benchmark'),
               ),
               const Divider(height: 1),
               _ProfileMenuTile(
@@ -207,15 +223,19 @@ class ProfileTab extends StatelessWidget {
               _ProfileMenuTile(
                 icon: Icons.explore_rounded,
                 title: 'GatiSaarth Navigation Engine',
-                subtitle: 'v1.0.0 · Offline Ready 🇮🇳',
+                subtitle: 'v${AppConstants.appVersion} · Offline Ready 🇮🇳 · '
+                    'specifications',
                 trailing: const Icon(Icons.chevron_right_rounded, size: 22),
+                onTap: () => Navigator.pushNamed(context, '/engine'),
               ),
               const Divider(height: 1),
-              const _ProfileMenuTile(
+              // Not `const`: a const tile is never rebuilt, so it kept the
+              // previous brightness's colours after a theme flip.
+              _ProfileMenuTile(
                 icon: Icons.shield_rounded,
                 title: 'Privacy & Architecture',
                 subtitle: '100% on-device pure Dart dead reckoning',
-                trailing: Text(
+                trailing: const Text(
                   '🇮🇳',
                   style: TextStyle(fontSize: 18),
                 ),
@@ -227,6 +247,20 @@ class ProfileTab extends StatelessWidget {
       ],
     );
   }
+}
+
+String _offlineMapsSubtitle(
+  OfflineMapService? maps,
+  MapDownloadService? downloads,
+) {
+  final regions = OfflineCatalog.regions.map((r) => r.name).join(' · ');
+  if (downloads != null && downloads.isBusy) {
+    return 'Downloading ${downloads.pending == 1 ? '1 map' : '${downloads.pending} maps'}'
+        ' · ${(downloads.overallFraction * 100).round()}%';
+  }
+  if (maps == null || maps.isLoading || maps.installed.isEmpty) return regions;
+  final mb = (maps.installedBytes / 1e6).round();
+  return '$regions · $mb MB on this phone';
 }
 
 class _ProfileMenuTile extends StatelessWidget {

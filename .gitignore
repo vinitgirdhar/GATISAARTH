@@ -44,3 +44,7 @@ frontend/ios/Flutter/ephemeral/
 
 # Gradle caches
 .gradle/
+
+# Offline map archives (~170 MB). Regenerate with
+# tools/offline_maps/build_offline_maps.py; the app runs without them.
+frontend/assets/maps/packs/*.pmtiles

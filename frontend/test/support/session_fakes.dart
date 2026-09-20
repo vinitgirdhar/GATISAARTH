@@ -22,8 +22,9 @@ class FakeSensors implements HardwareSensorInterface {
 
 class FakeHardware implements DeviceHardware {
   final temps = StreamController<double>.broadcast();
-  int anomalyVibrations = 0;
-  int outageAlarms = 0;
+
+  /// The duration (ms) of every vibration requested, in order.
+  final List<int> vibrations = [];
 
   @override
   void start() {}
@@ -36,17 +37,17 @@ class FakeHardware implements DeviceHardware {
   @override
   Stream<double> get temperatureStream => temps.stream;
   @override
-  Future<void> vibrate({int durationMs = 200, int amplitude = 255}) async {}
-  @override
-  Future<void> triggerOutageAlarmVibration() async => outageAlarms++;
-  @override
-  Future<void> triggerRoadAnomalyVibration(bool isPothole) async =>
-      anomalyVibrations++;
+  Future<void> vibrate({int durationMs = 200, int amplitude = 255}) async =>
+      vibrations.add(durationMs);
 
   bool keepScreenOn = false;
 
   @override
   Future<void> setKeepScreenOn(bool on) async => keepScreenOn = on;
+
+  @override
+  Future<DeviceInfo?> deviceInfo() async =>
+      const DeviceInfo(model: 'Test Phone', os: 'Android 15 (API 35)');
 }
 
 class FakeSpeed implements SpeedEstimator {

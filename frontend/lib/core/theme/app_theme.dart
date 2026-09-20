@@ -253,7 +253,16 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.lightBackground,
       cardColor: AppColors.lightSurface,
       dividerColor: AppColors.lightSurfaceBorder,
+      // Material 3 dividers ignore `dividerColor` and use the scheme's outline
+      // colour, which is near-white in dark mode: bright rules across a dark card.
+      dividerTheme: const DividerThemeData(
+        color: AppColors.lightSurfaceBorder,
+        thickness: 1,
+        space: 1,
+      ),
       splashFactory: InkSparkle.splashFactory,
+      // A long-press on a tooltip vibrates by default; nothing here should.
+      tooltipTheme: const TooltipThemeData(enableFeedback: false),
       pageTransitionsTheme: _pageTransitions,
       colorScheme: const ColorScheme.light(
         primary: AppColors.cyan,
@@ -304,7 +313,14 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.darkBackground,
       cardColor: AppColors.darkSurface,
       dividerColor: AppColors.darkBorder,
+      dividerTheme: const DividerThemeData(
+        color: AppColors.darkBorder,
+        thickness: 1,
+        space: 1,
+      ),
       splashFactory: InkSparkle.splashFactory,
+      // A long-press on a tooltip vibrates by default; nothing here should.
+      tooltipTheme: const TooltipThemeData(enableFeedback: false),
       pageTransitionsTheme: _pageTransitions,
       colorScheme: const ColorScheme.dark(
         primary: AppColors.cyan,

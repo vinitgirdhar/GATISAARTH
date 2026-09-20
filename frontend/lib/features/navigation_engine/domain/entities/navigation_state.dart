@@ -6,6 +6,20 @@ enum FusionMode {
 }
 
 extension FusionModeExtension on FusionMode {
+  /// Short readable name, for the map and status pills.
+  String get label {
+    switch (this) {
+      case FusionMode.gnssLocked:
+        return 'GNSS locked';
+      case FusionMode.gnssDegraded:
+        return 'GNSS degraded';
+      case FusionMode.deadReckoning:
+        return 'Dead reckoning';
+      case FusionMode.reacquiring:
+        return 'Reacquiring GNSS';
+    }
+  }
+
   String get nameString {
     switch (this) {
       case FusionMode.gnssLocked:

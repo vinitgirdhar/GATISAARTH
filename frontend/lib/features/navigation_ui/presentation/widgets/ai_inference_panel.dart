@@ -20,6 +20,10 @@ class AiInferencePanel extends StatelessWidget {
 
     return StandardCard(
       titleText: 'EDGE AI SPEED ESTIMATOR & ODOMETRY',
+      subtitleText: isLoaded
+          ? 'Advisory: not used for position until it beats the outage '
+              'benchmark on recorded drives.'
+          : null,
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(

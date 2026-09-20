@@ -15,6 +15,7 @@ import '../../../../core/nav/replay/drive_recorder.dart';
 import '../../../../core/nav/sensors/sensor_sample.dart';
 import '../../../../core/platform/storage/drive_log_store.dart';
 import '../../../../core/platform/hardware/device_hardware.dart';
+import '../../../../core/platform/hardware/haptics.dart';
 import '../../../../core/platform/hardware/sensor_api.dart';
 import '../../../../core/platform/hardware/vehicle_alignment_engine.dart';
 import '../../../../core/platform/location/live_location_service.dart';
@@ -24,6 +25,8 @@ import '../../../../core/platform/network/telemetry_sink.dart';
 import '../../../ai_motion/domain/speed_estimator.dart';
 import '../../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../../navigation_engine/domain/uncertainty_model.dart';
+import 'sync_status.dart';
+import 'track_trail.dart';
 
 // Delhi, shown only until a real fix or a cached position exists.
 const double _defaultLat = 28.6390;
@@ -56,6 +59,12 @@ const Duration _imuNotifyEvery = Duration(milliseconds: 250);
 // the background) it only widens the uncertainty margin.
 const Duration _maxCatchUp = Duration(seconds: 15);
 const String _cacheLatKey = 'last_known_lat';
+const String _vehicleKey = 'vehicle_profile';
+const String _hapticsKey = 'haptics_enabled';
+
+/// After returning from the background the signal settles for a while; that is
+/// not an outage worth buzzing about.
+const Duration _afterResumeQuiet = Duration(seconds: 20);
 const String _cacheLonKey = 'last_known_lon';
 
 /// The single live pipeline of the app: sensors, satellite fix, dead
@@ -76,6 +85,7 @@ class LiveSessionController extends ChangeNotifier {
     DateTime Function()? clock,
     bool autoTick = true,
     DriveLogSink? logStore,
+    Haptics? haptics,
   })  : _sensors = sensors,
         _alignment = alignment,
         _hardware = hardware,
@@ -83,9 +93,12 @@ class LiveSessionController extends ChangeNotifier {
         _telemetry = telemetry,
         _clock = clock ?? DateTime.now,
         _autoTick = autoTick,
-        _logStore = logStore ?? DriveLogStore();
+        _logStore = logStore ?? DriveLogStore(),
+        _haptics = haptics ?? Haptics(hardware, clock: clock);
 
   final HardwareSensorInterface _sensors;
+  final Haptics _haptics;
+  DateTime? _resumedAt;
   final VehicleAlignmentEngine _alignment;
   final DeviceHardware _hardware;
   final SpeedEstimator _ml;
@@ -95,6 +108,10 @@ class LiveSessionController extends ChangeNotifier {
 
   /// Owned by this controller (disposed with it).
   final LiveLocationService location;
+
+  /// The path travelled so far, for the map: solid where a fix backed the
+  /// position, dashed where it was dead-reckoned.
+  final TrackTrail trail = TrackTrail();
 
   StreamSubscription<List<double>>? _imuSub;
   StreamSubscription<double>? _tempSub;
@@ -117,6 +134,10 @@ class LiveSessionController extends ChangeNotifier {
   double _speed = 0;
   double _heading = 0;
   bool _positionSeeded = false;
+
+  /// Whether the drawn position has been put on a real one yet (a live fix, or
+  /// an outage that began from one), as opposed to a remembered start.
+  bool _drawnOnReal = false;
   int _appliedFixCount = 0;
   DateTime? _lastEaseAt;
   DateTime? _lastCacheAt;
@@ -209,6 +230,8 @@ class LiveSessionController extends ChangeNotifier {
     if (_autoTick) _startTimers();
 
     await _loadCachedPosition();
+    await _loadVehicleProfile();
+    await _loadHaptics();
     await location.start();
   }
 
@@ -221,6 +244,9 @@ class LiveSessionController extends ChangeNotifier {
     _stopTimers();
     _sensors.stop();
     _hardware.stop();
+    // Backgrounded apps can be killed without warning: put what has been
+    // recorded so far on disk now.
+    if (isRecording) unawaited(_logStore.flush());
     if (_positionSeeded && location.hasBeenLive) {
       unawaited(_writeCache(_targetLat, _targetLon));
     }
@@ -231,6 +257,7 @@ class LiveSessionController extends ChangeNotifier {
     if (!_started || _disposed) return;
     if (!_running) {
       _running = true;
+      _resumedAt = _clock();
       _sensors.start();
       _hardware.start();
       if (_autoTick) _startTimers();
@@ -271,7 +298,53 @@ class LiveSessionController extends ChangeNotifier {
 
   // ------------------------------------------------------------------ actions
 
+  /// The user's "Haptic alerts" switch. Remembered across restarts.
+  bool get hapticsEnabled => _haptics.enabled;
+
+  void setHapticsEnabled(bool on) {
+    _haptics.enabled = on;
+    unawaited(_saveHaptics(on));
+    _touch();
+  }
+
+  Future<void> _loadHaptics() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getBool(_hapticsKey);
+      if (saved != null && !_disposed) _haptics.enabled = saved;
+    } catch (_) {}
+  }
+
+  Future<void> _saveHaptics(bool on) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_hapticsKey, on);
+    } catch (_) {}
+  }
+
   void setVehicleProfile(VehicleProfile profile) {
+    _applyVehicleProfile(profile);
+    unawaited(_saveVehicleProfile(profile));
+  }
+
+  /// The chosen vehicle is remembered: an app that restarts mid-ride must not
+  /// quietly go back to being a car, and a drive log records which it was.
+  Future<void> _loadVehicleProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = VehicleProfile.values.asNameMap()[prefs.getString(_vehicleKey)];
+      if (saved != null && !_disposed) _applyVehicleProfile(saved);
+    } catch (_) {}
+  }
+
+  Future<void> _saveVehicleProfile(VehicleProfile profile) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_vehicleKey, profile.name);
+    } catch (_) {}
+  }
+
+  void _applyVehicleProfile(VehicleProfile profile) {
     _vehicleProfile = profile;
     _alignment.vehicleProfile = profile;
     _engine.vehicleClass = profile == VehicleProfile.twoWheeler
@@ -292,7 +365,6 @@ class LiveSessionController extends ChangeNotifier {
     if (_speed < 5.0) {
       _speed = 12.5;
     }
-    unawaited(_hardware.triggerOutageAlarmVibration());
     _touch();
   }
 
@@ -303,7 +375,6 @@ class LiveSessionController extends ChangeNotifier {
     if (_speed < 5.0) {
       _speed = 8.33; // 30 km/h urban speed
     }
-    unawaited(_hardware.vibrate(durationMs: 150, amplitude: 180));
     _touch();
   }
 
@@ -313,7 +384,6 @@ class LiveSessionController extends ChangeNotifier {
     _simCanyon = false;
     _outage.reset();
     _speed = location.lastLiveFix?.speed ?? 0;
-    unawaited(_hardware.vibrate(durationMs: 80, amplitude: 100));
     _touch();
   }
 
@@ -336,13 +406,43 @@ class LiveSessionController extends ChangeNotifier {
     // eased, so the map draws the filtered position, not the raw fix.
     _applyEngineSolution();
     _easePosition(now);
+    _recordTrail();
     if (_dirty) _touch();
+  }
+
+  /// Adds the drawn position to the track. Until there is a position that
+  /// means something - a live fix, or an outage that began from one - nothing
+  /// is recorded: before that the marker sits on a built-in default.
+  void _recordTrail() {
+    if (uncertainty == null) return;
+    trail.add(
+      _lat,
+      _lon,
+      _drActive ? TrailKind.deadReckoning : TrailKind.gnss,
+    );
+  }
+
+  /// Forgets the track drawn so far.
+  void clearTrail() {
+    trail.clear();
+    _touch();
   }
 
   void _easePosition(DateTime now) {
     final last = _lastEaseAt;
     _lastEaseAt = now;
     if (_drActive) {
+      _drawnOnReal = true;
+      _lat = _targetLat;
+      _lon = _targetLon;
+      return;
+    }
+    // The marker waits on the last known place until the first real position,
+    // then jumps to it. Gliding across from a stale start would also draw a
+    // track the vehicle never drove.
+    if (!_drawnOnReal && uncertainty != null) {
+      _drawnOnReal = true;
+      if (_lat != _targetLat || _lon != _targetLon) _dirty = true;
       _lat = _targetLat;
       _lon = _targetLon;
       return;
@@ -469,21 +569,24 @@ class LiveSessionController extends ChangeNotifier {
     if (isEngineLeading) return;
 
     if (_drActive) {
-      // Zero-velocity update + AI dead reckoning. Until the model has a full
-      // window, keep the last GNSS speed rather than snapping to zero.
-      if (mlReady) _applyModelSpeed(mlSpeed);
+      // Fallback while the core is not leading: hold the last GNSS speed along
+      // the current heading, and let the model's stillness gate stop it. The
+      // model does not *set* the speed: nothing has shown, on recorded drives,
+      // that its speed beats holding the last one (the outage benchmark can
+      // score the core and the hold baseline, not this), and off-distribution
+      // input - a hand-held phone, a walk - makes it report vehicle speeds.
+      // Until the model has a full window, keep the last GNSS speed.
+      if (mlReady) _applyModelStillness(mlSpeed);
       if (_speed > _stationarySpeed) _integrate(_speed * dt);
-    } else if (!location.isLive && mlReady) {
-      // No GNSS yet (or unavailable): show model speed, hold position.
-      _speed = mlSpeed < _stationarySpeed ? 0 : mlSpeed;
     }
-    // GNSS live: speed comes from the fix (see _applyFix).
+    // GNSS live: speed comes from the fix (see _applyFix). With no fix ever,
+    // there is no basis for a speed, so it stays at zero rather than showing
+    // an unvalidated model's guess.
   }
 
-  void _applyModelSpeed(double mlSpeed) {
+  void _applyModelStillness(double mlSpeed) {
     if (mlSpeed >= _stationarySpeed) {
       _stillSeconds = 0;
-      _speed = mlSpeed;
       return;
     }
     _stillSeconds += _mlFeedSeconds;
@@ -493,6 +596,17 @@ class LiveSessionController extends ChangeNotifier {
     // the real fix once driving data exists.
     final needed = _speed > 2 ? 3.0 : 1.0;
     if (_stillSeconds >= needed) _speed = 0;
+  }
+
+  /// Whether a starting outage is one to buzz about: a signal lost while the
+  /// driver was using the app (or the tunnel test), not a location switch they
+  /// turned off and not the settling after coming back from the background.
+  bool _outageIsWorthAlerting(DateTime now) {
+    final resumed = _resumedAt;
+    if (resumed != null && now.difference(resumed) < _afterResumeQuiet) {
+      return false;
+    }
+    return _simTunnel || location.status == LocationStatus.stale;
   }
 
   /// Starts/stops the outage tracker to match [_drActive]. An outage is only
@@ -509,6 +623,10 @@ class LiveSessionController extends ChangeNotifier {
       accuracyMeters: _accuracy,
       alreadyElapsed: gap,
     );
+    if (starting && _outageIsWorthAlerting(now)) {
+      unawaited(
+          _haptics.fire(HapticEvent.outageStarted, recording: isRecording));
+    }
     if (!starting) return;
 
     final missed = _speed * gap.inMilliseconds / 1000;
@@ -548,7 +666,7 @@ class LiveSessionController extends ChangeNotifier {
       ),
     );
     if (_anomalies.length > 5) _anomalies.removeLast();
-    unawaited(_hardware.triggerRoadAnomalyVibration(isPothole));
+    // Visual only, on purpose: see [Haptics] for why a bump never buzzes.
   }
 
   // --------------------------------------------------------- handover
@@ -569,16 +687,7 @@ class LiveSessionController extends ChangeNotifier {
   /// The consequence is the safety property worth stating plainly: the app
   /// can never be worse than it was before the core existed, because the
   /// core only ever takes over when it is demonstrably healthy.
-  bool get isEngineLeading {
-    final snapshot = _navSnapshot;
-    if (snapshot == null || !snapshot.hasPosition) return false;
-    if (snapshot.mode == NavMode.sensorFailure) return false;
-    if (snapshot.integrity == NavIntegrity.invalid) return false;
-    if (!snapshot.isMountCalibrated) return false;
-    final sigma = snapshot.horizontalSigmaM;
-    if (sigma == null || !sigma.isFinite) return false;
-    return true;
-  }
+  bool get isEngineLeading => _navSnapshot?.canLeadPosition ?? false;
 
   /// Why the core is not leading yet, for the UI to show instead of leaving
   /// the driver guessing. Null once it is leading.
@@ -648,11 +757,15 @@ class LiveSessionController extends ChangeNotifier {
     final sessionId = 'drive-${startedAt.toIso8601String().replaceAll(RegExp(r'[^0-9A-Za-z]'), '')}';
     final path = await _logStore.open(sessionId);
     if (path == null) return null;
+    unawaited(_haptics.fire(HapticEvent.recordingStarted));
+    final device = await _hardware.deviceInfo();
 
     final recorder = DriveRecorder(sink: _logStore.write);
     recorder.start(DriveMeta(
       sessionId: sessionId,
       startedAtMs: startedAt.millisecondsSinceEpoch,
+      deviceModel: device?.model,
+      osVersion: device?.os,
       vehicle: _vehicleProfile.name,
       mountDescription: mountDescription,
       roadType: roadType,
@@ -675,6 +788,7 @@ class LiveSessionController extends ChangeNotifier {
     recorder.stop();
     _recorder = null;
     _recordingPath = null;
+    unawaited(_haptics.fire(HapticEvent.recordingStopped));
     unawaited(_hardware.setKeepScreenOn(false));
     final file = await _logStore.close();
     if (!_disposed) _touch();
@@ -988,6 +1102,18 @@ class LiveSessionController extends ChangeNotifier {
   bool get hasModelInference => _ml.hasModelInference;
   bool get isModelLoaded => _ml.isModelLoaded;
   bool get isSpeedEstimatorReady => _ml.isReady;
+
+  /// The phone's model and OS, or null when the platform cannot say.
+  Future<DeviceInfo?> deviceInfo() => _hardware.deviceInfo();
+
+  /// Whether the app is still getting itself ready (sensors, motion model,
+  /// satellites) and on what, for the sync capsule and loading states.
+  SyncStatus get syncStatus => syncStatusOf(
+        sensorsLive: isSensorLive,
+        modelReady: isSpeedEstimatorReady,
+        location: gnssStatus,
+        reacquiring: fusionMode == FusionMode.reacquiring,
+      );
   int get inferenceLatencyMs => _ml.latencyMs;
   double get inferenceConfidence => _ml.confidence;
   double get inferenceSpeed => _ml.estimatedSpeed;

@@ -5,4 +5,9 @@ class AppConstants {
       'Not the final product — new features are still being added.';
   // Matches assets/models/model_metadata.json (v2.0.0).
   static const String defaultModelVersion = 'v2.0.0';
+
+  /// Match `version:` in pubspec.yaml (`test/app_info_test.dart` keeps them in
+  /// step).
+  static const String appVersion = '1.0.0';
+  static const String appBuild = '1';
 }

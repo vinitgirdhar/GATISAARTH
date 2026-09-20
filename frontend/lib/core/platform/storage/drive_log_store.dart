@@ -37,6 +37,10 @@ abstract class DriveLogSink {
   /// Flushes and closes, returning the finished file.
   Future<DriveLogFile?> close();
 
+  /// Pushes everything written so far to the file without closing it, so an
+  /// app the OS kills in the background has lost nothing but the last instant.
+  Future<void> flush();
+
   /// The last write error, or null.
   Object? get lastError;
 }
@@ -118,6 +122,19 @@ class DriveLogStore implements DriveLogSink {
       _lastError = e;
       _buffer.clear();
       debugPrint('[DriveLogStore] write failed: $e');
+    }
+  }
+
+  @override
+  Future<void> flush() async {
+    final sink = _sink;
+    if (sink == null) return;
+    _drain();
+    try {
+      await sink.flush();
+    } catch (e) {
+      _lastError = e;
+      debugPrint('[DriveLogStore] flush failed: $e');
     }
   }
 

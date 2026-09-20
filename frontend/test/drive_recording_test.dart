@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gatisaarth/core/nav/replay/replay_engine.dart';
+import 'package:gatisaarth/core/platform/hardware/haptics.dart';
 import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart';
 import 'package:gatisaarth/core/platform/location/live_location_service.dart';
 import 'package:gatisaarth/core/platform/storage/drive_log_store.dart';
@@ -15,6 +16,10 @@ class FakeLogSink implements DriveLogSink {
   bool open_ = false;
   bool failToOpen = false;
   int closes = 0;
+  int flushes = 0;
+
+  @override
+  Future<void> flush() async => flushes++;
 
   @override
   Object? lastError;
@@ -67,6 +72,7 @@ Future<void> settle() => Future<void>.delayed(Duration.zero);
 /// data shows it beating the heuristic.
 void main() {
   late FakeSensors sensors;
+  late FakeHardware hardware;
   late FakeLogSink logSink;
   late FakeLocationGateway gateway;
   late DateTime now;
@@ -75,13 +81,14 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     sensors = FakeSensors();
+    hardware = FakeHardware();
     logSink = FakeLogSink();
     gateway = FakeLocationGateway();
     now = DateTime(2026, 9, 19, 12);
     controller = LiveSessionController(
       sensors: sensors,
       alignment: VehicleAlignmentEngine(),
-      hardware: FakeHardware(),
+      hardware: hardware,
       speedEstimator: FakeSpeed(),
       telemetry: FakeTelemetry(),
       location: LiveLocationService(
@@ -92,6 +99,7 @@ void main() {
       clock: () => now,
       autoTick: false,
       logStore: logSink,
+      haptics: Haptics(hardware, clock: () => now, pause: (_) async {}),
     );
   });
 
@@ -130,6 +138,89 @@ void main() {
     expect(logSink.lines.any((l) => l.contains('"t":"i"')), isTrue);
     expect(logSink.lines.any((l) => l.contains('"t":"g"')), isTrue);
     expect(controller.recordedLines, greaterThan(60));
+  });
+
+  test('the header names the phone and the vehicle it was recorded on',
+      () async {
+    await controller.start();
+    controller.setVehicleProfile(VehicleProfile.twoWheeler);
+    await controller.startRecording();
+    final header = logSink.lines.first;
+    expect(header, contains('"dev":"Test Phone"'));
+    expect(header, contains('"os":"Android 15 (API 35)"'));
+    expect(header, contains('"veh":"twoWheeler"'));
+  });
+
+  test('the chosen vehicle survives an app restart', () async {
+    await controller.start();
+    controller.setVehicleProfile(VehicleProfile.twoWheeler);
+    await settle();
+
+    // A second session over the same preferences, as after the app is killed.
+    final restarted = LiveSessionController(
+      sensors: FakeSensors(),
+      alignment: VehicleAlignmentEngine(),
+      hardware: FakeHardware(),
+      speedEstimator: FakeSpeed(),
+      telemetry: FakeTelemetry(),
+      location: LiveLocationService(
+        gateway: FakeLocationGateway(),
+        clock: () => now,
+        errorRetryDelay: Duration.zero,
+      ),
+      clock: () => now,
+      autoTick: false,
+      logStore: FakeLogSink(),
+    );
+    addTearDown(restarted.dispose);
+    await restarted.start();
+    expect(restarted.vehicleProfile, VehicleProfile.twoWheeler);
+  });
+
+  test('starting and stopping each give one confirmation, nothing else',
+      () async {
+    await controller.start();
+    await controller.startRecording();
+    await settle();
+    expect(hardware.vibrations, [60]);
+
+    await feed(100); // recording a moving phone must not buzz it further
+    now = now.add(const Duration(seconds: 5));
+    await controller.stopRecording();
+    await settle();
+    expect(hardware.vibrations, [60, 60, 60]);
+  });
+
+  test('a GNSS outage during a recording does not shake the recorded IMU',
+      () async {
+    await controller.start();
+    gateway.fixController.add(_fix);
+    await settle();
+    controller.tick();
+    await controller.startRecording();
+    await settle();
+    hardware.vibrations.clear();
+
+    now = now.add(const Duration(seconds: 7));
+    controller.tick();
+    await settle();
+    expect(controller.inOutage, isTrue);
+    expect(hardware.vibrations, isEmpty);
+  });
+
+  test('going to the background flushes the recording to disk', () async {
+    await controller.start();
+    await controller.startRecording();
+    await feed(30);
+    expect(logSink.flushes, 0);
+    await controller.pause();
+    expect(logSink.flushes, 1);
+  });
+
+  test('pausing without a recording does not touch storage', () async {
+    await controller.start();
+    await controller.pause();
+    expect(logSink.flushes, 0);
   });
 
   test('a recorded drive replays back through the engine', () async {

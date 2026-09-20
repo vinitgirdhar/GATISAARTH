@@ -31,6 +31,14 @@ LiveSessionController _session(FakeLocationGateway gateway) {
   );
 }
 
+/// Runs real frames for a moment. `pumpAndSettle` cannot be used on the
+/// dashboard: while sensors and a fix are pending it shows a sync spinner.
+Future<void> _frames(WidgetTester tester, {int count = 10}) async {
+  for (var i = 0; i < count; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 void main() {
   setUpAll(loadAppFonts);
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -54,7 +62,7 @@ void main() {
     expect(AppColors.surface, AppColors.lightSurface);
 
     await tester.tap(find.byType(BrightnessToggle));
-    await tester.pumpAndSettle();
+    await _frames(tester); // not pumpAndSettle: a sync spinner never settles
 
     expect(theme.isDark, isTrue);
     expect(AppColors.isDark, isTrue);
@@ -66,7 +74,7 @@ void main() {
     );
 
     await tester.tap(find.byType(BrightnessToggle));
-    await tester.pumpAndSettle();
+    await _frames(tester); // not pumpAndSettle: a sync spinner never settles
 
     expect(theme.isDark, isFalse);
     expect(AppColors.surface, AppColors.lightSurface);
@@ -98,5 +106,13 @@ void main() {
     final restored = await ThemeController.load();
     expect(restored.isDark, isTrue);
     expect(restored.themeMode, ThemeMode.dark);
+  });
+
+  testWidgets('dividers follow the app brightness (not the Material default)',
+      (tester) async {
+    Color rule(ThemeData t) => t.dividerTheme.color!;
+    expect(rule(AppTheme.lightTheme), AppColors.lightSurfaceBorder);
+    expect(rule(AppTheme.darkTheme), AppColors.darkBorder,
+        reason: 'a near-white rule across a dark card was the default');
   });
 }

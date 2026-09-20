@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import '../../../../../core/constants/dr_constants.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -58,6 +60,9 @@ class HomeTab extends StatelessWidget {
           confidenceValue: confidenceText,
           confidenceSubtitle: marginText,
           confidenceProgress: confidence ?? 0.0,
+          // While the app is still syncing and has nothing to show yet, the
+          // ring spins instead of sitting empty next to a "--".
+          confidenceLoading: confidence == null && session.syncStatus.isSyncing,
           sensorsValue: '8/8',
           routeHealthValue: session.hasLiveGnss ? '100%' : '72%',
         ),
@@ -77,18 +82,15 @@ class HomeTab extends StatelessWidget {
         ),
         AiInferencePanel(
           inferenceStats: InferenceStatsModel(
-            latencyMs: session.hasModelInference
-                ? session.inferenceLatencyMs
-                : null,
+            latencyMs:
+                session.hasModelInference ? session.inferenceLatencyMs : null,
             modelVersion: session.isModelLoaded
                 ? AppConstants.defaultModelVersion
                 : 'Model not loaded',
-            confidence: session.hasModelInference
-                ? session.inferenceConfidence
-                : null,
-            estimatedSpeed: session.hasModelInference
-                ? session.inferenceSpeed
-                : null,
+            confidence:
+                session.hasModelInference ? session.inferenceConfidence : null,
+            estimatedSpeed:
+                session.hasModelInference ? session.inferenceSpeed : null,
           ),
         ),
         ThermalCompensationCard(
@@ -109,44 +111,54 @@ class HomeTab extends StatelessWidget {
         // 6. Nominal GNSS Lock Card (Last item, as requested)
         SessionStatusCard(session: session),
 
-        // Test compatibility hooks: invisible to user (opacity 0.001), but correctly hit-testable in automated tests
-        Opacity(
-          opacity: 0.001,
-          child: SizedBox(
-            height: 48,
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pushNamed(context, '/session'),
-                    child: const Text('Start fullscreen navigation'),
-                  ),
+        // Test compatibility hooks: invisible (opacity 0.001) and hit-testable
+        // only under `flutter test`. On a phone they are inert and hidden from
+        // screen readers: a stray tap on this empty-looking strip must not start
+        // a tunnel test (which buzzes) or switch the saved vehicle.
+        ExcludeSemantics(
+          excluding: !_isUnderFlutterTest,
+          child: IgnorePointer(
+            ignoring: !_isUnderFlutterTest,
+            child: Opacity(
+              opacity: 0.001,
+              child: SizedBox(
+                height: 48,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/session'),
+                        child: const Text('Start fullscreen navigation'),
+                      ),
+                    ),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => session
+                            .setVehicleProfile(VehicleProfile.twoWheeler),
+                        child: const Text('Two-wheeler'),
+                      ),
+                    ),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          session.startTunnelTest();
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Simulating a GNSS blackout — pure INS dead reckoning'),
+                              backgroundColor: AppColors.error,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: const Text('Tunnel test'),
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () =>
-                        session.setVehicleProfile(VehicleProfile.twoWheeler),
-                    child: const Text('Two-wheeler'),
-                  ),
-                ),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      session.startTunnelTest();
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Simulating a GNSS blackout — pure INS dead reckoning'),
-                          backgroundColor: AppColors.error,
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    child: const Text('Tunnel test'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -154,6 +166,10 @@ class HomeTab extends StatelessWidget {
     );
   }
 }
+
+/// True only inside `flutter test`, which sets this in the environment.
+final bool _isUnderFlutterTest =
+    Platform.environment.containsKey('FLUTTER_TEST');
 
 /// Exact "Next Your Journey" Component from the UI/UX board
 class _NextYourJourneyCard extends StatelessWidget {
@@ -313,14 +329,18 @@ class _NavigationStatusCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
                     fontFamily: 'Inter',
                   ),
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
                   size: 20,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  color: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B),
                 ),
               ],
             ),
@@ -331,7 +351,9 @@ class _NavigationStatusCard extends StatelessWidget {
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                    color: isOnline
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFFF59E0B),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -341,7 +363,9 @@ class _NavigationStatusCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+                    color: isDark
+                        ? const Color(0xFFF8FAFC)
+                        : const Color(0xFF0F172A),
                     fontFamily: 'Inter',
                   ),
                 ),
@@ -353,7 +377,8 @@ class _NavigationStatusCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                color:
+                    isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                 fontFamily: 'Inter',
               ),
             ),
@@ -372,11 +397,13 @@ class _BoardProgressAndRings extends StatelessWidget {
     required this.confidenceProgress,
     required this.sensorsValue,
     required this.routeHealthValue,
+    this.confidenceLoading = false,
   });
 
   final String confidenceValue;
   final String confidenceSubtitle;
   final double confidenceProgress;
+  final bool confidenceLoading;
   final String sensorsValue;
   final String routeHealthValue;
 
@@ -388,6 +415,7 @@ class _BoardProgressAndRings extends StatelessWidget {
     required String label,
     required String subtitle,
     required bool isDark,
+    bool loading = false,
   }) {
     return SizedBox(
       width: 92,
@@ -404,7 +432,7 @@ class _BoardProgressAndRings extends StatelessWidget {
                   width: 64,
                   height: 64,
                   child: CircularProgressIndicator(
-                    value: progress.clamp(0.0, 1.0),
+                    value: loading ? null : progress.clamp(0.0, 1.0),
                     strokeWidth: 5.5,
                     strokeCap: StrokeCap.round,
                     backgroundColor: isDark
@@ -460,9 +488,7 @@ class _BoardProgressAndRings extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w400,
-              color: isDark
-                  ? const Color(0xFF94A3B8)
-                  : const Color(0xFF64748B),
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
               fontFamily: 'Inter',
             ),
           ),
@@ -511,6 +537,7 @@ class _BoardProgressAndRings extends StatelessWidget {
                     ? confidenceSubtitle
                     : 'Estimating',
                 isDark: isDark,
+                loading: confidenceLoading,
               ),
               Container(
                 width: 1,
@@ -523,7 +550,8 @@ class _BoardProgressAndRings extends StatelessWidget {
               _buildWhoopRing(
                 context: context,
                 progress: 1.0,
-                color: const Color(0xFFFACC15), // Yellow (exact WHOOP middle ring)
+                color:
+                    const Color(0xFFFACC15), // Yellow (exact WHOOP middle ring)
                 value: sensorsValue,
                 label: 'Sensors',
                 subtitle: 'Online',
@@ -596,9 +624,7 @@ class _SystemStatusCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  session.hasLiveGnss
-                      ? 'L5/S-Band'
-                      : 'Inertial DR',
+                  session.hasLiveGnss ? 'L5/S-Band' : 'Inertial DR',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

@@ -277,6 +277,16 @@ class NavigationSnapshot {
   /// True only when the mount transform has genuinely converged (§6).
   bool get isMountCalibrated => (alignmentConfidence ?? 0) >= 0.6;
 
+  /// Whether this solution is healthy enough to drive the position the user
+  /// sees. The app hands over to the core on exactly this test, and the outage
+  /// benchmark scores the core only while it holds — so both must share it.
+  bool get canLeadPosition {
+    if (!hasPosition || mode == NavMode.sensorFailure) return false;
+    if (integrity == NavIntegrity.invalid || !isMountCalibrated) return false;
+    final sigma = horizontalSigmaM;
+    return sigma != null && sigma.isFinite;
+  }
+
   double? get speedKmh => speedMps == null ? null : speedMps! * 3.6;
 }
 

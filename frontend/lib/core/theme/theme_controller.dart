@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'app_theme.dart';
+
 /// Owns the light/dark choice and remembers it across launches.
 ///
 /// The stored value is a plain bool rather than a [ThemeMode] name: the app
@@ -14,6 +16,10 @@ class ThemeController extends ChangeNotifier {
   bool _isDark;
   bool get isDark => _isDark;
   ThemeMode get themeMode => _isDark ? ThemeMode.dark : ThemeMode.light;
+
+  /// Awaited before the brightness changes. The widget that animates the flip
+  /// (`ThemeTransitionHost`) uses it to freeze a picture of the old look first.
+  Future<void> Function()? beforeFlip;
 
   /// Reads the saved choice. Falls back to the platform brightness the very
   /// first time the app runs, so a phone already in dark mode opens dark.
@@ -31,7 +37,16 @@ class ThemeController extends ChangeNotifier {
 
   Future<void> setDark(bool value) async {
     if (_isDark == value) return;
+    final freeze = beforeFlip;
+    if (freeze != null) {
+      await freeze();
+      // A second tap while the picture was being taken asked for the same flip.
+      if (_isDark == value) return;
+    }
     _isDark = value;
+    // Set here as well as by the app root so nothing reads the old palette
+    // between the flip and the next build.
+    AppColors.isDark = value;
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();

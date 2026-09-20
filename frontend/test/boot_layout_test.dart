@@ -48,7 +48,9 @@ void main() {
 
       // Advance past the 1400ms animation duration + 300ms transition
       await tester.pump(const Duration(milliseconds: 1500));
-      await tester.pumpAndSettle();
+      // Bounded, not pumpAndSettle: the dashboard shows a sync spinner until
+      // sensors and a fix arrive, and a loading spinner never "settles".
+      await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.byType(DashboardScreen), findsOneWidget);
     });

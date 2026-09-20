@@ -65,7 +65,8 @@ class DeviceHardwareService implements DeviceHardware {
     _tempController.add(_currentTemperature);
   }
 
-  /// Triggers real physical vibration on the phone
+  /// One vibration on the phone's motor. A failure is swallowed: a missing
+  /// vibration must never turn into a different, stronger one.
   @override
   Future<void> vibrate({int durationMs = 200, int amplitude = 255}) async {
     try {
@@ -74,31 +75,9 @@ class DeviceHardwareService implements DeviceHardware {
           'durationMs': durationMs,
           'amplitude': amplitude,
         });
-      } else {
-        HapticFeedback.heavyImpact();
       }
     } catch (e) {
-      try {
-        HapticFeedback.heavyImpact();
-      } catch (_) {}
-    }
-  }
-
-  /// Triggers a double-pulse vibration pattern for emergency / severe events
-  @override
-  Future<void> triggerOutageAlarmVibration() async {
-    await vibrate(durationMs: 250, amplitude: 255);
-    await Future.delayed(const Duration(milliseconds: 150));
-    await vibrate(durationMs: 350, amplitude: 255);
-  }
-
-  /// Triggers a brief haptic bump for road anomalies (speed breakers, potholes)
-  @override
-  Future<void> triggerRoadAnomalyVibration(bool isPothole) async {
-    if (isPothole) {
-      await vibrate(durationMs: 300, amplitude: 255);
-    } else {
-      await vibrate(durationMs: 120, amplitude: 180);
+      debugPrint('[DeviceHardwareService] vibrate failed: $e');
     }
   }
 
@@ -110,6 +89,22 @@ class DeviceHardwareService implements DeviceHardware {
       }
     } catch (e) {
       debugPrint('[DeviceHardwareService] keep-screen-on failed: $e');
+    }
+  }
+
+  @override
+  Future<DeviceInfo?> deviceInfo() async {
+    try {
+      if (defaultTargetPlatform != TargetPlatform.android) return null;
+      final info = await _channel.invokeMapMethod<String, String>('getDeviceInfo');
+      final model = info?['model'];
+      final os = info?['os'];
+      return model == null || os == null
+          ? null
+          : DeviceInfo(model: model, os: os);
+    } catch (e) {
+      debugPrint('[DeviceHardwareService] device info failed: $e');
+      return null;
     }
   }
 

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
 
@@ -118,10 +117,9 @@ class _PressableScaleState extends State<PressableScale> {
       onTapDown: (_) => _setPressed(true),
       onTapUp: (_) => _setPressed(false),
       onTapCancel: () => _setPressed(false),
-      onTap: () {
-        HapticFeedback.selectionClick();
-        widget.onTap();
-      },
+      // No haptic here: the OS gives touch feedback, and this app's vibrator
+      // is reserved for `Haptics` (GNSS loss, recording start/stop).
+      onTap: widget.onTap,
       child: AnimatedScale(
         scale: _pressed ? widget.pressedScale : 1,
         duration: AppMotion.of(context, AppMotion.fast),

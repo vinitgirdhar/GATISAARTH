@@ -222,7 +222,13 @@ class ReplayEngine {
 
   ReplaySummary summary() {
     final sorted = List<double>.from(_errors)..sort();
-    final first = _records.isEmpty ? 0 : _records.first.monotonicUs;
+    // The header is stamped 0; the drive starts at the first sensor line.
+    final first = _records
+        .firstWhere((r) => r.type != DriveRecordType.meta,
+            orElse: () => _records.isEmpty
+                ? const DriveRecord(type: DriveRecordType.meta, monotonicUs: 0)
+                : _records.first)
+        .monotonicUs;
     final last = _records.isEmpty ? 0 : _records.last.monotonicUs;
     return ReplaySummary(
       records: _records.length,
@@ -251,6 +257,7 @@ class ReplayEngine {
           gyroPhone: record.gyro!,
           monotonicUs: record.monotonicUs,
           magPhone: record.mag,
+          pressureHpa: record.pressureHpa,
           temperatureC: record.temperatureC,
         );
       case DriveRecordType.gnss:

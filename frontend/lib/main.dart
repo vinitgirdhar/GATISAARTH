@@ -9,5 +9,5 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   unawaited(BundledOfflineTileProvider.initCache());
   final theme = await ThemeController.load();
-  runApp(GatiSaarthApp(theme: theme));
+  runApp(GatiSaarthApp(theme: theme, promptForMaps: true));
 }

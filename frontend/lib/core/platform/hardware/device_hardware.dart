@@ -1,3 +1,15 @@
+/// Which phone this is, for the header of a drive log: results only mean
+/// something next to the phone that produced them.
+class DeviceInfo {
+  const DeviceInfo({required this.model, required this.os});
+
+  /// Manufacturer and model, e.g. "Google Pixel 9".
+  final String model;
+
+  /// e.g. "Android 15 (API 35)".
+  final String os;
+}
+
 /// Phone hardware services the session needs beyond the IMU: thermal reading
 /// and haptics.
 abstract class DeviceHardware {
@@ -8,9 +20,9 @@ abstract class DeviceHardware {
   double get thermalBiasCorrection;
   Stream<double> get temperatureStream;
 
+  /// One vibration. Only `Haptics` calls this: it holds the whole policy for
+  /// when the phone may buzz.
   Future<void> vibrate({int durationMs = 200, int amplitude = 255});
-  Future<void> triggerOutageAlarmVibration();
-  Future<void> triggerRoadAnomalyVibration(bool isPothole);
 
   /// Holds the screen awake, or releases it.
   ///
@@ -18,4 +30,7 @@ abstract class DeviceHardware {
   /// a screen timeout backgrounds it — so a recorded drive would simply stop
   /// partway. Only held while something actually needs it.
   Future<void> setKeepScreenOn(bool on);
+
+  /// The phone's model and OS, or null when the platform cannot say.
+  Future<DeviceInfo?> deviceInfo();
 }

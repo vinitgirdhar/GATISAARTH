@@ -30,6 +30,7 @@ void main() {
     expect(find.text('Model not loaded'), findsOneWidget);
     expect(find.textContaining(' ms'), findsNothing);
     expect(find.textContaining('%'), findsNothing);
+    expect(find.textContaining('Advisory'), findsNothing);
   });
 
   testWidgets('shows real figures once the model has run', (tester) async {
@@ -42,5 +43,7 @@ void main() {
     expect(find.text('5 ms'), findsOneWidget);
     expect(find.text('87%'), findsOneWidget);
     expect(find.text('12.3 m/s'), findsOneWidget);
+    // The figures are real but not yet validated, and the panel says so.
+    expect(find.textContaining('Advisory'), findsOneWidget);
   });
 }
