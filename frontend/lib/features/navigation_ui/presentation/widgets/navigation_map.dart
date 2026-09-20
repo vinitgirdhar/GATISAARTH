@@ -27,12 +27,22 @@ class NavigationMap extends StatefulWidget {
   /// map is a static live preview.
   final bool interactive;
 
+  /// Fill whatever the parent gives it, edge to edge (no card margin, corners
+  /// or shadow), instead of being a fixed-[height] card. [height] is ignored.
+  final bool expand;
+
+  /// Gap between the bottom edge and the coordinates pill. Raise it when the
+  /// map runs underneath a sheet that would otherwise cover the pill.
+  final double bottomInset;
+
   const NavigationMap({
     Key? key,
     required this.navigationState,
     required this.marginMeters,
     this.height = 260,
     this.interactive = false,
+    this.expand = false,
+    this.bottomInset = 12,
   }) : super(key: key);
 
   @override
@@ -86,6 +96,7 @@ class _NavigationMapState extends State<NavigationMap> {
     final state = widget.navigationState;
     final position = LatLng(state.latitude, state.longitude);
     final margin = widget.marginMeters;
+    final radius = widget.expand ? BorderRadius.zero : AppRadius.cardRadius;
 
     return RepaintBoundary(
       child: Semantics(
@@ -93,15 +104,17 @@ class _NavigationMapState extends State<NavigationMap> {
             '${formatLatitude(state.latitude)}, '
             '${formatLongitude(state.longitude)}',
         child: Container(
-          height: widget.height,
-          margin: const EdgeInsets.only(bottom: AppSpacing.md),
+          height: widget.expand ? null : widget.height,
+          margin: widget.expand
+              ? EdgeInsets.zero
+              : const EdgeInsets.only(bottom: AppSpacing.md),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: AppRadius.cardRadius,
-            boxShadow: AppShadow.raised,
+            borderRadius: radius,
+            boxShadow: widget.expand ? null : AppShadow.raised,
           ),
           child: ClipRRect(
-            borderRadius: AppRadius.cardRadius,
+            borderRadius: radius,
             child: Stack(
               children: [
                 FlutterMap(
@@ -213,7 +226,7 @@ class _NavigationMapState extends State<NavigationMap> {
                   ),
                 ),
                 Positioned(
-                  bottom: 12,
+                  bottom: widget.bottomInset,
                   left: 12,
                   right: 12,
                   child: _FrostedPill(

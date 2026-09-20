@@ -48,7 +48,7 @@
     0.09464653315412107,
     0.0379910512759541
   ],
-  "quantization": "INT8_PTQ",
+  "quantization": "FP32",
   "speed_mae_m_s": 0.28,
   "speed_mae_km_h": 1.01,
   "speed_r2_score": 0.9959,
@@ -58,5 +58,5 @@
   "outage_30s_drift_reduction_pct": -309.0,
   "avg_cpu_latency_ms": 4.39,
   "throughput_hz": 227.9,
-  "parity_status": "SKIPPED (onnxruntime not found)"
+  "parity_status": "PASSED: speed_estimator.tflite vs ONNX, max abs diff 6.7e-06 over 512 windows"
 }

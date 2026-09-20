@@ -116,10 +116,13 @@ void main() {
     expect(controller.hasLiveGnss, isFalse);
   });
 
-  test('the neural model is not run while GNSS is live', () async {
+  test('the neural model runs while GNSS is live but never overrides its speed',
+      () async {
     await goLive();
+    speedFake.speed = 3; // the model disagrees with the fix (10 m/s)
     await feed(30);
-    expect(speedFake.frames, 0);
+    expect(speedFake.frames, greaterThan(0)); // the AI panel has real output
+    expect(controller.speed, 10); // the live fix still owns the speed
   });
 
   test('cached position is shown before the first fix', () async {

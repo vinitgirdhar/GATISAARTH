@@ -8,6 +8,8 @@ import '../../widgets/navigation_map.dart';
 import '../../widgets/session_controls.dart';
 import '../../widgets/telemetry_card.dart';
 
+const double _sheetRadius = 22;
+
 class MapTab extends StatelessWidget {
   const MapTab({Key? key}) : super(key: key);
 
@@ -121,19 +123,31 @@ class MapTab extends StatelessWidget {
           ),
         ),
 
-        // 2. Interactive Navigation Map
+        // 2. Interactive Navigation Map. Fills all the space between the card
+        // above and the sheet below, and runs [_sheetRadius] underneath the
+        // sheet so its rounded top corners show map, not page background.
         Expanded(
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              NavigationMap(
-                navigationState: session.navigationState,
-                marginMeters: margin,
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: -_sheetRadius,
+                child: NavigationMap(
+                  navigationState: session.navigationState,
+                  marginMeters: margin,
+                  expand: true,
+                  bottomInset: _sheetRadius + 12,
+                ),
               ),
 
-              // Floating Controls
+              // Floating Controls (below the OSM credit line, which the map
+              // draws top-right and licensing requires to stay readable)
               Positioned(
                 right: 16,
-                top: 16,
+                top: 40,
                 child: Column(
                   children: [
                     _FloatingMapButton(
@@ -157,7 +171,8 @@ class MapTab extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(_sheetRadius)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),

@@ -36,8 +36,10 @@ class HomeTab extends StatelessWidget {
     final margin = estimate?.marginMeters;
     final marginText = margin == null ? 'No fix yet' : '±${margin.round()}m';
 
+    // Default (platform) scroll physics, same as the other tabs: on Android that
+    // is the clamped stretch overscroll. BouncingScrollPhysics let the list drag
+    // past the top and expose the blank page behind it.
     return ListView(
-      physics: const BouncingScrollPhysics(),
       cacheExtent: 3000,
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,

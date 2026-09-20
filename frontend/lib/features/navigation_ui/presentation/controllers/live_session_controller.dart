@@ -405,22 +405,25 @@ class LiveSessionController extends ChangeNotifier {
   }
 
   /// Feeds the speed model at its training rate and returns a fresh estimate
-  /// on those ticks (null between them). The model is only needed when GNSS
-  /// cannot supply speed, so it is idle — and its window dropped — otherwise.
+  /// on those ticks (null between them). The model also runs while GNSS is
+  /// live so the AI panel shows real output, but its speed is only *returned*
+  /// (and so only used by dead reckoning) once GNSS cannot supply speed; the
+  /// warm-up counter restarts at every outage.
   double? _feedModel(
       List<double> nhc, double gx, double gy, double gz, double dt) {
-    if (!_drActive && location.isLive) {
-      if (_mlFrames > 0) {
-        _ml.reset();
-        _mlFrames = 0;
-        _mlClock = 0;
-      }
-      return null;
-    }
     _mlClock += dt;
     if (_mlClock < _mlFeedSeconds - 0.005) return null;
     _mlClock = 0;
+    final speed = _runModel(nhc, gx, gy, gz);
+    if (!_drActive && location.isLive) {
+      _mlFrames = 0;
+      return null;
+    }
     _mlFrames++;
+    return speed;
+  }
+
+  double _runModel(List<double> nhc, double gx, double gy, double gz) {
     return _ml.addImuFrame(
       ax: nhc[0],
       ay: nhc[1],

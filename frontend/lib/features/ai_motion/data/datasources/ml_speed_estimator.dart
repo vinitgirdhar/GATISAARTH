@@ -4,7 +4,7 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 import '../../domain/speed_estimator.dart';
 
 /// GatiSaarth Edge AI Speed Estimator
-/// Uses PyTorch -> ONNX -> INT8 Quantized TFLite Neural Network
+/// Uses PyTorch -> ONNX -> float32 TFLite Neural Network
 /// (1D-CNN + Residual Blocks + Bidirectional GRU + Heteroscedastic Head)
 /// to predict instantaneous vehicle speed (m/s) from 13 IMU kinematic features.
 ///
@@ -89,7 +89,7 @@ class MlSpeedEstimator implements SpeedEstimator {
     try {
       final options = InterpreterOptions()..threads = 2;
       _interpreter = await Interpreter.fromAsset(
-        'assets/models/speed_estimator_int8.tflite',
+        'assets/models/speed_estimator.tflite',
         options: options,
       );
       _isModelLoaded = true;
@@ -221,7 +221,9 @@ class MlSpeedEstimator implements SpeedEstimator {
         } else {
           _latestEstimatedSpeed = 0.0;
         }
-        _latestConfidence = (1.0 / (1.0 + variance)).clamp(0.70, 0.99);
+        // Shown as-is: an earlier 0.70 floor made a poorly-fitting window read
+        // as a confident one.
+        _latestConfidence = (1.0 / (1.0 + variance)).clamp(0.0, 0.99);
         _latestInferenceLatencyMs =
             max(1, (stopwatch.elapsedMicroseconds / 1000).round());
         _modelRuns++;
