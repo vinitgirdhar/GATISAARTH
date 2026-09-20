@@ -21,10 +21,13 @@ import '../../../../core/platform/hardware/vehicle_alignment_engine.dart';
 import '../../../../core/platform/location/live_location_service.dart';
 import '../../../../core/platform/network/backend_telemetry_client.dart'
     show BackendSyncState;
+import '../../../../core/platform/maps/pack_road_source.dart'
+    show RoadGraphSource;
 import '../../../../core/platform/network/telemetry_sink.dart';
 import '../../../ai_motion/domain/speed_estimator.dart';
 import '../../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../../navigation_engine/domain/uncertainty_model.dart';
+import 'road_constraint.dart';
 import 'sync_status.dart';
 import 'track_trail.dart';
 
@@ -42,6 +45,30 @@ const Duration _sensorFresh = Duration(milliseconds: 500);
 const Duration _cacheEvery = Duration(seconds: 15);
 const double _easeTauSeconds = 0.6;
 const double _snapDistanceMeters = 1000;
+
+/// What the two demo buttons drive at when the phone itself is standing still:
+/// 45 km/h through a tunnel, 30 km/h between tall buildings.
+const double _tunnelCruiseSpeed = 12.5;
+const double _canyonCruiseSpeed = 8.33;
+
+/// Below this speed the direction between two fixes is noise, not a course.
+const double _courseMinSpeed = 2.0;
+
+/// Urban canyon: satellite fixes are reported this much less certain than the
+/// receiver says, and a fix is only allowed to nudge the position along the
+/// road when it shows the vehicle really moving.
+const double _canyonMinAccuracy = 25.0;
+const double _canyonMovingSpeed = 1.0;
+
+/// Without a Doppler speed, a fix only proves movement by being this far (or
+/// three times its own accuracy, if that is more) from the previous one: a
+/// standing receiver's position jitters by metres and would otherwise read as
+/// a crawl.
+const double _canyonMinMoveM = 15.0;
+
+/// Fixes in a row that must disagree with the road before the vehicle is
+/// taken to be on another street. One outlier is what a canyon is made of.
+const int _canyonRelockAfter = 3;
 
 // The speed model was trained on 10 Hz raw accelerometer data (gravity
 // included) — see assets/models/model_metadata.json — so it is fed at that
@@ -86,6 +113,7 @@ class LiveSessionController extends ChangeNotifier {
     bool autoTick = true,
     DriveLogSink? logStore,
     Haptics? haptics,
+    RoadGraphSource? roads,
   })  : _sensors = sensors,
         _alignment = alignment,
         _hardware = hardware,
@@ -94,7 +122,10 @@ class LiveSessionController extends ChangeNotifier {
         _clock = clock ?? DateTime.now,
         _autoTick = autoTick,
         _logStore = logStore ?? DriveLogStore(),
-        _haptics = haptics ?? Haptics(hardware, clock: clock);
+        _haptics = haptics ?? Haptics(hardware, clock: clock),
+        _road = RoadConstraint(source: roads, clock: clock) {
+    _road.onRoadsChanged = _onRoadsChanged;
+  }
 
   final HardwareSensorInterface _sensors;
   final Haptics _haptics;
@@ -165,6 +196,18 @@ class LiveSessionController extends ChangeNotifier {
   double _mlClock = 0;
   int _mlFrames = 0;
   DateTime? _lastImuNotifyAt;
+
+  /// Keeps dead reckoning on the roads of the installed map (see class doc).
+  final RoadConstraint _road;
+
+  /// The direction of travel the satellites reported at the last fix, or null
+  /// when the vehicle was too slow for it to mean anything. Better than the
+  /// compass to decide which way along a road the vehicle was going when signal
+  /// was lost: a phone in a cradle, pocket or hand makes the compass point
+  /// anywhere.
+  double? _courseDeg;
+  DateTime? _lastRoadAdvanceAt;
+  int _canyonMisses = 0;
 
   bool _simTunnel = false;
   bool _simCanyon = false;
@@ -270,6 +313,7 @@ class LiveSessionController extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    _road.dispose();
     _stopTimers();
     _imuSub?.cancel();
     _tempSub?.cancel();
@@ -357,13 +401,14 @@ class LiveSessionController extends ChangeNotifier {
     _simTunnel = true;
     _simCanyon = false;
     _outage.reset();
+    // The outage starts here, so this is where the marker goes onto the road.
     _syncOutage(_clock());
     _stillSeconds = 0;
     // When starting tunnel test, if vehicle was stationary or slow, initialize
     // a realistic tunnel cruise speed (45 km/h = 12.5 m/s) so simulation demonstrates
     // dead reckoning actively moving across the map in real time.
     if (_speed < 5.0) {
-      _speed = 12.5;
+      _speed = _tunnelCruiseSpeed;
     }
     _touch();
   }
@@ -372,19 +417,67 @@ class LiveSessionController extends ChangeNotifier {
     _simTunnel = false;
     _simCanyon = true;
     _outage.reset();
+    _canyonMisses = 0;
+    _lockRoad();
     if (_speed < 5.0) {
-      _speed = 8.33; // 30 km/h urban speed
+      _speed = _canyonCruiseSpeed; // 30 km/h urban speed
     }
     _touch();
   }
 
   void resetSimulation() {
+    final wasSimulating = _simTunnel || _simCanyon;
     if (_simTunnel) _reacquiringUntil = _clock().add(_reacquireWindow);
     _simTunnel = false;
     _simCanyon = false;
     _outage.reset();
     _speed = location.lastLiveFix?.speed ?? 0;
+    // A real outage carries on where it is: only a simulation is put back on
+    // the live fix.
+    final fix = location.lastLiveFix;
+    if (wasSimulating && fix != null) {
+      _road.release();
+      _canyonMisses = 0;
+      _accuracy = fix.accuracy;
+      _targetLat = fix.latitude;
+      _targetLon = fix.longitude;
+    }
     _touch();
+  }
+
+  /// Puts the marker on the road it is on, facing the way the vehicle is
+  /// going, so dead reckoning follows the street instead of a bare heading.
+  /// Leaves the marker where it was when there is no road close by; with
+  /// [keepIfFails] a lock already held survives a failed attempt too.
+  bool _lockRoad({double? lat, double? lon, bool keepIfFails = false}) {
+    final onRoad = _road.lock(
+      lat ?? _targetLat,
+      lon ?? _targetLon,
+      // Held on a road, the road's own direction is the best there is.
+      headingDeg: _road.isLocked ? _heading : (_courseDeg ?? _heading),
+      keepIfFails: keepIfFails,
+    );
+    if (onRoad == null) return false;
+    _adoptRoadPosition();
+    return true;
+  }
+
+  /// Copies the road follower's position and direction to the marker.
+  void _adoptRoadPosition() {
+    final onRoad = _road.position;
+    if (onRoad == null) return;
+    _targetLat = onRoad.lat;
+    _targetLon = onRoad.lon;
+    _heading = onRoad.headingDeg;
+  }
+
+  /// New roads arrived (the map was opened, or the vehicle moved on). A
+  /// session already dead reckoning off the roads gets onto them now.
+  void _onRoadsChanged() {
+    if (_disposed) return;
+    if ((_drActive || _simCanyon) && !_road.isLocked && _lockRoad()) {
+      _dirty = true;
+    }
   }
 
   void _touch() {
@@ -405,6 +498,8 @@ class LiveSessionController extends ChangeNotifier {
     // The core's answer replaces the heuristic one before the marker is
     // eased, so the map draws the filtered position, not the raw fix.
     _applyEngineSolution();
+    // Roads are read ahead of need: an outage has to find them already loaded.
+    if (_positionSeeded) _road.watch(_targetLat, _targetLon);
     _easePosition(now);
     _recordTrail();
     if (_dirty) _touch();
@@ -431,7 +526,7 @@ class LiveSessionController extends ChangeNotifier {
   void _easePosition(DateTime now) {
     final last = _lastEaseAt;
     _lastEaseAt = now;
-    if (_drActive) {
+    if (_drActive || _simCanyon) {
       _drawnOnReal = true;
       _lat = _targetLat;
       _lon = _targetLon;
@@ -487,7 +582,15 @@ class LiveSessionController extends ChangeNotifier {
     _accY = _accY * 0.7 + ay * 0.3;
     _accZ = _accZ * 0.7 + az * 0.3;
     _gyroZ = _gyroZ * 0.7 + gz * 0.3;
-    if (v.length >= 10) _updateHeading(v[7], v[8], v[9]);
+    // On a road the road gives the heading; the compass would only fight it.
+    if (v.length >= 10) {
+      _updateHeading(v[7], v[8], v[9], steer: !_road.isLocked);
+    }
+    // Only while moving: at a red light the gyro's bias would otherwise be
+    // read as a turn.
+    if (_speed > _stationarySpeed) {
+      _road.addYaw(_yawStepDegrees(gx, gy, gz, dt));
+    }
     if (v.length >= 11) _pressureHpa = v[10];
 
     _vibrationRms = _vibrationRms * 0.85 + netAccel * 0.15;
@@ -539,12 +642,25 @@ class LiveSessionController extends ChangeNotifier {
     );
   }
 
-  void _updateHeading(double mx, double my, double mz) {
+  /// How far the vehicle turned during this sample, in compass degrees
+  /// (clockwise positive): the gyroscope's rotation about the vertical, found
+  /// by projecting it on the gravity direction so it holds however the phone
+  /// is mounted. Tells the road follower which way a junction was taken.
+  double _yawStepDegrees(double gx, double gy, double gz, double dt) {
+    final gravity = sqrt(_accX * _accX + _accY * _accY + _accZ * _accZ);
+    if (gravity < 1) return 0; // free fall: no "up" to measure against
+    final rateUp = (gx * _accX + gy * _accY + gz * _accZ) / gravity;
+    return -rateUp * dt * 180 / pi;
+  }
+
+  void _updateHeading(double mx, double my, double mz,
+      {required bool steer}) {
     if (mx == 0 && my == 0 && mz == 0) return;
     _hasMagnetometer = true;
     _magX = mx;
     _magY = my;
     _magZ = mz;
+    if (!steer) return;
     var target = atan2(-mx, my) * 180 / pi;
     if (target < 0) target += 360;
     var diff = target - _heading;
@@ -568,15 +684,10 @@ class LiveSessionController extends ChangeNotifier {
     // marker twice.
     if (isEngineLeading) return;
 
-    if (_drActive) {
-      // Fallback while the core is not leading: hold the last GNSS speed along
-      // the current heading, and let the model's stillness gate stop it. The
-      // model does not *set* the speed: nothing has shown, on recorded drives,
-      // that its speed beats holding the last one (the outage benchmark can
-      // score the core and the hold baseline, not this), and off-distribution
-      // input - a hand-held phone, a walk - makes it report vehicle speeds.
-      // Until the model has a full window, keep the last GNSS speed.
-      if (mlReady) _applyModelStillness(mlSpeed);
+    if (_drActive || _simCanyon) {
+      // Fallback while the core is not leading: hold the speed along
+      // the road/heading, and let the model's stillness gate stop it during real DR.
+      if (mlReady && _drActive && !_simTunnel) _applyModelStillness(mlSpeed);
       if (_speed > _stationarySpeed) _integrate(_speed * dt);
     }
     // GNSS live: speed comes from the fix (see _applyFix). With no fix ever,
@@ -629,6 +740,11 @@ class LiveSessionController extends ChangeNotifier {
     }
     if (!starting) return;
 
+    // Onto the road first: the travel missed while the outage went unnoticed
+    // is then walked along the street, not along a bare heading.
+    // A parked vehicle is not put on the nearest street: only one that was
+    // moving when the signal went (or the tunnel test) has a road to follow.
+    if (_simTunnel || _speed > _stationarySpeed) _lockRoad();
     final missed = _speed * gap.inMilliseconds / 1000;
     if (isEngineLeading) {
       // The core backdates its own outage from the fix timestamps; adding
@@ -641,8 +757,19 @@ class LiveSessionController extends ChangeNotifier {
     }
   }
 
+  /// Moves the fused position [distanceMeters] forward: along the road when
+  /// the marker is on one, otherwise straight ahead on the heading.
   void _integrate(double distanceMeters) {
     _outage.addDistance(distanceMeters);
+    if (_road.advance(distanceMeters, simulated: _simTunnel || _simCanyon) ==
+        null) {
+      _integrateUnconstrained(distanceMeters);
+      return;
+    }
+    _adoptRoadPosition();
+  }
+
+  void _integrateUnconstrained(double distanceMeters) {
     final headingRad = _heading * pi / 180;
     _targetLat += distanceMeters * cos(headingRad) / _metresPerDegree;
     _targetLon += distanceMeters *
@@ -716,20 +843,40 @@ class LiveSessionController extends ChangeNotifier {
   /// every screen, the map easing, telemetry and the last-position cache all
   /// keep working untouched. Nothing in the UI knows the source changed.
   void _applyEngineSolution() {
-    if (!isEngineLeading) return;
+    if (!isEngineLeading) {
+      _lastRoadAdvanceAt = null;
+      return;
+    }
     final snapshot = _navSnapshot!;
-    _targetLat = snapshot.latitude!;
-    _targetLon = snapshot.longitude!;
     final speed = snapshot.speedMps;
     if (speed != null && speed.isFinite) {
       _speed = speed < _stationarySpeed ? 0 : speed;
     }
-    final heading = snapshot.headingDeg;
-    if (heading != null && heading.isFinite) _heading = heading;
+    if (_road.isLocked && (_drActive || _simCanyon)) {
+      _advanceAlongRoad();
+    } else {
+      _lastRoadAdvanceAt = null;
+      _targetLat = snapshot.latitude!;
+      _targetLon = snapshot.longitude!;
+      final heading = snapshot.headingDeg;
+      if (heading != null && heading.isFinite) _heading = heading;
+    }
     final altitude = snapshot.altitude;
     if (altitude != null && altitude.isFinite) _altitude = altitude;
     _positionSeeded = true;
     _dirty = true;
+  }
+
+  /// Dead reckoning on a road while the core leads: its speed is trusted, its
+  /// free-space position is not. Off satellites, a vehicle on a street can only
+  /// have gone along it, so the core says how far and the road says where.
+  void _advanceAlongRoad() {
+    final now = _clock();
+    final last = _lastRoadAdvanceAt;
+    _lastRoadAdvanceAt = now;
+    if (last == null || _speed <= _stationarySpeed) return;
+    final dt = (now.difference(last).inMilliseconds / 1000).clamp(0.0, 0.5);
+    _integrate(_speed * dt);
   }
 
   // -------------------------------------------------------- recording
@@ -916,13 +1063,14 @@ class LiveSessionController extends ChangeNotifier {
 
   void _applyFix(GnssFix fix) {
     _feedEngineFix(fix);
-    _accuracy = _simCanyon ? 25.0 : fix.accuracy;
+    _accuracy = _simCanyon ? max(fix.accuracy, _canyonMinAccuracy) : fix.accuracy;
     _stillSeconds = 0;
     _positionSeeded = true;
     _maybeCache(fix);
 
     final now = _clock();
     double resolvedSpeed = fix.speed;
+    var movedM = 0.0;
 
     // Real-time speed & heading calibration:
     // When Android device doesn't populate fix.speed or reports 0 during walking/low speeds,
@@ -935,6 +1083,7 @@ class LiveSessionController extends ChangeNotifier {
             _metresPerDegree *
             cos(fix.latitude * pi / 180);
         final dist = sqrt(dLatM * dLatM + dLonM * dLonM);
+        movedM = dist;
         final derivedSpeed = dist / dt;
 
         if (resolvedSpeed < 0.35 && derivedSpeed >= 0.35 && derivedSpeed < 70.0) {
@@ -944,13 +1093,18 @@ class LiveSessionController extends ChangeNotifier {
         if (dist > 1.0) {
           final courseDeg = (atan2(dLonM, dLatM) * 180 / pi + 360) % 360;
           _heading = courseDeg;
+          if (resolvedSpeed >= _courseMinSpeed) _courseDeg = courseDeg;
         }
       }
     }
+    if (resolvedSpeed < _courseMinSpeed) _courseDeg = null;
 
     _lastFixLat = fix.latitude;
     _lastFixLon = fix.longitude;
     _lastFixAt = now;
+
+    // A real fix ends whatever outage the marker was following a road through.
+    if (!_simCanyon) _road.release();
 
     // While the core leads, a raw fix is a *measurement*, not the answer:
     // the filter has already gated it and folded in what survived. Writing
@@ -958,20 +1112,44 @@ class LiveSessionController extends ChangeNotifier {
     // behaviour the gate exists to prevent.
     if (isEngineLeading) return;
 
+    _altitude = fix.altitude;
     if (_simCanyon) {
-      final t = now.millisecondsSinceEpoch / 1000.0;
-      final driftLat = (sin(t * 0.5) * 15.0) / _metresPerDegree;
-      final driftLon = (cos(t * 0.7) * 15.0) /
-          (_metresPerDegree * cos(fix.latitude * pi / 180));
-      _targetLat = fix.latitude + driftLat;
-      _targetLon = fix.longitude + driftLon;
-    } else {
+      final moving = fix.speed >= _canyonMovingSpeed ||
+          movedM > max(_canyonMinMoveM, 3 * fix.accuracy);
+      _applyCanyonFix(fix, resolvedSpeed, moving: moving);
+      return;
+    }
+    _targetLat = fix.latitude;
+    _targetLon = fix.longitude;
+    _speed = resolvedSpeed < 0.35 ? 0 : resolvedSpeed;
+  }
+
+  /// Urban canyon: satellites heard through buildings are not trusted with the
+  /// position - the road is. A fix only nudges where along the road the vehicle
+  /// is, and only when it shows the vehicle really [moving]: a phone standing
+  /// still (the emulator's, or any receiver's jitter) says nothing about
+  /// progress, so the simulated cruise carries on. One fix off the road is
+  /// ignored; only a run of them means another street. Without a road the fix
+  /// itself is the position, as it would be with live GNSS - never a made-up
+  /// wander around it.
+  void _applyCanyonFix(GnssFix fix, double resolvedSpeed,
+      {required bool moving}) {
+    if (!moving) return;
+    _speed = resolvedSpeed;
+    if (!_road.isLocked) {
+      if (_lockRoad(lat: fix.latitude, lon: fix.longitude)) return;
       _targetLat = fix.latitude;
       _targetLon = fix.longitude;
+      return;
     }
-
-    _altitude = fix.altitude;
-    _speed = resolvedSpeed < 0.35 ? 0 : resolvedSpeed;
+    if (_road.correct(fix.latitude, fix.longitude, sigmaM: _accuracy)) {
+      _canyonMisses = 0;
+      _adoptRoadPosition();
+      return;
+    }
+    if (++_canyonMisses < _canyonRelockAfter) return;
+    _canyonMisses = 0;
+    _lockRoad(lat: fix.latitude, lon: fix.longitude, keepIfFails: true);
   }
 
   void _seedFromLastKnown() {
@@ -980,6 +1158,9 @@ class LiveSessionController extends ChangeNotifier {
     _targetLat = _lat = seed.latitude;
     _targetLon = _lon = seed.longitude;
     _positionSeeded = true;
+    _dirty = true;
+    _touch();
+    unawaited(_writeCache(seed.latitude, seed.longitude));
   }
 
   Future<void> _loadCachedPosition() async {
@@ -992,6 +1173,7 @@ class LiveSessionController extends ChangeNotifier {
         _targetLon = _lon = lon;
         _positionSeeded = true;
         _dirty = true;
+        _touch();
       }
     } catch (_) {}
   }
@@ -999,7 +1181,7 @@ class LiveSessionController extends ChangeNotifier {
   void _maybeCache(GnssFix fix) {
     final now = _clock();
     final last = _lastCacheAt;
-    if (last != null && now.difference(last) < _cacheEvery) return;
+    if (last != null && now.difference(last) < _cacheEvery && _appliedFixCount > 1) return;
     _lastCacheAt = now;
     unawaited(_writeCache(fix.latitude, fix.longitude));
   }
@@ -1048,6 +1230,10 @@ class LiveSessionController extends ChangeNotifier {
       _simTunnel || (location.hasBeenLive && !location.isLive);
 
   bool get inOutage => _drActive;
+
+  /// Whether the marker is being held on a road of the installed map: true
+  /// through an outage when there are roads around, false where there are none.
+  bool get isOnRoad => _road.isLocked;
   bool get isSimulatingTunnel => _simTunnel;
   bool get isSimulatingCanyon => _simCanyon;
   VehicleProfile get vehicleProfile => _vehicleProfile;

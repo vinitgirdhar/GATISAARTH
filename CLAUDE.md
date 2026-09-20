@@ -149,6 +149,51 @@ otherwise.
 one with `python -m maps.tools.graph_builder overpass.json out.json`;
 `test/nav/graph_builder_contract_test.dart` pins the Python→Dart format.
 
+**Road-locked dead reckoning (2026-09-21).** The Tunnel test, the Urban canyon,
+a real GNSS outage while the core is not leading, and the core-leading outage
+(the core supplies the *speed*, the road supplies the *position*) are held to a
+road network, so the marker follows the drawn streets instead of wandering
+across buildings (the emulator's heading was 0°, so it used to drive due north
+through everything). The roads are read **on the phone from the installed
+offline map packs** - the same OSM vector tiles that draw the map - so it works
+anywhere a pack with maxZoom >= 13 covers, nothing extra ships, and the marker
+runs on exactly the roads on screen.
+- `core/nav/map/tile_roads.dart` + `road_noding.dart`: MVT `roads` layer to
+  `RoadGraph`. Tiles are clipped at the tile edge and lines are cut at
+  junctions (side streets end 0.05-0.4 m off a bare segment of the road they
+  join; without the noding ~77 % of interior dead ends were phantom). Edge ids
+  are 1..N per build and node ids opaque: never hold either across builds.
+- `core/platform/maps/pack_road_source.dart`: `PackRoadGraphSource` reads a 5x5
+  block of z15 tiles around the vehicle, decodes and builds in background
+  isolates, keeps decoded tiles in an LRU and reloads once the vehicle leaves
+  the inner 3x3 (`RoadCoverage.containsSafe`).
+- `core/nav/map/road_follower.dart`: position = (edge, direction, metres along).
+  **Geometry only** - long edges run through many crossings and neighbouring
+  tiles overlap, so `fromNode/toNode/outgoing` say nothing. Straight through a
+  crossing unless the gyro shows a turn (`yawDeg`: compass-positive, right =
+  +; **exactly 0 means "no gyro information"**, which is what the simulators
+  send). Thresholds live in `NavConfig.roadFollow`. Skip yaw while stopped or
+  a gyro bias reads as a turn. A dead end stops a real drive (the map has run
+  out) and turns a simulated one round (`reverseAtDeadEnd`).
+- `features/navigation_ui/.../controllers/road_constraint.dart`: glue that
+  loads roads ahead of need (`watch` every tick), locks on at outage start
+  (satellite course beats the compass), and passes the gyro yaw. Live GNSS is
+  **never** snapped: a real fix releases the lock. With no pack or no road
+  within 40 m the old heading integration runs (`isOnRoad` is false).
+- Urban canyon: the old sin/cos "multipath wander" is gone. A fix only nudges
+  along-track when its speed is >= 1 m/s; a standing phone (the emulator's)
+  keeps the simulated 8.33 m/s cruise.
+- Tests: `test/nav/road_follower*_test.dart`, `tile_roads_test.dart`,
+  `test/pack_road_source_test.dart`, `test/road_snapped_motion_test.dart`, and
+  `test/road_real_map_drive_test.dart`, which drives both simulators through
+  the real Delhi archive (in the repo, git-ignored) and through any archive in
+  `MAP_PACK_DIR` (`adb pull` a phone's `files/offline_maps/*.pmtiles`); it
+  skips what it does not find.
+- Not done: the tile graph is not fed to the core's HMM matcher
+  (`NavigationEngine(roadGraph:)`), so map matching still reports unavailable;
+  not checked on a physical phone; sharp single-vertex corners under real gyro
+  data can briefly relock onto a through road.
+
 Tests live in `frontend/test/nav/` plus `test/nav_core_integration_test.dart`
 (303 of the suite's 416).
 
@@ -165,7 +210,7 @@ Tests live in `frontend/test/nav/` plus `test/nav_core_integration_test.dart`
 - **Confidence is modelled, not hard-coded:** `features/navigation_engine/domain/uncertainty_model.dart` (live = GNSS accuracy; outage = accuracy at loss + 5 % of distance + 0.15 m/s). `null` uncertainty means "no fix yet" — the UI shows `--`, never a made-up number.
 - **Dead-reckoning outage = any non-live state after a real fix** (stale, location off, permission revoked, re-searching after a resume). The outage is noticed ~6 s late, so the tracker is backdated by the time since the last fix and, for gaps ≤ 15 s, that travel is extrapolated at the last GNSS speed; longer gaps only widen the margin.
 - **Speed-model input contract** (`_feedModel`): 10 Hz (not the 50 Hz sensor rate), raw accelerometer *including gravity* (levelled vehicle-frame accel + 9.81 on z), pitch/roll 0 — that is what `assets/models/model_metadata.json`'s scaler was fit on. Feeding gravity-free 50 Hz data puts inputs ~75σ off-distribution. AI confidence/latency show `--` until the TFLite model has really run (`hasModelInference`); the heuristic fallback is never presented as AI.
-- **Known limits, don't paper over them:** no yaw alignment (phone→vehicle forward axis is unknown) and heading assumes a flat phone (`atan2(-mx, my)`), so DR direction is only trustworthy with the phone flat and top-forward; the variance-only stationary gate can mistake a smooth cruise for a stop (ZUPT is therefore delayed 3 s at speed); the shipped model's own benchmark (`ml/evaluation/metrics/08_gnss_outage_benchmark_results.json`) shows AI-speed DR *worse* than classical DR on its synthetic set, so never claim drift reduction from it.
+- **Known limits, don't paper over them:** no yaw alignment (phone→vehicle forward axis is unknown) and heading assumes a flat phone (`atan2(-mx, my)`), so off a road DR direction is only trustworthy with the phone flat and top-forward (on a road the direction comes from the road, see Road-locked dead reckoning); the variance-only stationary gate can mistake a smooth cruise for a stop (ZUPT is therefore delayed 3 s at speed); the shipped model's own benchmark (`ml/evaluation/metrics/08_gnss_outage_benchmark_results.json`) shows AI-speed DR *worse* than classical DR on its synthetic set, so never claim drift reduction from it.
 - **Deliberately still demo data (labelled as such in the UI):** the satellite breakdown and NavIC weight panels, and the diagnostics screen. Real `GnssStatus` (Android platform channel) is not wired yet. Map-matching (HMM/OSM) does not exist; the old "Map match %" was removed rather than faked.
 
 ## Maps (rebuilt 2026-09-20)

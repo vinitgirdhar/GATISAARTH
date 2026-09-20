@@ -31,7 +31,7 @@ class BasemapStyle {
   /// Bumped whenever the styling changes. The renderer keeps finished tile
   /// pictures on disk under the style's id and version, so without this a new
   /// style would keep showing the old pictures.
-  static const int revision = 2;
+  static const int revision = 3;
 
   /// The light style.
   static vtr.Theme light({bool overlay = false, vtr.Logger? logger}) => _build(
@@ -75,18 +75,74 @@ class BasemapStyle {
     List<Map<String, Object>> layers, {
     bool overlay = false,
   }) {
+    final isDark = layers.any(
+      (l) =>
+          l['id'] == 'earth' &&
+          (l['paint'] as Map?)?['fill-color'] == '#1f1f1f',
+    );
     return [
       for (final source in layers)
-        if (!(overlay && source['type'] == 'background'))
-          _adaptLayer(_copy(source)),
+        if (!(overlay && (source['type'] == 'background' || source['id'] == 'earth')))
+          _adaptLayer(_copy(source), isDark: isDark),
     ];
   }
 
   static Map<String, Object> _copy(Map<String, Object> layer) =>
       Map<String, Object>.from(jsonDecode(jsonEncode(layer)) as Map);
 
-  static Map<String, Object> _adaptLayer(Map<String, Object> layer) {
-    if (layer['type'] != 'symbol') return layer;
+  static Map<String, Object> _adaptLayer(
+    Map<String, Object> layer, {
+    required bool isDark,
+  }) {
+    final id = layer['id'] as String;
+    final type = layer['type'] as String;
+
+    if (isDark) {
+      final paint = Map<String, Object>.from((layer['paint'] as Map?) ?? {});
+      switch (id) {
+        case 'roads_minor_casing':
+        case 'roads_minor_service_casing':
+        case 'roads_link_casing':
+        case 'roads_bridges_minor_casing':
+        case 'roads_bridges_link_casing':
+          paint['line-color'] = '#14171f';
+        case 'roads_minor':
+        case 'roads_minor_service':
+        case 'roads_bridges_minor':
+        case 'roads_bridges_link':
+          paint['line-color'] = '#56627a';
+        case 'roads_other':
+        case 'roads_bridges_other':
+          paint['line-color'] = '#4a5568';
+        case 'roads_link':
+          paint['line-color'] = '#6b7890';
+        case 'roads_major_casing_early':
+        case 'roads_major_casing_late':
+        case 'roads_bridges_major_casing':
+          paint['line-color'] = '#14171f';
+        case 'roads_major':
+        case 'roads_bridges_major':
+          paint['line-color'] = '#8896ab';
+        case 'roads_highway_casing_early':
+        case 'roads_highway_casing_late':
+        case 'roads_bridges_highway_casing':
+          paint['line-color'] = '#0f131a';
+        case 'roads_highway':
+        case 'roads_bridges_highway':
+          paint['line-color'] = '#f59e0b';
+        case 'roads_tunnels_minor':
+          paint['line-color'] = '#3d4659';
+        case 'roads_tunnels_major':
+          paint['line-color'] = '#56627a';
+        case 'roads_tunnels_highway':
+          paint['line-color'] = '#94a3b8';
+        case 'buildings':
+          paint['fill-color'] = '#262930';
+      }
+      layer['paint'] = paint;
+    }
+
+    if (type != 'symbol') return layer;
 
     final layout = Map<String, Object>.from((layer['layout'] as Map?) ?? {});
     final paint = Map<String, Object>.from((layer['paint'] as Map?) ?? {});

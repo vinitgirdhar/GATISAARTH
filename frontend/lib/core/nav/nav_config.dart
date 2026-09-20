@@ -23,6 +23,7 @@ class NavConfig {
     this.motion = const MotionConfig(),
     this.ai = const AiConfig(),
     this.mapMatch = const MapMatchConfig(),
+    this.roadFollow = const RoadFollowConfig(),
     this.power = const PowerConfig(),
     this.features = const FeatureFlags(),
   });
@@ -43,6 +44,7 @@ class NavConfig {
   final MotionConfig motion;
   final AiConfig ai;
   final MapMatchConfig mapMatch;
+  final RoadFollowConfig roadFollow;
   final PowerConfig power;
   final FeatureFlags features;
 
@@ -60,6 +62,7 @@ class NavConfig {
     MotionConfig? motion,
     AiConfig? ai,
     MapMatchConfig? mapMatch,
+    RoadFollowConfig? roadFollow,
     PowerConfig? power,
     FeatureFlags? features,
   }) =>
@@ -76,6 +79,7 @@ class NavConfig {
         motion: motion ?? this.motion,
         ai: ai ?? this.ai,
         mapMatch: mapMatch ?? this.mapMatch,
+        roadFollow: roadFollow ?? this.roadFollow,
         power: power ?? this.power,
         features: features ?? this.features,
       );
@@ -824,6 +828,91 @@ class MapMatchConfig {
 
   /// Road heading only feeds the filter above this match confidence (§58).
   final double headingFeedbackMinConfidence;
+}
+
+/// Locking the dead-reckoned marker onto the road network (`RoadFollower`).
+///
+/// Real graphs come from vector tiles: one long edge runs through many
+/// crossings and neighbouring tiles overlap, so nothing here relies on node
+/// ids. Everything is geometric, which is why so many of these are metres.
+@immutable
+class RoadFollowConfig {
+  const RoadFollowConfig({
+    this.headingWeightMPerDeg = 0.1,
+    this.joinToleranceM = 3.0,
+    this.lookAheadM = 8.0,
+    this.minExitLengthM = 1.0,
+    this.maxExitDeviationDeg = 120.0,
+    this.straightBiasDeg = 12.0,
+    this.turnYawThresholdDeg = 35.0,
+    this.turnRelockRadiusM = 30.0,
+    this.turnRelockHeadingTolDeg = 35.0,
+    this.yawLeakMeters = 200.0,
+    this.maxHopsPerAdvance = 64,
+    this.rebindRadiusM = 8.0,
+    this.correctMinPerpM = 25.0,
+    this.candidateLimit = 32,
+  });
+
+  /// Metres of perpendicular distance one degree of heading disagreement
+  /// costs when choosing a road: 0.1 makes a 180 degree mismatch worth 18 m,
+  /// enough to pick the right one of two parallel roads, not enough to snap
+  /// to a road that is far away just because it points the right way.
+  final double headingWeightMPerDeg;
+
+  /// How far from the end of an edge another edge may pass and still count as
+  /// joined to it. Tile borders and digitising leave gaps of a metre or two.
+  final double joinToleranceM;
+
+  /// How far along an exit road its bearing is measured. Longer than the
+  /// digitising jitter at the junction, shorter than a bend.
+  final double lookAheadM;
+
+  /// An exit needs at least this much road ahead of the join, otherwise the
+  /// "join" is the far end of a stub and taking it goes nowhere.
+  final double minExitLengthM;
+
+  /// Exits turning further than this from where the vehicle is pointing are
+  /// never taken, so a U-turn is impossible while a T's +/-90 degree exits
+  /// stay legal.
+  final double maxExitDeviationDeg;
+
+  /// Exits within this many degrees of the best one are ranked by road name,
+  /// class and only then by angle, so a vehicle carries on along the same
+  /// road through a crossing instead of being tugged by a side street.
+  final double straightBiasDeg;
+
+  /// Vehicle turning the road's own curvature does not explain, beyond which
+  /// the vehicle is assumed to be turning off onto a crossing road that sits
+  /// mid-edge.
+  final double turnYawThresholdDeg;
+
+  /// How far around the vehicle a crossing road is looked for once a turn is
+  /// detected. Covers a driver who starts the turn early or late.
+  final double turnRelockRadiusM;
+
+  /// How well a crossing road's bearing must match the detected turn.
+  final double turnRelockHeadingTolDeg;
+
+  /// Distance over which unexplained turning fades to 1/e. Gyroscope bias
+  /// integrates without bound; this bounds it (a 0.02 deg/m bias settles at
+  /// 4 degrees) while a real turn, done in tens of metres, survives.
+  final double yawLeakMeters;
+
+  /// Junctions crossed in one `advance` call. A guard against a degenerate
+  /// graph, never reached on a real one at 1 m steps.
+  final int maxHopsPerAdvance;
+
+  /// Search radius when the graph is swapped under a locked follower. The
+  /// same road in the new graph sits on top of the old position.
+  final double rebindRadiusM;
+
+  /// A noisy fix this far off the road (or 2 sigma, if larger) is not evidence
+  /// about where along the road the vehicle is.
+  final double correctMinPerpM;
+
+  /// Candidate roads examined per lookup. Bounds the cost in a dense junction.
+  final int candidateLimit;
 }
 
 /// Thermal and battery operating modes (§30, §31).

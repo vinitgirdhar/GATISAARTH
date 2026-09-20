@@ -160,6 +160,7 @@ class RoadGraph {
   Iterable<RoadEdge> get edges => _edges.values;
   RoadEdge? edge(int id) => _edges[id];
   RoadNode? node(int id) => _nodes[id];
+  List<int> outgoing(int nodeId) => _outgoing[nodeId] ?? const [];
 
   void _buildIndex() {
     if (_edges.isEmpty) return;

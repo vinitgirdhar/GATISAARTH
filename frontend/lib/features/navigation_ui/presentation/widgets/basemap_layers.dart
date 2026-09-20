@@ -57,7 +57,18 @@ class BasemapCoverage {
       viewport.southWest,
       viewport.southEast,
     ];
-    final covered = base.any((p) => corners.every(p.pack.contains));
+    final bool covered;
+    if (zoom >= detailFromZoom) {
+      final hasDetailedBase = base.any(
+        (p) => p.pack.maxZoom >= 14 && corners.every(p.pack.contains),
+      );
+      final hasDetailedCity = detail.any(
+        (p) => p.pack.maxZoom >= 14 && corners.every(p.pack.contains),
+      );
+      covered = hasDetailedBase || hasDetailedCity;
+    } else {
+      covered = base.any((p) => corners.every(p.pack.contains));
+    }
     return BasemapCoverage(base: base, detail: detail, needsRaster: !covered);
   }
 }

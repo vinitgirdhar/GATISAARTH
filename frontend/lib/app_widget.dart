@@ -57,7 +57,7 @@ class GatiSaarthApp extends StatefulWidget {
 class _GatiSaarthAppState extends State<GatiSaarthApp>
     with WidgetsBindingObserver {
   late final LiveSessionController _session =
-      widget.session ?? createLiveSession();
+      widget.session ?? createLiveSession(maps: _maps);
   late final ThemeController _theme = widget.theme ?? ThemeController();
   late final OfflineMapService _maps =
       widget.offlineMaps ?? OfflineMapService();

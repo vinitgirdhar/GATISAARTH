@@ -5,13 +5,17 @@ import '../../../../core/platform/hardware/sensor_mobile.dart';
 import '../../../../core/platform/hardware/vehicle_alignment_engine.dart';
 import '../../../../core/platform/location/geolocator_gateway.dart';
 import '../../../../core/platform/location/live_location_service.dart';
+import '../../../../core/platform/maps/offline_map_service.dart';
+import '../../../../core/platform/maps/pack_road_source.dart';
 import '../../../../core/platform/network/telemetry_sink.dart';
 import '../../../ai_motion/data/datasources/ml_speed_estimator.dart';
 import 'live_session_controller.dart';
 
 /// Builds the production session: real sensors, GPS, neural model and the
-/// optional backend link.
-LiveSessionController createLiveSession() => LiveSessionController(
+/// optional backend link. [maps] are the installed offline map packs; dead
+/// reckoning follows the roads read from them.
+LiveSessionController createLiveSession({OfflineMapService? maps}) =>
+    LiveSessionController(
       sensors: MobileSensorDriver(),
       alignment: VehicleAlignmentEngine(),
       hardware: DeviceHardwareService(),
@@ -21,6 +25,7 @@ LiveSessionController createLiveSession() => LiveSessionController(
         gateway: const GeolocatorGateway(),
         staleAfter: const Duration(seconds: 18),
       ),
+      roads: maps == null ? null : PackRoadGraphSource(maps),
     );
 
 /// Makes the one [LiveSessionController] available to every screen.
