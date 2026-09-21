@@ -54,3 +54,6 @@ frontend/assets/maps/packs/*.pmtiles
 IO-VNBD_DATASET/
 .claude/
 
+# APK distribution builds
+apks/
+*.apk
