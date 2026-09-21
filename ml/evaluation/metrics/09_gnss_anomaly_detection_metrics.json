@@ -3,5 +3,5 @@
   "gating_threshold_m_s": 4.0,
   "detection_accuracy_pct": 100.0,
   "false_alarm_rate_pct": 0.0,
-  "checkpoint_path": "c:\\flutter\\Projects\\GATISAARTHI\\ml\\models\\motion_quality\\checkpoints\\gnss_anomaly_detector.pth"
+  "checkpoint_path": "C:\\Users\\vidhy\\Downloads\\gathisarthi\\ml\\models\\motion_quality\\checkpoints\\gnss_anomaly_detector.pth"
 }

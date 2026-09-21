@@ -138,12 +138,15 @@ class _OfflineMapsScreenState extends State<OfflineMapsScreen>
         ),
         itemCount: sections.length,
         separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-        // Each block drops in from above, one after the other, top to bottom.
-        itemBuilder: (context, i) => FadeSlideIn(
-          delay: Duration(milliseconds: 70 * math.min(i, 5)),
-          offset: -0.06,
-          child: sections[i],
-        ),
+        itemBuilder: (context, i) {
+          final section = sections[i];
+          if (i >= 3) return section;
+          return FadeSlideIn(
+            delay: Duration(milliseconds: 70 * i),
+            offset: -0.06,
+            child: section,
+          );
+        },
       ),
     );
   }

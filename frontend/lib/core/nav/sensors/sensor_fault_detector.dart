@@ -205,14 +205,41 @@ class SensorFaultDetector {
     }
 
     if (window.identicalRun >= _config.frozenSamples) {
-      return SensorDiagnosis(
-        type: type,
-        fault: SensorFault.frozen,
-        usable: false,
-        samples: window.count,
-        detail: '${window.identicalRun} identical readings',
-        magnitude: magnitude,
-      );
+      // 1. Gyroscope at rest: On emulators, simulators, or physical hardware
+      //    where zero-rate clamping occurs when motionless, the gyroscope
+      //    naturally reports exact zeros or values near zero. This is normal
+      //    physical resting state, NOT a frozen hardware fault.
+      final isRestingGyro = type == SensorType.gyroscope &&
+          (magnitude == 0.0 ||
+              (magnitude != null && magnitude < 1e-4) ||
+              (window.lastValues != null &&
+                  window.lastValues!.every((v) => v == 0.0)));
+
+      // 2. Accelerometer at rest: On emulators, simulators, or a phone sitting
+      //    motionless in a vehicle mount / desk, the accelerometer measures
+      //    nominal 1g Earth gravity (approx 9.81 m/s²). Identical readings at
+      //    rest are expected physical behavior, not a frozen hardware fault.
+      final isNominalRestingAccel = type == SensorType.accelerometer &&
+          magnitude != null &&
+          (magnitude - 9.81).abs() < 0.25;
+
+      // 3. Magnetometer at rest in Earth's geomagnetic field:
+      //    When motionless, Earth's ambient magnetic vector is constant.
+      final isRestingMag = type == SensorType.magnetometer &&
+          magnitude != null &&
+          magnitude >= _config.minFieldMicroTesla &&
+          magnitude <= _config.maxFieldMicroTesla;
+
+      if (!isRestingGyro && !isNominalRestingAccel && !isRestingMag) {
+        return SensorDiagnosis(
+          type: type,
+          fault: SensorFault.frozen,
+          usable: false,
+          samples: window.count,
+          detail: '${window.identicalRun} identical readings',
+          magnitude: magnitude,
+        );
+      }
     }
 
     final noise = window.count >= _config.windowSamples ~/ 2
@@ -272,6 +299,8 @@ class SensorFaultDetector {
 class _Window {
   final Queue<double> _magnitudes = Queue<double>();
   List<double>? _lastValues;
+
+  List<double>? get lastValues => _lastValues;
 
   int count = 0;
   int identicalRun = 0;

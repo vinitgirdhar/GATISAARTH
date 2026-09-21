@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'ai/ai_fusion.dart';
+import 'ai/ai_types.dart';
 import 'alignment/mount_alignment.dart';
 import 'calibration/sensor_calibration.dart';
 import 'ekf/navigation_filter.dart';
@@ -115,7 +117,8 @@ class NavigationEngine {
         _motion = MotionClassifier(config: config, vehicleClass: vehicleClass),
         _timeSync = TimeSync(config: config),
         _faults = SensorFaultDetector(config: config),
-        _barometer = BarometerProcessor(config: config);
+        _barometer = BarometerProcessor(config: config),
+        _ai = AiFusion(config);
 
   final NavConfig _config;
   final NavigationFilter _filter;
@@ -126,6 +129,7 @@ class NavigationEngine {
   final MapMatcher _matcher;
   final SensorFaultDetector _faults;
   final BarometerProcessor _barometer;
+  final AiFusion _ai;
   final _ContributionTracker _contribution = _ContributionTracker();
 
   SensorCalibration _calibration;
@@ -186,8 +190,16 @@ class NavigationEngine {
   int get alignmentEvents => _alignmentEstimator.speedChangeEvents;
   bool get hasLevelling => _alignmentEstimator.hasLevelling;
 
+  /// Gravity direction in phone coordinates ("up"), or null before it settles.
+  Vector3? get upInPhone => _alignmentEstimator.upInPhone;
+
   /// True when a road graph is loaded at all (§83).
   bool get hasRoadGraph => _matcher.isAvailable;
+
+  /// Hands the matcher the roads around the vehicle. The graph comes from the
+  /// offline map and is replaced as the vehicle moves, so this may be called
+  /// many times; an empty graph turns matching off again.
+  void setRoadGraph(RoadGraph graph) => _matcher.useGraph(graph);
 
   set vehicleClass(VehicleClass value) {
     _motion.vehicleClass = value;
@@ -279,12 +291,18 @@ class NavigationEngine {
         _faults.isUsable(SensorType.magnetometer);
     final mag = magUsable ? _calibration.correctMag(magPhone) : null;
 
+    // The AI path (P2/P3): what is shaking the phone right now, and what the
+    // filter should therefore believe. Neutral, and free, while it is off.
+    _ai.observeAccel(accel, monotonicUs);
+    final ai = _ai.scales(monotonicUs);
+
     _alignmentEstimator.add(
       accelPhone: accel,
       gyroPhone: gyro,
       monotonicUs: monotonicUs,
       gnssSpeedMps: _gnssSpeedForAlignment(monotonicUs),
       gnssUs: _lastGnssUs,
+      hold: ai.holdUpdates,
     );
 
     final mount = _alignmentEstimator.alignment;
@@ -317,6 +335,7 @@ class NavigationEngine {
       rollRad: state == null
           ? null
           : NavMath.eulerFromQuaternion(state.qBodyToNav)[0],
+      shockHold: ai.holdUpdates,
     );
 
     if (dt != null && _filter.isInitialised) {
@@ -325,9 +344,14 @@ class NavigationEngine {
         accelBody: accelVehicle,
         gyroBody: gyroVehicle,
         dt: dt,
+        processNoiseScale: ai.processNoise,
       );
       _accumulateOutageDistance(moved, _filter.state);
-      _applyConstraints(gyroVehicle: gyroVehicle, magVehicle: magVehicle);
+      _applyConstraints(
+        gyroVehicle: gyroVehicle,
+        magVehicle: magVehicle,
+        ai: ai,
+      );
       _contribution.decayTo(monotonicUs);
       _runMapMatch(monotonicUs);
     }
@@ -348,6 +372,10 @@ class NavigationEngine {
     _lastAssessment = assessment;
     _lastGnssUs = fix.monotonicUs;
     _lastGnssSpeed = assessment.usable ? fix.speedMps : null;
+    if (assessment.usable && assessment.useVelocity && fix.speedMps != null) {
+      // The neural speed is graded against the Doppler speed while GNSS speaks.
+      _ai.gradeWithGnss(fix.speedMps!, fix.monotonicUs);
+    }
 
     if (!assessment.usable) {
       _updateMode(fix.monotonicUs);
@@ -386,17 +414,22 @@ class NavigationEngine {
     final wasDeadReckoning = _mode.isDeadReckoning;
     // With adaptive covariance off, the receiver's own accuracy is taken at
     // face value — which is the behaviour the ablation baseline needs.
-    final horizontalSigma = _config.features.adaptiveGnssCovariance
-        ? assessment.horizontalSigmaM
-        : fix.accuracyM;
+    // A model's GNSS trust (P3) divides the measurement variance: sigma is
+    // scaled by 1/sqrt(trust), and by exactly 1.0 when there is none.
+    final gnssScale = _ai.gnssSigmaScale(fix.monotonicUs);
+    final horizontalSigma = (_config.features.adaptiveGnssCovariance
+            ? assessment.horizontalSigmaM
+            : fix.accuracyM) *
+        gnssScale;
+    final verticalSigma = _config.features.adaptiveGnssCovariance
+        ? assessment.verticalSigmaM
+        : fix.verticalAccuracyM;
     final result = _filter.updatePosition(
       latitudeDeg: fix.latitudeDeg,
       longitudeDeg: fix.longitudeDeg,
       altitudeM: fix.altitudeM,
       horizontalSigma: horizontalSigma,
-      verticalSigma: _config.features.adaptiveGnssCovariance
-          ? assessment.verticalSigmaM
-          : fix.verticalAccuracyM,
+      verticalSigma: verticalSigma == null ? null : verticalSigma * gnssScale,
     );
     _record(result);
     if (result.accepted) {
@@ -411,7 +444,7 @@ class NavigationEngine {
         fix.speedMps != null &&
         fix.bearingDeg != null) {
       final bearing = fix.bearingDeg! * NavMath.degToRad;
-      final sigma = assessment.velocitySigmaMps ?? 1.0;
+      final sigma = (assessment.velocitySigmaMps ?? 1.0) * gnssScale;
       final velocityResult = _filter.updateVelocityNed(
         velocityNed: Vector3(
           fix.speedMps! * math.cos(bearing),
@@ -444,6 +477,49 @@ class NavigationEngine {
     _updateMode(monotonicUs);
   }
 
+  // ----------------------------------------------------------- AI inputs (P1-P3)
+
+  /// Feeds one neural forward-speed prediction (P1).
+  ///
+  /// Gated (see [AiSpeedGate]) and, only if it passes, folded into the filter
+  /// as a forward-speed measurement. While GNSS is healthy it is not applied:
+  /// it is compared with the GNSS-anchored speed, which is how the model earns
+  /// the right to be used in an outage. Always returns the decision, so a
+  /// caller and the diagnostics can say why an observation was refused.
+  ///
+  /// Does nothing (and says `disabled`) while `AiConfig.enabled` is false.
+  AiSpeedDecision onAiSpeed(AiSpeedObservation observation) {
+    final outcome = _ai.applySpeed(
+      obs: observation,
+      filter: _filter,
+      engineUs: _lastImuUs,
+      mountKnown: _alignmentEstimator.alignment != null,
+      outage: _outageStartedUs != null || !_config.power.idleAiWhenGnssHealthy,
+    );
+    final result = outcome.result;
+    if (result != null) {
+      _record(result);
+      if (result.accepted) {
+        _contribution.add('ai', result.positionVarianceReduction);
+      }
+    }
+    return outcome.decision;
+  }
+
+  /// Feeds a disturbance estimate from the vibration and motion-quality models
+  /// (P2). It replaces the statistical estimate's vibration score and quality
+  /// while it is fresh (`AiConfig.modelOutputTtl`); shocks seen by either count.
+  void onDisturbance(DisturbanceEstimate estimate) =>
+      _ai.setModelDisturbance(estimate);
+
+  /// Feeds an AI fusion confidence (P3): GNSS and INS trust in (0, 1]. Stale or
+  /// absent, the engine uses 1.0 for both.
+  void onFusionConfidence(FusionConfidence confidence) =>
+      _ai.setFusionConfidence(confidence);
+
+  /// What the AI path is doing right now; [AiDiagnostics.off] while disabled.
+  AiDiagnostics get aiDiagnostics => _ai.diagnostics(_lastImuUs ?? 0);
+
   /// Ties the barometer's absolute scale to a GNSS altitude, but only a good
   /// one: a bad vertical fix would poison every height afterwards.
   void _anchorBarometer(GnssObservation fix) {
@@ -469,6 +545,7 @@ class NavigationEngine {
     _faults.reset();
     _barometer.reset();
     _contribution.reset();
+    _ai.reset();
     _mode = NavMode.boot;
     _snapshot = null;
     _transitions.clear();
@@ -530,25 +607,36 @@ class NavigationEngine {
     return mount.toVehicle(up * NavMath.gravity);
   }
 
+  /// The stillness and vehicle constraints, with their noise scaled for the
+  /// disturbance [ai] reports (P2): a shaken phone is a worse witness, so ZUPT,
+  /// ZARU and NHC are believed less. A held shock also suspends ZARU, whose
+  /// "measurement" is the gyro reading the shock has just corrupted; ZUPT
+  /// carries on, because "the vehicle is not moving" does not depend on it.
   void _applyConstraints({
     required Vector3 gyroVehicle,
     Vector3? magVehicle,
+    required AiScales ai,
   }) {
     final snapshot = _motion.snapshot;
+    final sigmaScale = ai.measurementSigma;
+    final ekf = _config.ekf;
 
     final features = _config.features;
     if (snapshot.isStationary) {
       if (features.zeroVelocityUpdate) {
-        _recordInertial(_filter.updateZeroVelocity());
-      }
-      if (features.zeroAngularRateUpdate) {
         _recordInertial(
-            _filter.updateZeroAngularRate(gyroBody: gyroVehicle));
+            _filter.updateZeroVelocity(sigma: ekf.zuptVelocitySigma * sigmaScale));
+      }
+      if (features.zeroAngularRateUpdate && !ai.holdUpdates) {
+        _recordInertial(_filter.updateZeroAngularRate(
+          gyroBody: gyroVehicle,
+          sigma: ekf.zaruSigma * sigmaScale,
+        ));
       }
     } else if (snapshot.nhcApplicable &&
         features.nonHolonomicConstraint) {
       _recordInertial(_filter.updateNonHolonomic(
-        lateralSigma: _motion.nhcLateralSigma,
+        lateralSigma: _motion.nhcLateralSigma * sigmaScale,
       ));
     }
 
@@ -843,18 +931,9 @@ class NavigationEngine {
       alignmentConfidence: _alignmentEstimator.alignment?.confidence,
       calibrationQuality: _calibration.gyroBiasQuality,
       contribution: _contribution.snapshot,
-      // Both stay unavailable until their subsystems genuinely exist (§83).
-      ai: _config.ai.enabled
-          ? const SubsystemHealth(
-              available: false,
-              source: DataSource.unavailable,
-              detail: 'Model not loaded',
-            )
-          : const SubsystemHealth(
-              available: false,
-              source: DataSource.unavailable,
-              detail: 'Neural velocity disabled',
-            ),
+      // Unavailable until a model has genuinely spoken to the engine (§83).
+      ai: _aiHealth(aiDiagnostics),
+      aiDiagnostics: aiDiagnostics,
       mapMatch: _mapHealth(),
       mapMatchResult: _matcher.last,
       outageDuration: _outageStartedUs == null
@@ -871,6 +950,29 @@ class NavigationEngine {
       notes: notes,
     );
     return _snapshot;
+  }
+
+  SubsystemHealth _aiHealth(AiDiagnostics d) {
+    if (!d.enabled) {
+      return const SubsystemHealth(
+        available: false,
+        source: DataSource.unavailable,
+        detail: 'Neural velocity disabled',
+      );
+    }
+    if (d.speedObserved == 0 && d.disturbance?.source != EstimateSource.model) {
+      return const SubsystemHealth(
+        available: false,
+        source: DataSource.unavailable,
+        detail: 'Model not loaded',
+      );
+    }
+    return SubsystemHealth(
+      available: d.speedApplied > 0,
+      // Derived by the filter from a model's output, not measured.
+      source: DataSource.estimated,
+      detail: d.summary,
+    );
   }
 
   SubsystemHealth _mapHealth() {

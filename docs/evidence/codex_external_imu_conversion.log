@@ -1,0 +1,5 @@
+[check] CAN yaw rate vs -d(heading)/dt: corr +0.665 (best lag +0.10 s, corr +0.666)
+[check] CAN longitudinal accel vs dv/dt: corr +0.459
+[check] CAN lateral accel vs v*yaw-rate: corr +0.941
+[check] at rest (234 s, v < 0.05 m/s): long mean +0.010 std 0.276 m/s2 | lat mean +0.125 std 0.327 m/s2 | yaw mean +0.00477 std 0.04072 rad/s
+{'rows': 37183, 'minutes': 62.0, 'km': 43.7, 'fixes': 3719, 'g_local': 9.8125, 'out': 'cpp-core\\build-codex\\s3c.csv'}

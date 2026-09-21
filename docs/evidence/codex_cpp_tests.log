@@ -1,0 +1,9 @@
+Test project C:/Users/vidhy/Downloads/gathisarthi/cpp-core/build-codex
+    Start 1: test_engine
+1/2 Test #1: test_engine ......................   Passed    0.74 sec
+    Start 2: bench_smoke
+2/2 Test #2: bench_smoke ......................   Passed    4.58 sec
+
+100% tests passed out of 2
+
+Total Test time (real) =   6.49 sec

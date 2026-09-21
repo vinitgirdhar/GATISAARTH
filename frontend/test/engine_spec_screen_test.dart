@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gatisaarth/core/platform/maps/offline_map_service.dart';
 import 'package:gatisaarth/core/router/app_router.dart';
 import 'package:gatisaarth/core/theme/app_theme.dart';
 import 'package:gatisaarth/core/theme/theme_controller.dart';
@@ -38,7 +37,7 @@ void main() {
 
       expect(find.text('Navigation engine'), findsOneWidget, reason: 'title');
       expect(find.text('GatiSaarth Navigation Engine'), findsOneWidget);
-      expect(find.text('v1.0.0 (build 1)'), findsOneWidget);
+      expect(find.text('v3.1.0 (build 31)'), findsOneWidget);
       for (final section in [
         'Right now',
         'How it works',
@@ -92,7 +91,7 @@ void main() {
       await _loadAssets(tester);
 
       expect(find.textContaining('simulated drive'), findsOneWidget);
-      expect(find.textContaining('map matching is not'), findsOneWidget);
+      expect(find.textContaining('not lane level'), findsOneWidget);
       expect(find.textContaining('no account'), findsOneWidget);
     });
 

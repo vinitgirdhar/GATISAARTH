@@ -1,10 +1,13 @@
 import 'dart:math' as math;
 
 import '../gnss/gnss_quality.dart';
+import '../map/road_graph.dart';
 import '../math/nav_math.dart';
 import '../model/nav_snapshot.dart';
 import '../motion/motion_classifier.dart' show VehicleClass;
+import '../nav_config.dart';
 import '../navigation_engine.dart';
+import '../replay/ai_record_feed.dart';
 import '../replay/drive_log.dart';
 import 'outage_report.dart';
 
@@ -31,9 +34,15 @@ class OutageBenchmark {
   /// it was set-up driving (mount calibration), not driving to be judged.
   static const startMarker = 'benchmark start';
 
+  /// [engineConfig] is the navigation core's own configuration, replayed
+  /// identically for every window: the way to score the same drive with the AI
+  /// path off and on (`AiConfig.enabled`). `ai` records in the log are fed to
+  /// the engine either way; while the AI is disabled it ignores them.
   static OutageReport run(
     List<DriveRecord> records, {
     OutageBenchmarkConfig config = const OutageBenchmarkConfig(),
+    NavConfig engineConfig = NavConfig.defaults,
+    RoadGraph? roadGraph,
     String source = 'drive',
     void Function(double progress)? onProgress,
   }) {
@@ -47,7 +56,7 @@ class OutageBenchmark {
         ? VehicleClass.twoWheeler
         : VehicleClass.car;
     final leadUs =
-        truth.isEmpty ? null : _firstLeadUs(records, vehicleClass);
+        truth.isEmpty ? null : _firstLeadUs(records, vehicleClass, engineConfig, roadGraph);
     var windows = 0;
     if (leadUs != null && records.isNotEmpty) {
       final markerUs = records
@@ -57,8 +66,8 @@ class OutageBenchmark {
       final starts = _startTimes(records.last.monotonicUs, leadUs, markerUs, config);
       windows = starts.length;
       for (var i = 0; i < starts.length; i++) {
-        _pass(records, truth, starts[i], config, vehicleClass, byDuration,
-            skipped);
+        _pass(records, truth, starts[i], config, vehicleClass, engineConfig,
+            roadGraph, byDuration, skipped);
         onProgress?.call((i + 1) / starts.length);
       }
     }
@@ -113,6 +122,8 @@ class OutageBenchmark {
     int startUs,
     OutageBenchmarkConfig config,
     VehicleClass vehicleClass,
+    NavConfig engineConfig,
+    RoadGraph? roadGraph,
     Map<int, List<OutageSample>> out,
     Map<SkipReason, int> skipped,
   ) {
@@ -125,7 +136,8 @@ class OutageBenchmark {
     void skip(SkipReason reason, [int count = 1]) =>
         skipped[reason] = (skipped[reason] ?? 0) + count;
 
-    final engine = NavigationEngine(vehicleClass: vehicleClass);
+    final engine = NavigationEngine(
+        vehicleClass: vehicleClass, config: engineConfig, roadGraph: roadGraph);
     var i = 0;
     while (i < records.length && records[i].monotonicUs < startUs) {
       _feed(engine, records[i++]);
@@ -148,6 +160,7 @@ class OutageBenchmark {
       final record = records[i];
       switch (record.type) {
         case DriveRecordType.imu:
+        case DriveRecordType.ai:
           _feed(engine, record);
         case DriveRecordType.gnss:
           // Withheld from the core. Trusted fixes are kept as truth, and each
@@ -191,8 +204,10 @@ class OutageBenchmark {
 
   /// First moment the core is healthy enough to lead, replaying without any
   /// outage. Null when it never is - nothing can then be scored.
-  static int? _firstLeadUs(List<DriveRecord> records, VehicleClass vehicleClass) {
-    final engine = NavigationEngine(vehicleClass: vehicleClass);
+  static int? _firstLeadUs(List<DriveRecord> records, VehicleClass vehicleClass,
+      NavConfig engineConfig, RoadGraph? roadGraph) {
+    final engine = NavigationEngine(
+        vehicleClass: vehicleClass, config: engineConfig, roadGraph: roadGraph);
     for (final record in records) {
       final snapshot = _feed(engine, record);
       if (snapshot != null && snapshot.canLeadPosition) {
@@ -217,6 +232,9 @@ class OutageBenchmark {
         return engine.onGnss(r.fix!);
       case DriveRecordType.gnssLost:
         engine.onGnssLost(r.monotonicUs);
+        return null;
+      case DriveRecordType.ai:
+        feedAiRecord(engine, r);
         return null;
       default:
         return null;

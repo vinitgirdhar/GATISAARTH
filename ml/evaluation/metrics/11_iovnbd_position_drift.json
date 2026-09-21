@@ -1,0 +1,700 @@
+{
+  "split": {
+    "test_trips": [
+      "M",
+      "Vtb01",
+      "Vtb02",
+      "Vtb03",
+      "Vtb05",
+      "Y1"
+    ],
+    "test_drivers_held_out": [
+      "B",
+      "D"
+    ],
+    "test_categories_held_out": [
+      "Vtb"
+    ],
+    "windows": 138885,
+    "window": "20 samples @10 Hz (2 s), stride 2, label = VBOX speed at the last sample"
+  },
+  "target": "SIH26168: position drift < 10 % of the distance travelled during a GNSS blackout",
+  "protocol": {
+    "ground_truth": "VBOX lat/lon (10 Hz) projected to local metres; distance travelled = integral of the VBOX speed",
+    "outage_windows": "start every 10 s (first at 2 s into a gap-free segment) at the true position; horizons 30 s, 60 s and the first point where the VBOX has travelled 1000 m",
+    "drift": "|final DR position - final true position| / distance travelled * 100; windows with mean speed < 3 m/s are skipped",
+    "speed_sources": {
+      "model": "SpeedEstimatorNet from the phone IMU only (20-sample window ending at each sample)",
+      "hold_last_gps_speed": "phone GPS speed at the outage start, held",
+      "classical_dr_zupt": "GPS-anchored forward-accelerometer integration with heuristic ZUPT",
+      "vbox_speed_oracle": "true speed: isolates the heading error"
+    },
+    "headings": {
+      "vbox_heading": "VBOX compass heading (isolates the speed error)",
+      "phone_heading": "VBOX heading at the outage start, then the phone vertical gyro integrated (uncalibrated: no bias/scale estimate) - the drift this adds is the difference to vbox_heading"
+    }
+  },
+  "results": {
+    "model": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 2424,
+          "median_pct": 14.082447376808275,
+          "mean_pct": 18.03527130679377,
+          "p90_pct": 35.27403043102982,
+          "share_under_10_pct": 0.36014851485148514,
+          "median_distance_m": 344.8463749999962,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 283
+        },
+        "60s": {
+          "n_windows": 2465,
+          "median_pct": 12.164058750111039,
+          "mean_pct": 15.408521312766373,
+          "p90_pct": 29.816862812642384,
+          "share_under_10_pct": 0.4081135902636917,
+          "median_distance_m": 648.8135555555518,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 177
+        },
+        "1000m": {
+          "n_windows": 2500,
+          "median_pct": 10.359015370766887,
+          "mean_pct": 12.853540724665532,
+          "p90_pct": 26.615098704963753,
+          "share_under_10_pct": 0.4844,
+          "median_distance_m": 1000.5997499999987,
+          "median_duration_s": 93.95,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 2424,
+          "median_pct": 20.911767520547038,
+          "mean_pct": 28.546693663277676,
+          "p90_pct": 61.173398803232196,
+          "share_under_10_pct": 0.20874587458745875,
+          "median_distance_m": 344.8463749999962,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 283
+        },
+        "60s": {
+          "n_windows": 2465,
+          "median_pct": 21.63862928951677,
+          "mean_pct": 31.417785129866346,
+          "p90_pct": 73.09192933475384,
+          "share_under_10_pct": 0.17160243407707912,
+          "median_distance_m": 648.8135555555518,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 177
+        },
+        "1000m": {
+          "n_windows": 2500,
+          "median_pct": 22.13838299942182,
+          "mean_pct": 31.133740426867124,
+          "p90_pct": 71.30062824505703,
+          "share_under_10_pct": 0.19,
+          "median_distance_m": 1000.5997499999987,
+          "median_duration_s": 93.95,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    },
+    "hold_last_gps_speed": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 2424,
+          "median_pct": 17.863006746740176,
+          "mean_pct": 30.26702468804587,
+          "p90_pct": 74.96960855167242,
+          "share_under_10_pct": 0.34447194719471946,
+          "median_distance_m": 344.8463749999962,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 283
+        },
+        "60s": {
+          "n_windows": 2465,
+          "median_pct": 21.218763586890937,
+          "mean_pct": 33.41470554704264,
+          "p90_pct": 82.28554134873949,
+          "share_under_10_pct": 0.2876267748478702,
+          "median_distance_m": 648.8135555555518,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 177
+        },
+        "1000m": {
+          "n_windows": 2500,
+          "median_pct": 20.394612182005197,
+          "mean_pct": 29.857728824347806,
+          "p90_pct": 70.65465525666792,
+          "share_under_10_pct": 0.2928,
+          "median_distance_m": 1000.5997499999987,
+          "median_duration_s": 93.95,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 2424,
+          "median_pct": 28.612219372410664,
+          "mean_pct": 40.38474992992532,
+          "p90_pct": 88.98165929836145,
+          "share_under_10_pct": 0.17491749174917492,
+          "median_distance_m": 344.8463749999962,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 283
+        },
+        "60s": {
+          "n_windows": 2465,
+          "median_pct": 35.938964770129935,
+          "mean_pct": 47.60676203619922,
+          "p90_pct": 97.02991249626797,
+          "share_under_10_pct": 0.09858012170385395,
+          "median_distance_m": 648.8135555555518,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 177
+        },
+        "1000m": {
+          "n_windows": 2500,
+          "median_pct": 34.795775748744376,
+          "mean_pct": 44.35019262513556,
+          "p90_pct": 91.28174061248698,
+          "share_under_10_pct": 0.114,
+          "median_distance_m": 1000.5997499999987,
+          "median_duration_s": 93.95,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    },
+    "classical_dr_zupt": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 2424,
+          "median_pct": 24.584263482076764,
+          "mean_pct": 35.019865206318656,
+          "p90_pct": 74.60479821868596,
+          "share_under_10_pct": 0.22772277227722773,
+          "median_distance_m": 344.8463749999962,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 283
+        },
+        "60s": {
+          "n_windows": 2465,
+          "median_pct": 32.16213483469065,
+          "mean_pct": 41.98807054528217,
+          "p90_pct": 81.59685879233989,
+          "share_under_10_pct": 0.1460446247464503,
+          "median_distance_m": 648.8135555555518,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 177
+        },
+        "1000m": {
+          "n_windows": 2500,
+          "median_pct": 31.798233223949516,
+          "mean_pct": 41.62070348575903,
+          "p90_pct": 79.79268175988531,
+          "share_under_10_pct": 0.1512,
+          "median_distance_m": 1000.5997499999987,
+          "median_duration_s": 93.95,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 2424,
+          "median_pct": 34.88136758896954,
+          "mean_pct": 44.5525077254061,
+          "p90_pct": 86.13668190137535,
+          "share_under_10_pct": 0.10107260726072607,
+          "median_distance_m": 344.8463749999962,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 283
+        },
+        "60s": {
+          "n_windows": 2465,
+          "median_pct": 44.44694030039257,
+          "mean_pct": 54.686110577389854,
+          "p90_pct": 101.39891771493168,
+          "share_under_10_pct": 0.06288032454361055,
+          "median_distance_m": 648.8135555555518,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 177
+        },
+        "1000m": {
+          "n_windows": 2500,
+          "median_pct": 43.28124927696436,
+          "mean_pct": 54.09007417056635,
+          "p90_pct": 101.00618609726418,
+          "share_under_10_pct": 0.0564,
+          "median_distance_m": 1000.5997499999987,
+          "median_duration_s": 93.95,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    },
+    "vbox_speed_oracle": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 2424,
+          "median_pct": 0.2592142179549157,
+          "mean_pct": 0.4542713861725876,
+          "p90_pct": 0.953730421484595,
+          "share_under_10_pct": 0.9983498349834984,
+          "median_distance_m": 344.8463749999962,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 283
+        },
+        "60s": {
+          "n_windows": 2465,
+          "median_pct": 0.22369240562573123,
+          "mean_pct": 0.3928963605157946,
+          "p90_pct": 0.8691334665923578,
+          "share_under_10_pct": 1.0,
+          "median_distance_m": 648.8135555555518,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 177
+        },
+        "1000m": {
+          "n_windows": 2500,
+          "median_pct": 0.20073234642444418,
+          "mean_pct": 0.33136604603678854,
+          "p90_pct": 0.766442553388866,
+          "share_under_10_pct": 1.0,
+          "median_distance_m": 1000.5997499999987,
+          "median_duration_s": 93.95,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 2424,
+          "median_pct": 7.010623582760379,
+          "mean_pct": 17.134003641308205,
+          "p90_pct": 50.24410667282516,
+          "share_under_10_pct": 0.6105610561056105,
+          "median_distance_m": 344.8463749999962,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 283
+        },
+        "60s": {
+          "n_windows": 2465,
+          "median_pct": 11.124773041916022,
+          "mean_pct": 23.452324563501858,
+          "p90_pct": 67.59572388081077,
+          "share_under_10_pct": 0.46612576064908723,
+          "median_distance_m": 648.8135555555518,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 177
+        },
+        "1000m": {
+          "n_windows": 2500,
+          "median_pct": 14.179295894106641,
+          "mean_pct": 25.989175852978565,
+          "p90_pct": 73.11760381989349,
+          "share_under_10_pct": 0.392,
+          "median_distance_m": 1000.5997499999987,
+          "median_duration_s": 93.95,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    }
+  },
+  "per_test_trip_model": {
+    "M": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 946,
+          "median_pct": 11.441399243930274,
+          "mean_pct": 14.407526141356621,
+          "p90_pct": 30.492241431122636,
+          "share_under_10_pct": 0.43023255813953487,
+          "median_distance_m": 313.3113472222203,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 95
+        },
+        "60s": {
+          "n_windows": 978,
+          "median_pct": 9.61699287298693,
+          "mean_pct": 12.141813970902364,
+          "p90_pct": 25.296689262979648,
+          "share_under_10_pct": 0.5173824130879345,
+          "median_distance_m": 581.200624999994,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 45
+        },
+        "1000m": {
+          "n_windows": 1001,
+          "median_pct": 7.76083358799772,
+          "mean_pct": 10.356924402933613,
+          "p90_pct": 23.653341696240197,
+          "share_under_10_pct": 0.6103896103896104,
+          "median_distance_m": 1000.549583333358,
+          "median_duration_s": 105.7,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 946,
+          "median_pct": 14.195083956591812,
+          "mean_pct": 18.009795990230923,
+          "p90_pct": 31.836336839409704,
+          "share_under_10_pct": 0.2917547568710359,
+          "median_distance_m": 313.3113472222203,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 95
+        },
+        "60s": {
+          "n_windows": 978,
+          "median_pct": 16.78628880558626,
+          "mean_pct": 18.999688123679746,
+          "p90_pct": 31.66061265978733,
+          "share_under_10_pct": 0.2116564417177914,
+          "median_distance_m": 581.200624999994,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 45
+        },
+        "1000m": {
+          "n_windows": 1001,
+          "median_pct": 19.392110128837295,
+          "mean_pct": 21.443996980697364,
+          "p90_pct": 37.297572473108055,
+          "share_under_10_pct": 0.2177822177822178,
+          "median_distance_m": 1000.549583333358,
+          "median_duration_s": 105.7,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    },
+    "Vtb01": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 228,
+          "median_pct": 18.237458603716625,
+          "mean_pct": 21.661695495441883,
+          "p90_pct": 47.24698754367077,
+          "share_under_10_pct": 0.2631578947368421,
+          "median_distance_m": 429.8930972222265,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 6
+        },
+        "60s": {
+          "n_windows": 218,
+          "median_pct": 16.58612377452392,
+          "mean_pct": 19.88396138300267,
+          "p90_pct": 39.792557248915095,
+          "share_under_10_pct": 0.22018348623853212,
+          "median_distance_m": 847.4163055555468,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 1
+        },
+        "1000m": {
+          "n_windows": 213,
+          "median_pct": 15.940665626240317,
+          "mean_pct": 18.36092564669857,
+          "p90_pct": 32.68737188943655,
+          "share_under_10_pct": 0.23943661971830985,
+          "median_distance_m": 1000.688583333349,
+          "median_duration_s": 69.9,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 228,
+          "median_pct": 41.71271810637762,
+          "mean_pct": 49.42215054359133,
+          "p90_pct": 95.35788712785218,
+          "share_under_10_pct": 0.05701754385964912,
+          "median_distance_m": 429.8930972222265,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 6
+        },
+        "60s": {
+          "n_windows": 218,
+          "median_pct": 51.75568504474444,
+          "mean_pct": 60.42990829621375,
+          "p90_pct": 115.50898527240699,
+          "share_under_10_pct": 0.022935779816513763,
+          "median_distance_m": 847.4163055555468,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 1
+        },
+        "1000m": {
+          "n_windows": 213,
+          "median_pct": 56.09243715816947,
+          "mean_pct": 61.321160922189065,
+          "p90_pct": 112.69369192503521,
+          "share_under_10_pct": 0.023474178403755867,
+          "median_distance_m": 1000.688583333349,
+          "median_duration_s": 69.9,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    },
+    "Vtb02": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 43,
+          "median_pct": 18.650056500857904,
+          "mean_pct": 34.38269985159008,
+          "p90_pct": 52.172753092220006,
+          "share_under_10_pct": 0.2558139534883721,
+          "median_distance_m": 312.67302777777627,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 11
+        },
+        "60s": {
+          "n_windows": 40,
+          "median_pct": 15.475644363835439,
+          "mean_pct": 16.308020307351732,
+          "p90_pct": 26.05119827749265,
+          "share_under_10_pct": 0.175,
+          "median_distance_m": 624.9323194444429,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 11
+        },
+        "1000m": {
+          "n_windows": 32,
+          "median_pct": 16.471072746753826,
+          "mean_pct": 16.79425841486491,
+          "p90_pct": 20.69825424204917,
+          "share_under_10_pct": 0.25,
+          "median_distance_m": 1000.5449027777797,
+          "median_duration_s": 87.85000000000001,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 43,
+          "median_pct": 53.25303107031978,
+          "mean_pct": 68.84257208443233,
+          "p90_pct": 127.5679153431333,
+          "share_under_10_pct": 0.046511627906976744,
+          "median_distance_m": 312.67302777777627,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 11
+        },
+        "60s": {
+          "n_windows": 40,
+          "median_pct": 55.59951810350501,
+          "mean_pct": 69.19693088763105,
+          "p90_pct": 129.23854139354984,
+          "share_under_10_pct": 0.0,
+          "median_distance_m": 624.9323194444429,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 11
+        },
+        "1000m": {
+          "n_windows": 32,
+          "median_pct": 68.09832118500725,
+          "mean_pct": 72.63635365265361,
+          "p90_pct": 128.08856285990123,
+          "share_under_10_pct": 0.0,
+          "median_distance_m": 1000.5449027777797,
+          "median_duration_s": 87.85000000000001,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    },
+    "Vtb03": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 3,
+          "median_pct": 62.12052119612992,
+          "mean_pct": 60.94736251727425,
+          "p90_pct": 65.41613282019986,
+          "share_under_10_pct": 0.0,
+          "median_distance_m": 230.41600000000005,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 77
+        },
+        "60s": {
+          "n_windows": 2,
+          "median_pct": 64.14074948749116,
+          "mean_pct": 64.14074948749116,
+          "p90_pct": 64.9423344426245,
+          "share_under_10_pct": 0.0,
+          "median_distance_m": 273.58101388888826,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 75
+        },
+        "1000m": {
+          "n_windows": 0,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 3,
+          "median_pct": 76.79502691312935,
+          "mean_pct": 83.73836514457754,
+          "p90_pct": 132.2648965200823,
+          "share_under_10_pct": 0.0,
+          "median_distance_m": 230.41600000000005,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 77
+        },
+        "60s": {
+          "n_windows": 2,
+          "median_pct": 100.26142397251783,
+          "mean_pct": 100.26142397251783,
+          "p90_pct": 137.29635711697614,
+          "share_under_10_pct": 0.0,
+          "median_distance_m": 273.58101388888826,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 75
+        },
+        "1000m": {
+          "n_windows": 0,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    },
+    "Vtb05": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 618,
+          "median_pct": 16.411328060115846,
+          "mean_pct": 18.077892540428078,
+          "p90_pct": 33.62068675184639,
+          "share_under_10_pct": 0.3284789644012945,
+          "median_distance_m": 508.1939583333333,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 15
+        },
+        "60s": {
+          "n_windows": 619,
+          "median_pct": 15.321819945738058,
+          "mean_pct": 16.712736969468125,
+          "p90_pct": 29.871305429778918,
+          "share_under_10_pct": 0.3182552504038772,
+          "median_distance_m": 981.003277777766,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 5
+        },
+        "1000m": {
+          "n_windows": 626,
+          "median_pct": 14.545072608141927,
+          "mean_pct": 15.826532346213689,
+          "p90_pct": 30.059690648490637,
+          "share_under_10_pct": 0.3466453674121406,
+          "median_distance_m": 1000.8670694444673,
+          "median_duration_s": 61.45,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 618,
+          "median_pct": 32.592744020893335,
+          "mean_pct": 38.44381952386366,
+          "p90_pct": 70.01172363488057,
+          "share_under_10_pct": 0.06310679611650485,
+          "median_distance_m": 508.1939583333333,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 15
+        },
+        "60s": {
+          "n_windows": 619,
+          "median_pct": 40.42543769096761,
+          "mean_pct": 48.37005348409544,
+          "p90_pct": 89.97393666111537,
+          "share_under_10_pct": 0.03715670436187399,
+          "median_distance_m": 981.003277777766,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 5
+        },
+        "1000m": {
+          "n_windows": 626,
+          "median_pct": 40.50201454102189,
+          "mean_pct": 49.08397095804071,
+          "p90_pct": 97.4299152072156,
+          "share_under_10_pct": 0.03354632587859425,
+          "median_distance_m": 1000.8670694444673,
+          "median_duration_s": 61.45,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    },
+    "Y1": {
+      "vbox_heading": {
+        "30s": {
+          "n_windows": 586,
+          "median_pct": 15.496674338623492,
+          "mean_pct": 21.016511218138643,
+          "p90_pct": 44.841300707197654,
+          "share_under_10_pct": 0.32764505119453924,
+          "median_distance_m": 261.5587500000029,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 79
+        },
+        "60s": {
+          "n_windows": 608,
+          "median_pct": 12.03911041460653,
+          "mean_pct": 17.511218578227286,
+          "p90_pct": 35.03062109294965,
+          "share_under_10_pct": 0.40789473684210525,
+          "median_distance_m": 486.989777777772,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 40
+        },
+        "1000m": {
+          "n_windows": 628,
+          "median_pct": 9.694741097941266,
+          "mean_pct": 11.800744910151334,
+          "p90_pct": 21.861483342762636,
+          "share_under_10_pct": 0.5159235668789809,
+          "median_distance_m": 1000.491597222222,
+          "median_duration_s": 122.55000000000001,
+          "skipped_slow_or_missing": 0
+        }
+      },
+      "phone_heading": {
+        "30s": {
+          "n_windows": 586,
+          "median_pct": 17.219926838939084,
+          "mean_pct": 23.7575801165115,
+          "p90_pct": 48.82472403891368,
+          "share_under_10_pct": 0.3003412969283277,
+          "median_distance_m": 261.5587500000029,
+          "median_duration_s": 30.0,
+          "skipped_slow_or_missing": 79
+        },
+        "60s": {
+          "n_windows": 608,
+          "median_pct": 14.495362977654484,
+          "mean_pct": 21.019674607700313,
+          "p90_pct": 39.40641395637265,
+          "share_under_10_pct": 0.3092105263157895,
+          "median_distance_m": 486.989777777772,
+          "median_duration_s": 60.0,
+          "skipped_slow_or_missing": 40
+        },
+        "1000m": {
+          "n_windows": 628,
+          "median_pct": 12.539842736682319,
+          "mean_pct": 16.33212368860681,
+          "p90_pct": 30.275167059490762,
+          "share_under_10_pct": 0.3678343949044586,
+          "median_distance_m": 1000.491597222222,
+          "median_duration_s": 122.55000000000001,
+          "skipped_slow_or_missing": 0
+        }
+      }
+    }
+  },
+  "sih_target_met_by_model_median_with_vbox_heading": {
+    "30s": false,
+    "60s": false,
+    "1000m": false
+  },
+  "honest_notes": [
+    "Speed model + VBOX heading: median drift 14.1 % (30 s), 12.2 % (60 s), 10.4 % (~1 km); only 41 % of the 60 s windows are under the 10 % target.",
+    "Phone-only heading adds drift: model + phone gyro heading median 21.6 % (60 s); with the TRUE speed the phone gyro alone gives 11.1 % (60 s) - an uncalibrated gyro is the dominant heading error, the app's EKF estimates its bias.",
+    "Baselines (VBOX heading, 60 s): hold-last-GPS-speed 21.2 %, classical DR 32.2 %.",
+    "The 10 % target is therefore NOT demonstrated by the ML speed model alone; it must come from the fused engine (GNSS-anchored state, NHC, ZUPT, map constraints) replayed on these trips (stage B)."
+  ]
+}

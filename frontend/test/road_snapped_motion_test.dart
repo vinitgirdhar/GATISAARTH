@@ -322,6 +322,83 @@ void main() {
 
     expect(roads.asked, 1);
   });
+
+  // ---- behaviours a review of the first version found missing ---------------
+
+  test('a receiver that jitters while standing does not stall the canyon',
+      () async {
+    await goLive(_junctionLat, 73.8562, speed: 0);
+    controller.startUrbanCanyon();
+
+    // Doppler speed 0, but the position wanders 3 m from fix to fix: derived
+    // from positions that is a crawl of a few m/s, which used to overwrite the
+    // simulated cruise.
+    for (var i = 0; i < 8; i++) {
+      await drive(10);
+      now = now.add(const Duration(seconds: 1));
+      await fix(_junctionLat + (i.isEven ? 0.00003 : -0.00003), 73.8562,
+          speed: 0, accuracy: 5);
+    }
+
+    expect(controller.speed, closeTo(8.33, 0.01));
+    expect(controller.longitude, greaterThan(73.8565));
+    expect(offRoad(), lessThan(0.5));
+  });
+
+  test('one wild fix does not throw the canyon marker off its street',
+      () async {
+    await goLive(_junctionLat, 73.8562, speed: 8);
+    controller.startUrbanCanyon();
+    await drive(20);
+
+    // 60 m off the street, moving, and it claims to be accurate to 5 m.
+    await fix(_junctionLat + 0.00054, controller.longitude,
+        speed: 8, accuracy: 5);
+    await drive(10);
+
+    expect(controller.isOnRoad, isTrue);
+    expect(offRoad(), lessThan(0.5));
+  });
+
+  test('the compass readout keeps updating while the marker is on a road',
+      () async {
+    await goLive(_junctionLat, 73.8562);
+    controller.startTunnelTest();
+    await drive(5);
+
+    expect(controller.isOnRoad, isTrue);
+    expect(controller.magY, closeTo(30, 1e-9));
+  });
+
+  test('a parked vehicle is not pulled onto the nearest street when the '
+      'signal is lost', () async {
+    // 20 m north of the street, standing still.
+    await goLive(_junctionLat + 0.00018, 73.8562, speed: 0);
+    now = now.add(const Duration(minutes: 1));
+    controller.tick();
+
+    expect(controller.inOutage, isTrue);
+    expect(controller.isOnRoad, isFalse);
+    expect(controller.latitude, closeTo(_junctionLat + 0.00018, 1e-7));
+  });
+
+  test('Reset GNSS during a real outage leaves the dead-reckoned position',
+      () async {
+    await goLive(_junctionLat, 73.8562, speed: 10);
+    now = now.add(const Duration(minutes: 1)); // the signal is gone
+    controller.tick();
+    expect(controller.inOutage, isTrue);
+    expect(controller.isSimulatingTunnel, isFalse);
+
+    await drive(60);
+    final travelled = controller.longitude;
+    expect(travelled, greaterThan(73.8564)); // the fake model says "still" after a few seconds
+
+    controller.resetSimulation();
+    controller.tick();
+
+    expect(controller.longitude, closeTo(travelled, 1e-9));
+  });
 }
 
 /// A source whose roads arrive when the test says so.

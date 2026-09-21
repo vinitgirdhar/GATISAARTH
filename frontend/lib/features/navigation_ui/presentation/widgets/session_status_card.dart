@@ -20,6 +20,7 @@ class SessionStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final view = _viewFor(session);
+    final isDark = AppColors.isDark;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -29,8 +30,13 @@ class SessionStatusCard extends StatelessWidget {
                 AppColors.surface,
               )
             : AppColors.surface,
-        borderRadius: AppRadius.cardRadius,
-        boxShadow: AppShadow.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.lightSurfaceBorder,
+          width: 1,
+        ),
       ),
       child: Column(
         children: [

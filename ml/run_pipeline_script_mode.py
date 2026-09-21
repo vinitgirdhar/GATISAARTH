@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """
-GatiSaarth — Master AI/ML Dead Reckoning Pipeline (Script Mode Runner)
+GatiSaarth — Master AI/ML Dead Reckoning Pipeline v3.0 (Script Mode Runner)
 
 Executes the complete unified master pipeline notebook (ml/notebooks/gati_ai_dead_reckoning_master_pipeline.ipynb)
 in headless/non-interactive script mode with structured logging, progress tracking, and error handling.
 
 Execution Workflow:
-  1. [PHASE 0] Environment, seeds & automated directory verification
-  2. [PHASE 1] Raw data inspection ("See Data") -> 10 Hz cubic spline preprocessing -> Outlier cleaning -> Integrity verification gate
-  3. [PHASE 2] Normalization, SpeedEstimatorNet, VibrationClassifierNet & MotionQualityNet training
+  0. (once, before this runner) python ml/src/dataset/fetch_iovnbd.py   # real IO-VNBD files behind the Git-LFS pointers
+  1. [PHASE 0] Environment, seeds & portable path discovery
+  2. [PHASE 1] Real IO-VNBD: inspection -> wall-clock S/V synchronisation -> vehicle-frame remap -> quality gate -> trip-level split
+  3. [PHASE 2] Normalization, SpeedEstimatorNet training + held-out evaluation + IO-VNBD position drift, Vibration & MotionQuality nets
   4. [PHASE 3] 15-State Adaptive UKF navigation fusion & GNSS outage benchmarking suite (5s, 10s, 30s, 60s)
   5. [PHASE 4] GNSS anomaly & multipath jump detector, autonomous fallback switching
-  6. [PHASE 5] ONNX opset 14 export, INT8 PTQ packaging, numerical parity check & Flutter/Web asset deployment
+  6. [PHASE 5] ONNX opset 14 export, latency benchmark, v3 model metadata (TFLite + app deployment are stage 2)
 
 Usage:
-  python ml/run_pipeline_script_mode.py
+  python ml/run_pipeline_script_mode.py                 # whole pipeline (~30-40 min on a GPU)
+  python ml/run_pipeline_script_mode.py --upto 14      # only the first 14 code cells (data + windows)
+Environment: GATI_SPEED_EPOCHS=2 shortens the speed-model training for smoke runs.
 """
 
 import os
@@ -44,6 +47,12 @@ def main():
         default=True,
         help="Halt script execution immediately if any cell encounters an unhandled exception."
     )
+    parser.add_argument(
+        "--upto",
+        type=int,
+        default=0,
+        help="Run only the first N code cells (0 = all). Useful to smoke-test the data/training phases."
+    )
     args = parser.parse_args()
 
     nb_path = pathlib.Path(args.notebook).resolve()
@@ -68,8 +77,11 @@ def main():
 
     global_env = {
         "__name__": "__main__",
-        "FORCE_RAW_REPROCESSING": args.force_reprocess
+        "FORCE_RAW_REPROCESSING": args.force_reprocess,
+        "GATI_REPO_ROOT": str(pathlib.Path(__file__).resolve().parents[1]),
     }
+    if args.upto:
+        code_cells = code_cells[:args.upto]
 
     total_start = time.time()
     successful_cells = 0

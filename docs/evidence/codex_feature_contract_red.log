@@ -1,0 +1,54 @@
+00:00 +0: loading C:/Users/vidhy/Downloads/gathisarthi/frontend/test/model_feature_contract_test.dart
+00:00 +0: phone scaler matches the real IO-VNBD training scaler
+00:00 +0 -1: phone scaler matches the real IO-VNBD training scaler [E]
+  Expected: [
+              0.025551723003058698,
+              -0.0020532023982209016,
+              9.84194598932291,
+              -0.00007826907205868139,
+              -0.00039615690684135206,
+              -0.0026302214894134766,
+              9.99735125146164,
+              0.17996862653960716,
+              0.000017051794866907978,
+              -0.00017159758674403617,
+              0.000057487940119835076,
+              0.0023125885838363247,
+              0.000044687576375297487
+            ]
+    Actual: [
+              -0.006436917204641048,
+              0.0015932520408620627,
+              9.813988583580786,
+              0.00029069510777557627,
+              -0.000026694672256006832,
+              -0.0005267534435531443,
+              9.864373398724725,
+              0.06743461390520612,
+              0.0011695408378255905,
+              0.0008564605232577426,
+              0.0005478108230194564,
+              -0.0006498998805616586,
+              0.0001259820234195228
+            ]
+     Which: at location [0] is <-0.006436917204641048> instead of <0.025551723003058698>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\model_feature_contract_test.dart 11:5          main.<fn>
+  
+00:00 +0 -1: causal jerk and tilt match the Python training contract
+00:00 +0 -2: causal jerk and tilt match the Python training contract [E]
+  Expected: a numeric value within <1e-10> of <0>
+    Actual: <1.0>
+     Which:  differs by <1.0>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\model_feature_contract_test.dart 18:5          main.<fn>
+  
+00:00 +0 -2: Some tests failed.
+
+Failing tests:
+  C:/Users/vidhy/Downloads/gathisarthi/frontend/test/model_feature_contract_test.dart: causal jerk and tilt match the Python training contract
+  C:/Users/vidhy/Downloads/gathisarthi/frontend/test/model_feature_contract_test.dart: phone scaler matches the real IO-VNBD training scaler

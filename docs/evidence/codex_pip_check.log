@@ -1,0 +1,12 @@
+code-review-graph 2.2.1 has requirement tree-sitter<1,>=0.23.0, but you have tree-sitter 0.21.3.
+sse-starlette 3.3.4 has requirement starlette>=0.49.1, but you have starlette 0.41.3.
+flask-caching 2.0.2 has requirement Flask<3, but you have flask 3.0.0.
+graphifyy 0.7.3 has requirement tree-sitter>=0.23.0, but you have tree-sitter 0.21.3.
+mem0ai 0.1.112 has requirement openai>=1.33.0, but you have openai 1.3.8.
+tree-sitter-language-pack 0.13.0 has requirement tree-sitter>=0.25.2, but you have tree-sitter 0.21.3.
+unsloth 2026.8.18 has requirement datasets!=4.0.*,!=4.1.0,<4.4.0,>=3.4.1, but you have datasets 5.0.1.
+unsloth 2026.8.18 has requirement transformers!=4.52.0,!=4.52.1,!=4.52.2,!=4.52.3,!=4.53.0,!=4.54.0,!=4.55.0,!=4.55.1,!=4.57.0,!=4.57.4,!=4.57.5,!=5.0.0,!=5.1.0,<=5.5.0,>=4.51.3, but you have transformers 5.14.1.
+unsloth 2026.8.18 has requirement trl!=0.19.0,<=0.24.0,>=0.18.2, but you have trl 1.10.0.
+unsloth-zoo 2026.8.12 has requirement datasets!=4.0.*,!=4.1.0,<4.4.0,>=3.4.1, but you have datasets 5.0.1.
+unsloth-zoo 2026.8.12 has requirement transformers!=4.52.0,!=4.52.1,!=4.52.2,!=4.52.3,!=4.53.0,!=4.54.0,!=4.55.0,!=4.55.1,!=4.57.4,!=4.57.5,!=5.0.0,!=5.1.0,<=5.5.0,>=4.51.3, but you have transformers 5.14.1.
+unsloth-zoo 2026.8.12 has requirement trl!=0.19.0,<=0.24.0,>=0.18.2; sys_platform != "darwin" or platform_machine != "arm64", but you have trl 1.10.0.

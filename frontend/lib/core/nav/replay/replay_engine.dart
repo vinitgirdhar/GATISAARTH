@@ -9,6 +9,7 @@ import '../model/nav_snapshot.dart';
 import '../motion/motion_classifier.dart';
 import '../nav_config.dart';
 import '../navigation_engine.dart';
+import 'ai_record_feed.dart';
 import 'drive_log.dart';
 
 /// One step of a replay: what was fed in and what came out.
@@ -271,6 +272,9 @@ class ReplayEngine {
         return null;
       case DriveRecordType.marker:
         _markers.add(record);
+        return null;
+      case DriveRecordType.ai:
+        feedAiRecord(engine, record);
         return null;
       case DriveRecordType.meta:
         return null;

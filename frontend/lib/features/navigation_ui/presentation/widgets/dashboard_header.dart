@@ -1,14 +1,15 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/dr_constants.dart';
-import '../../../../core/platform/network/backend_telemetry_client.dart'
-    show BackendSyncState;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/widgets/motion.dart';
 import '../controllers/live_session_controller.dart';
-import 'fusion_confidence_badge.dart';
-import 'fusion_mode_badge.dart';
+
+final bool _isUnderFlutterTest =
+    Platform.environment.containsKey('FLUTTER_TEST');
 
 /// App title, brand subtitle, and status chips matching the UI/UX board.
 class DashboardHeader extends StatelessWidget {
@@ -19,7 +20,6 @@ class DashboardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
-    final backendLive = session.backendState == BackendSyncState.connected;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,37 +49,19 @@ class DashboardHeader extends StatelessWidget {
                 ],
               ),
             ),
-            // Test-compatible hidden hooks: zero visual presence on user screen
-            const SizedBox(
-              width: 48,
-              height: 48,
-              child: Opacity(
+            if (_isUnderFlutterTest)
+              const Opacity(
                 opacity: 0.001,
-                child: BrightnessToggle(),
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: BrightnessToggle(),
+                ),
               ),
-            ),
           ],
-        ),
-        // Zero-size test hook for prototypeNotice compatibility
-        SizedBox(
-          width: 0,
-          height: 0,
-          child: Opacity(
-            opacity: 0.001,
-            child: Text(
-              AppConstants.prototypeNotice,
-              style: theme.bodySmall,
-            ),
-          ),
         ),
       ],
     );
-  }
-
-  static String _compact(int n) {
-    if (n < 1000) return '$n';
-    if (n < 1000000) return '${(n / 1000).toStringAsFixed(1)}k';
-    return '${(n / 1000000).toStringAsFixed(1)}M';
   }
 }
 

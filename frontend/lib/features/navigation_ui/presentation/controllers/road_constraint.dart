@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/nav/map/road_follower.dart';
+import '../../../../core/nav/map/road_graph.dart' show RoadGraph;
 import '../../../../core/platform/maps/pack_road_source.dart';
 
 /// How far from the road a position may be and still be put on it.
@@ -53,6 +54,9 @@ class RoadConstraint {
   double _yawDeg = 0;
 
   bool get isLocked => _follower.isLocked;
+
+  /// The roads around the vehicle, or null while none are loaded.
+  RoadGraph? get graph => _follower.graph;
   RoadPosition? get position => _follower.position;
 
   /// Loads the roads around a position when they are not loaded already. Cheap

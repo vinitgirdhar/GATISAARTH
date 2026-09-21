@@ -85,7 +85,7 @@ class _BootScreenState extends State<BootScreen>
                       width: 180,
                       height: 3.5,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(2),
                       ),
                       child: Align(
@@ -104,7 +104,7 @@ class _BootScreenState extends State<BootScreen>
                             boxShadow: [
                               BoxShadow(
                                 color:
-                                    const Color(0xFF0A84FF).withOpacity(0.4),
+                                    const Color(0xFF0A84FF).withValues(alpha: 0.4),
                                 blurRadius: 6,
                                 offset: const Offset(0, 1),
                               ),

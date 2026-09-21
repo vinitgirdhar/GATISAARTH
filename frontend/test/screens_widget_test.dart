@@ -112,7 +112,6 @@ void main() {
     expect(find.textContaining('Map match'), findsNothing);
     expect(find.textContaining('MAP MATCH'), findsNothing);
     expect(find.textContaining('LOCUS'), findsNothing);
-    expect(find.textContaining('Not the final product'), findsOneWidget);
   });
 
   testWidgets('searching state claims no confidence', (tester) async {

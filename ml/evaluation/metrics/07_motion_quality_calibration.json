@@ -5,8 +5,9 @@
     1.0
   ],
   "trust_threshold": 0.65,
-  "val_mae": 0.0389,
-  "val_r2": -0.4317,
-  "best_epoch": 14,
-  "status": "SUPERVISED_TRAINED_AND_CALIBRATED"
+  "val_mae": 0.1456,
+  "val_r2": 0.3314,
+  "best_epoch": 11,
+  "status": "PROXY_LABELS_ONLY",
+  "note": "labels are 1 - (speed error + vibration proxy)/2 measured on the training windows; see TODO(v3.1 stage 2)"
 }

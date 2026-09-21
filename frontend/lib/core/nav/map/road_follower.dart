@@ -182,6 +182,12 @@ class RoadFollower {
   int _seg = 0;
   double _unexplained = 0;
 
+  /// Metres driven since construction, and the edges entered within the last
+  /// `config.recentEdgeWindowM` of them. A junction exit onto an edge just
+  /// left would take the follower round the same sliver for ever.
+  double _odometerM = 0;
+  final List<({int id, double at})> _visited = [];
+
   /// Whether this `advance` call carried yaw. A caller with no gyroscope (the
   /// simulator) passes exactly 0, and road curvature must not be charged
   /// against turning it never reported: a real gyroscope never reads 0.0.
@@ -232,6 +238,7 @@ class RoadFollower {
   void release() {
     _geom = null;
     _unexplained = 0;
+    _visited.clear();
   }
 
   /// Snaps onto the best road within [maxRadiusM].
@@ -342,16 +349,22 @@ class RoadFollower {
       final toEnd = _forward ? g.length - _along : _along;
       if (remaining <= toEnd) {
         _seek(_forward ? _along + remaining : _along - remaining, charge: true);
+        _odometerM += remaining;
         return travelled + remaining;
       }
       _seek(_forward ? g.length : 0.0, charge: true);
       travelled += toEnd;
       remaining -= toEnd;
+      _odometerM += toEnd;
       if (hops++ >= config.maxHopsPerAdvance) break;
       if (_takeExit()) continue;
       if (!reverseAtDeadEnd || _geom!.edge.oneWay) break;
       _forward = !_forward;
       _unexplained = 0;
+      // Driving back the way it came: the road just left is the way out.
+      _visited
+        ..clear()
+        ..add((id: _geom!.edge.id, at: _odometerM));
     }
     return travelled;
   }
@@ -382,6 +395,9 @@ class RoadFollower {
   }
 
   void _enter(_Pick p) {
+    _visited.add((id: p.geom.edge.id, at: _odometerM));
+    final oldest = _odometerM - config.recentEdgeWindowM;
+    _visited.removeWhere((v) => v.at < oldest);
     _geom = p.geom;
     _forward = p.forward;
     _along = math.min(math.max(p.along, 0.0), p.geom.length);
@@ -406,9 +422,14 @@ class RoadFollower {
     if (g == null || from == null) return null;
     final desired = arrival + _unexplained;
     final options = <_Pick>[];
+    final recent = {for (final v in _visited) v.id};
     for (final p in _joinCandidates(g, from)) {
       final geom = _geomOf(p.edgeId);
       if (geom == null) continue;
+      // Not back onto a road just driven: at a junction cut into slivers it
+      // is the way round in circles. (A ring's own far end is not "recent":
+      // it is the edge being left.)
+      if (p.edgeId != from.edge.id && recent.contains(p.edgeId)) continue;
       for (final forward in _legalDirections(geom)) {
         final ahead = forward ? geom.length - p.alongM : p.alongM;
         if (ahead < config.minExitLengthM) continue;
@@ -441,6 +462,7 @@ class RoadFollower {
   /// A closed ring (roundabout, loop street) joins its own far end, which
   /// "other edges only" would otherwise dead-end at.
   EdgeProjection? _ringClosure(_Geom g) {
+    if (g.length < config.ringMinLengthM) return null;
     final e = g.edge;
     final last = e.pointCount - 1;
     final gap = NavMath.horizontalDistance(

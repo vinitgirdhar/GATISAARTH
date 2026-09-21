@@ -1,0 +1,223 @@
+{
+  "what": "REAL IO-VNBD drives around Coventry (vehicle ESP/CAN IMU proxy, VBOX GNSS/truth) through the app's navigation core, with and without the road graph read from a real OpenStreetMap archive of the area (West Midlands, UK), outage benchmark.",
+  "trips": [
+    {
+      "trip": "M_Driver_B__M.jsonl",
+      "trip_span_km": 14.3,
+      "graph_edges": 37201,
+      "core_led_from_s": null
+    },
+    {
+      "trip": "S_Driver_A__S1__S1.jsonl",
+      "trip_span_km": 6.7,
+      "graph_edges": 21508,
+      "core_led_from_s": 191,
+      "10s": {
+        "without_map": {
+          "n": 12,
+          "drift_median_pct": 8.06,
+          "error_median_m": 7.0,
+          "closer_than_hold": "11/12"
+        },
+        "with_map": {
+          "n": 12,
+          "drift_median_pct": 8.04,
+          "error_median_m": 6.8,
+          "closer_than_hold": "11/12"
+        }
+      },
+      "30s": {
+        "without_map": {
+          "n": 16,
+          "drift_median_pct": 7.26,
+          "error_median_m": 18.9,
+          "closer_than_hold": "15/16"
+        },
+        "with_map": {
+          "n": 16,
+          "drift_median_pct": 6.87,
+          "error_median_m": 18.4,
+          "closer_than_hold": "15/16"
+        }
+      },
+      "60s": {
+        "without_map": {
+          "n": 16,
+          "drift_median_pct": 30.76,
+          "error_median_m": 136.7,
+          "closer_than_hold": "15/16"
+        },
+        "with_map": {
+          "n": 16,
+          "drift_median_pct": 30.51,
+          "error_median_m": 114.5,
+          "closer_than_hold": "15/16"
+        }
+      },
+      "120s": {
+        "without_map": {
+          "n": 16,
+          "drift_median_pct": 41.33,
+          "error_median_m": 328.8,
+          "closer_than_hold": "12/16"
+        },
+        "with_map": {
+          "n": 16,
+          "drift_median_pct": 38.78,
+          "error_median_m": 304.3,
+          "closer_than_hold": "13/16"
+        }
+      }
+    },
+    {
+      "trip": "S_Driver_A__S3c__S3c.jsonl",
+      "trip_span_km": 19.2,
+      "graph_edges": 30158,
+      "core_led_from_s": 182,
+      "10s": {
+        "without_map": {
+          "n": 15,
+          "drift_median_pct": 6.75,
+          "error_median_m": 6.9,
+          "closer_than_hold": "13/15"
+        },
+        "with_map": {
+          "n": 15,
+          "drift_median_pct": 6.73,
+          "error_median_m": 6.8,
+          "closer_than_hold": "13/15"
+        }
+      },
+      "30s": {
+        "without_map": {
+          "n": 16,
+          "drift_median_pct": 9.84,
+          "error_median_m": 30.3,
+          "closer_than_hold": "11/16"
+        },
+        "with_map": {
+          "n": 16,
+          "drift_median_pct": 9.72,
+          "error_median_m": 28.4,
+          "closer_than_hold": "12/16"
+        }
+      },
+      "60s": {
+        "without_map": {
+          "n": 16,
+          "drift_median_pct": 20.18,
+          "error_median_m": 140.7,
+          "closer_than_hold": "12/16"
+        },
+        "with_map": {
+          "n": 16,
+          "drift_median_pct": 23.22,
+          "error_median_m": 112.6,
+          "closer_than_hold": "12/16"
+        }
+      },
+      "120s": {
+        "without_map": {
+          "n": 16,
+          "drift_median_pct": 23.81,
+          "error_median_m": 394.6,
+          "closer_than_hold": "8/16"
+        },
+        "with_map": {
+          "n": 16,
+          "drift_median_pct": 25.11,
+          "error_median_m": 337.2,
+          "closer_than_hold": "10/16"
+        }
+      }
+    },
+    {
+      "trip": "S_Driver_A__S4__S4.jsonl",
+      "trip_span_km": 10.9,
+      "graph_edges": 31881,
+      "core_led_from_s": 284,
+      "10s": {
+        "without_map": {
+          "n": 14,
+          "drift_median_pct": 17.21,
+          "error_median_m": 17.2,
+          "closer_than_hold": "8/14"
+        },
+        "with_map": {
+          "n": 14,
+          "drift_median_pct": 12.08,
+          "error_median_m": 16.0,
+          "closer_than_hold": "9/14"
+        }
+      },
+      "30s": {
+        "without_map": {
+          "n": 13,
+          "drift_median_pct": 46.51,
+          "error_median_m": 185.4,
+          "closer_than_hold": "6/13"
+        },
+        "with_map": {
+          "n": 13,
+          "drift_median_pct": 17.3,
+          "error_median_m": 46.2,
+          "closer_than_hold": "7/13"
+        }
+      },
+      "60s": {
+        "without_map": {
+          "n": 15,
+          "drift_median_pct": 77.97,
+          "error_median_m": 156.9,
+          "closer_than_hold": "6/15"
+        },
+        "with_map": {
+          "n": 15,
+          "drift_median_pct": 20.35,
+          "error_median_m": 192.3,
+          "closer_than_hold": "9/15"
+        }
+      },
+      "120s": {
+        "without_map": {
+          "n": 15,
+          "drift_median_pct": 56.68,
+          "error_median_m": 473.0,
+          "closer_than_hold": "9/15"
+        },
+        "with_map": {
+          "n": 15,
+          "drift_median_pct": 45.39,
+          "error_median_m": 442.3,
+          "closer_than_hold": "11/15"
+        }
+      }
+    },
+    {
+      "trip": "Y_Driver_D__Y1__Y1.jsonl",
+      "trip_span_km": 8.5,
+      "graph_edges": 26796,
+      "core_led_from_s": null
+    }
+  ],
+  "median_over_trips_10s": {
+    "trips": 3,
+    "without_map_drift_pct": 8.06,
+    "with_map_drift_pct": 8.04
+  },
+  "median_over_trips_30s": {
+    "trips": 3,
+    "without_map_drift_pct": 9.84,
+    "with_map_drift_pct": 9.72
+  },
+  "median_over_trips_60s": {
+    "trips": 3,
+    "without_map_drift_pct": 30.76,
+    "with_map_drift_pct": 23.22
+  },
+  "median_over_trips_120s": {
+    "trips": 3,
+    "without_map_drift_pct": 41.33,
+    "with_map_drift_pct": 38.78
+  }
+}

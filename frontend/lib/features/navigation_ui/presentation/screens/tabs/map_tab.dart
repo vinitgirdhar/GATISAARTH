@@ -36,12 +36,12 @@ class MapTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
+                  ? Colors.white.withValues(alpha: 0.08)
                   : AppColors.lightSurfaceBorder,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -53,7 +53,7 @@ class MapTab extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.12),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
@@ -87,8 +87,8 @@ class MapTab extends StatelessWidget {
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: session.inOutage
-                                  ? AppColors.error.withOpacity(0.15)
-                                  : AppColors.success.withOpacity(0.15),
+                                  ? AppColors.error.withValues(alpha: 0.15)
+                                  : AppColors.success.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -169,7 +169,7 @@ class MapTab extends StatelessWidget {
                 const BorderRadius.vertical(top: Radius.circular(_sheetRadius)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                 blurRadius: 14,
                 offset: const Offset(0, -3),
               ),

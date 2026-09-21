@@ -1,4 +1,3 @@
-import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/standard_card.dart';
@@ -27,10 +26,10 @@ class AiInferencePanel extends StatelessWidget {
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: badgeColor.withOpacity(0.12),
+          color: badgeColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(
-            color: badgeColor.withOpacity(0.25),
+            color: badgeColor.withValues(alpha: 0.25),
             width: 1,
           ),
         ),
@@ -85,7 +84,7 @@ class AiInferencePanel extends StatelessWidget {
             height: 38,
             margin: const EdgeInsets.symmetric(horizontal: 12),
             color: isDark
-                ? const Color(0xFF334155).withOpacity(0.6)
+                ? const Color(0xFF334155).withValues(alpha: 0.6)
                 : const Color(0xFFE2E8F0),
           ),
           Expanded(
@@ -127,7 +126,7 @@ class AiInferencePanel extends StatelessWidget {
             height: 38,
             margin: const EdgeInsets.symmetric(horizontal: 12),
             color: isDark
-                ? const Color(0xFF334155).withOpacity(0.6)
+                ? const Color(0xFF334155).withValues(alpha: 0.6)
                 : const Color(0xFFE2E8F0),
           ),
           Expanded(

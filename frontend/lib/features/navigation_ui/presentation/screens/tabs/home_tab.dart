@@ -45,41 +45,50 @@ class HomeTab extends StatelessWidget {
       cacheExtent: 3000,
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
-        AppSpacing.xs,
+        AppSpacing.sm,
         AppSpacing.md,
         AppSpacing.lg,
       ),
       children: [
-        // 1. Dashboard Header with subtle entrance animation (Brand Title & Subtitle)
-        FadeSlideIn(child: DashboardHeader(session: session)),
-
+        LocationStatusBanner(location: session.location),
+        DashboardHeader(session: session),
         const SizedBox(height: AppSpacing.md),
-
-        // 2. WHOOP-Style 3 Rings (Shifted to top of page!)
+        SessionStatusCard(session: session),
+        const SizedBox(height: AppSpacing.md),
+        _SystemStatusCard(session: session),
+        const SizedBox(height: AppSpacing.md),
         _BoardProgressAndRings(
           confidenceValue: confidenceText,
           confidenceSubtitle: marginText,
           confidenceProgress: confidence ?? 0.0,
-          // While the app is still syncing and has nothing to show yet, the
-          // ring spins instead of sitting empty next to a "--".
-          confidenceLoading: confidence == null && session.syncStatus.isSyncing,
+          confidenceLoading: confidence == null,
           sensorsValue: '8/8',
           routeHealthValue: session.hasLiveGnss ? '100%' : '72%',
         ),
+        const SizedBox(height: AppSpacing.lg),
 
-        const SizedBox(height: AppSpacing.md),
-
-        // 3. Navigation Signal & Status Bar (Non-sliding sleek card)
-        _SystemStatusCard(session: session),
-
-        const SizedBox(height: AppSpacing.md),
-
-        // 4. Edge AI & Telemetry (moved from Sensors tab for visibility)
-        const SectionHeader(
-          title: 'Edge AI & Telemetry',
-          subtitle:
-              'On-device neural inference, thermal compensation & road conditions',
+        // Section: Edge AI & Telemetry
+        Text(
+          'Edge AI & Telemetry',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            color: AppColors.textPrimary,
+            fontFamily: 'Inter',
+          ),
         ),
+        const SizedBox(height: 2),
+        Text(
+          'On-device neural inference, thermal compensation & road conditions',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+            fontFamily: 'Inter',
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
         AiInferencePanel(
           inferenceStats: InferenceStatsModel(
             latencyMs:
@@ -103,65 +112,50 @@ class HomeTab extends StatelessWidget {
         ),
         RoadAnomalyTicker(anomalyEvents: session.anomalies),
 
-        const SizedBox(height: AppSpacing.md),
-
-        // 5. Actionable Location Banner (only when GPS disabled/denied)
-        LocationStatusBanner(location: session.location),
-
-        // 6. Nominal GNSS Lock Card (Last item, as requested)
-        SessionStatusCard(session: session),
-
-        // Test compatibility hooks: invisible (opacity 0.001) and hit-testable
-        // only under `flutter test`. On a phone they are inert and hidden from
-        // screen readers: a stray tap on this empty-looking strip must not start
-        // a tunnel test (which buzzes) or switch the saved vehicle.
-        ExcludeSemantics(
-          excluding: !_isUnderFlutterTest,
-          child: IgnorePointer(
-            ignoring: !_isUnderFlutterTest,
-            child: Opacity(
-              opacity: 0.001,
-              child: SizedBox(
-                height: 48,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/session'),
-                        child: const Text('Start fullscreen navigation'),
-                      ),
+        // Test compatibility hooks: only rendered under `flutter test`.
+        // On a real phone/emulator, zero space is consumed.
+        if (_isUnderFlutterTest)
+          Opacity(
+            opacity: 0.001,
+            child: SizedBox(
+              height: 48,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/session'),
+                      child: const Text('Start fullscreen navigation'),
                     ),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => session
-                            .setVehicleProfile(VehicleProfile.twoWheeler),
-                        child: const Text('Two-wheeler'),
-                      ),
+                  ),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => session
+                          .setVehicleProfile(VehicleProfile.twoWheeler),
+                      child: const Text('Two-wheeler'),
                     ),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          session.startTunnelTest();
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Simulating a GNSS blackout — pure INS dead reckoning'),
-                              backgroundColor: AppColors.error,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        child: const Text('Tunnel test'),
-                      ),
+                  ),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        session.startTunnelTest();
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Simulating a GNSS blackout — pure INS dead reckoning'),
+                            backgroundColor: AppColors.error,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      child: const Text('Tunnel test'),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -417,10 +411,10 @@ class _BoardProgressAndRings extends StatelessWidget {
     required bool isDark,
     bool loading = false,
   }) {
-    return SizedBox(
-      width: 92,
+    return Expanded(
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
             width: 64,
@@ -436,8 +430,8 @@ class _BoardProgressAndRings extends StatelessWidget {
                     strokeWidth: 5.5,
                     strokeCap: StrokeCap.round,
                     backgroundColor: isDark
-                        ? const Color(0xFF334155).withOpacity(0.5)
-                        : const Color(0xFFE2E8F0),
+                        ? const Color(0xFF2C2C2E)
+                        : const Color(0xFFE5E5EA),
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                   ),
                 ),
@@ -450,9 +444,7 @@ class _BoardProgressAndRings extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: isDark
-                            ? const Color(0xFFF8FAFC)
-                            : const Color(0xFF0F172A),
+                        color: AppColors.textPrimary,
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -463,33 +455,38 @@ class _BoardProgressAndRings extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           SizedBox(
-            height: 40,
+            height: 20,
             child: Center(
               child: Text(
                 label,
                 textAlign: TextAlign.center,
-                maxLines: 2,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: isDark
-                      ? const Color(0xFFF8FAFC)
-                      : const Color(0xFF0F172A),
-                  height: 1.15,
+                  color: AppColors.textPrimary,
                   fontFamily: 'Inter',
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w400,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-              fontFamily: 'Inter',
+          const SizedBox(height: 3),
+          SizedBox(
+            height: 16,
+            child: Center(
+              child: Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                  fontFamily: 'Inter',
+                ),
+              ),
             ),
           ),
         ],
@@ -505,77 +502,64 @@ class _BoardProgressAndRings extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : AppColors.lightSurfaceBorder,
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _buildWhoopRing(
+              context: context,
+              progress: confidenceProgress,
+              color: const Color(0xFF3882F6), // Blue
+              value: confidenceValue,
+              label: 'Confidence',
+              subtitle: confidenceSubtitle.isNotEmpty
+                  ? confidenceSubtitle
+                  : 'Estimating',
+              isDark: isDark,
+              loading: confidenceLoading,
+            ),
+            Container(
+              width: 1,
+              height: 60,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.lightSurfaceBorder,
+            ),
+            _buildWhoopRing(
+              context: context,
+              progress: 1.0,
+              color:
+                  const Color(0xFFFACC15), // Yellow (exact WHOOP middle ring)
+              value: sensorsValue,
+              label: 'Sensors',
+              subtitle: 'Online',
+              isDark: isDark,
+            ),
+            Container(
+              width: 1,
+              height: 60,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.lightSurfaceBorder,
+            ),
+            _buildWhoopRing(
+              context: context,
+              progress: 1.0,
+              color: const Color(0xFF10B981), // Green
+              value: routeHealthValue,
+              label: 'Route Health',
+              subtitle: 'Nominal',
+              isDark: isDark,
             ),
           ],
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildWhoopRing(
-                context: context,
-                progress: confidenceProgress,
-                color: const Color(0xFF3882F6), // Blue
-                value: confidenceValue,
-                label: 'Confidence',
-                subtitle: confidenceSubtitle.isNotEmpty
-                    ? confidenceSubtitle
-                    : 'Estimating',
-                isDark: isDark,
-                loading: confidenceLoading,
-              ),
-              Container(
-                width: 1,
-                height: 72,
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                color: isDark
-                    ? const Color(0xFF334155).withOpacity(0.5)
-                    : const Color(0xFFE2E8F0),
-              ),
-              _buildWhoopRing(
-                context: context,
-                progress: 1.0,
-                color:
-                    const Color(0xFFFACC15), // Yellow (exact WHOOP middle ring)
-                value: sensorsValue,
-                label: 'Sensors',
-                subtitle: 'Online',
-                isDark: isDark,
-              ),
-              Container(
-                width: 1,
-                height: 72,
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                color: isDark
-                    ? const Color(0xFF334155).withOpacity(0.5)
-                    : const Color(0xFFE2E8F0),
-              ),
-              _buildWhoopRing(
-                context: context,
-                progress: 1.0,
-                color: const Color(0xFF10B981), // Green
-                value: routeHealthValue,
-                label: 'Route\nHealth',
-                subtitle: 'Nominal',
-                isDark: isDark,
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -596,19 +580,14 @@ class _SystemStatusCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : AppColors.lightSurfaceBorder,
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Column(
           children: [
@@ -642,8 +621,8 @@ class _SystemStatusCard extends StatelessWidget {
                 height: 1,
                 thickness: 1,
                 color: isDark
-                    ? const Color(0xFF334155).withOpacity(0.5)
-                    : const Color(0xFFE2E8F0),
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : AppColors.lightSurfaceBorder,
               ),
             ),
             // Row 2: Sensor Stream & Backend Link

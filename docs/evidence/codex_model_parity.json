@@ -1,0 +1,9 @@
+{
+  "windows": 512,
+  "source": "held-out IO-VNBD test windows",
+  "onnx_tflite_max_absolute_difference": 2.47955322265625e-05,
+  "cpu_latency_median_ms": 0.8035000064410269,
+  "cpu_latency_p95_ms": 1.3938999945821704,
+  "sha256": "d51995f8a12540cbffcf10c488a50b2c24d18af07b406c4ebd6b0538de1cfddf",
+  "passed": true
+}

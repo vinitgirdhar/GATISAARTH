@@ -54,19 +54,14 @@ class EngineStatusCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.lightSurfaceBorder,
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

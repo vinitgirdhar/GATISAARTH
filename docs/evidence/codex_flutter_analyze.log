@@ -1,0 +1,101 @@
+Resolving dependencies...
+Downloading packages...
+  archive 3.6.1 (4.3.0 available)
+  clock 1.1.2 (1.1.3 available)
+  code_assets 1.2.1 (2.1.0 available)
+  flutter_lints 3.0.2 (6.0.0 available)
+  flutter_map 7.0.2 (8.3.2 available)
+  geolocator 13.0.4 (14.0.3 available)
+  geolocator_android 4.6.2 (5.0.3 available)
+  hooks 2.0.2 (2.2.0 available)
+  intl 0.19.0 (0.20.3 available)
+  latlong2 0.9.1 (0.10.1 available)
+  lints 3.0.0 (6.1.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  mgrs_dart 2.0.0 (3.0.0 available)
+  objective_c 9.5.0 (9.6.0 available)
+  pmtiles 1.3.0 (2.2.0 available)
+  proj4dart 2.1.0 (3.0.0 available)
+  protobuf 3.1.0 (6.1.0 available)
+  record_use 0.6.0 (1.1.1 available)
+  sensors_plus 6.1.2 (7.1.0 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  test_api 0.7.12 (0.7.14 available)
+  unicode 0.3.1 (1.1.9 available)
+  vector_math 2.4.2 (2.4.3 available)
+  vector_tile 2.0.1 (4.0.0 available)
+  vector_tile_renderer 5.2.1 (6.1.0 available)
+Got dependencies!
+25 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing frontend...                                           
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\core\widgets\standard_card.dart:118:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\boot\presentation\boot_screen.dart:88:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\boot\presentation\boot_screen.dart:107:61 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\main_shell_screen.dart:155:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\main_shell_screen.dart:162:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\main_shell_screen.dart:234:40 - deprecated_member_use
+warning - Unused import: '../../widgets/session_controls.dart'. Try removing the import directive - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:15:8 - unused_import
+   info - 'cacheExtent' is deprecated and shouldn't be used. Use scrollCacheExtent instead. This feature was deprecated after v3.41.0-0.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:45:7 - deprecated_member_use
+warning - The declaration '_NextYourJourneyCard' isn't referenced. Try removing the declaration of '_NextYourJourneyCard' - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:175:7 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:195:33 - deprecated_member_use
+warning - The declaration '_NavigationStatusCard' isn't referenced. Try removing the declaration of '_NavigationStatusCard' - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:288:7 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:315:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:439:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:516:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:547:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:565:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:607:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart:645:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\map_tab.dart:39:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\map_tab.dart:44:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\map_tab.dart:56:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\map_tab.dart:90:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\map_tab.dart:91:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\map_tab.dart:172:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\profile_tab.dart:52:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\profile_tab.dart:62:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\profile_tab.dart:119:34 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\profile_tab.dart:132:19 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\profile_tab.dart:144:19 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\profile_tab.dart:191:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\profile_tab.dart:209:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\profile_tab.dart:301:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\sensors_tab.dart:59:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\sensors_tab.dart:62:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\sensors_tab.dart:97:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\sensors_tab.dart:316:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\screens\tabs\sensors_tab.dart:347:34 - deprecated_member_use
+   info - The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive - lib\features\navigation_ui\presentation\widgets\ai_inference_panel.dart:1:8 - unnecessary_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\ai_inference_panel.dart:30:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\ai_inference_panel.dart:33:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\ai_inference_panel.dart:88:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\ai_inference_panel.dart:130:43 - deprecated_member_use
+warning - Unused import: 'fusion_confidence_badge.dart'. Try removing the import directive - lib\features\navigation_ui\presentation\widgets\dashboard_header.dart:10:8 - unused_import
+warning - Unused import: 'fusion_mode_badge.dart'. Try removing the import directive - lib\features\navigation_ui\presentation\widgets\dashboard_header.dart:11:8 - unused_import
+warning - The value of the local variable 'backendLive' isn't used. Try removing the variable or using it - lib\features\navigation_ui\presentation\widgets\dashboard_header.dart:22:11 - unused_local_variable
+warning - The declaration '_compact' isn't referenced. Try removing the declaration of '_compact' - lib\features\navigation_ui\presentation\widgets\dashboard_header.dart:79:17 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\engine_status_card.dart:65:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\road_anomaly_ticker.dart:24:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\road_anomaly_ticker.dart:27:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\road_anomaly_ticker.dart:65:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\road_anomaly_ticker.dart:103:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\satellite_breakdown.dart:36:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\satellite_breakdown.dart:63:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\satellite_breakdown.dart:66:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\satellite_breakdown.dart:90:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\satellite_breakdown.dart:110:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\satellite_breakdown.dart:113:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\navigation_ui\presentation\widgets\thermal_compensation_card.dart:65:43 - deprecated_member_use
+warning - Unused import: 'package:gatisaarth/core/platform/maps/offline_map_service.dart'. Try removing the import directive - test\engine_spec_screen_test.dart:3:8 - unused_import
+warning - Unused import: 'package:gatisaarth/core/platform/maps/offline_map_service.dart'. Try removing the import directive - test\map_download_sheet_test.dart:5:8 - unused_import
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart'. Try removing the import directive - test\model_facts_test.dart:2:8 - unnecessary_import
+warning - Unused import: 'package:gatisaarth/core/nav/math/nav_math.dart'. Try removing the import directive - test\nav\ai\engine_ai_test.dart:5:8 - unused_import
+warning - Unused import: 'package:gatisaarth/core/nav/model/nav_snapshot.dart'. Try removing the import directive - test\nav\ai\engine_ai_test.dart:6:8 - unused_import
+warning - A value for optional parameter 'pushFrom' isn't ever given. Try removing the unused parameter - test\nav\ai\shock_hold_test.dart:25:12 - unused_element_parameter
+warning - The value of the local variable 'folder' isn't used. Try removing the variable or using it - test\pack_installer_test.dart:93:11 - unused_local_variable
+   info - The import of 'package:flutter/material.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart'. Try removing the import directive - test\support\app_harness.dart:3:8 - unnecessary_import
+warning - Unused import: 'package:gatisaarth/core/platform/maps/pack_road_source.dart'. Try removing the import directive - test\tool\road_graph_coverage_report_test.dart:10:8 - unused_import
+
+67 issues found. (ran in 257.8s)

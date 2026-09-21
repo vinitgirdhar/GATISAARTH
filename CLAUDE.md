@@ -144,10 +144,16 @@ NHC is the dominant lever by 11×. ZUPT/ZARU shows no measurable benefit on
 these cruising profiles — do not claim it does until a stop-and-go profile says
 otherwise.
 
-**No road graph ships** (`maps/processed_graphs/road_edges.json` is
-`{"edges": []}`), so map matching reports unavailable on a stock build. Build
-one with `python -m maps.tools.graph_builder overpass.json out.json`;
-`test/nav/graph_builder_contract_test.dart` pins the Python→Dart format.
+**No road graph file ships** (`maps/processed_graphs/road_edges.json` is
+`{"edges": []}` and nothing reads it): since v3 the engine's HMM matcher is
+handed the graph the phone builds from its installed map packs
+(`NavigationEngine.setRoadGraph`, called from `LiveSessionController` whenever
+`RoadConstraint` loads roads), so map matching is **live wherever a pack with
+maxZoom >= 13 covers the vehicle** and reports unavailable elsewhere. The graph
+is cut at every junction, so the matcher pools consecutive edges of one road
+(`MapMatchConfig.continuationDeg`) instead of calling them rivals. The Python
+builder (`python -m maps.tools.graph_builder overpass.json out.json`) and
+`test/nav/graph_builder_contract_test.dart` still pin the JSON format.
 
 **Road-locked dead reckoning (2026-09-21).** The Tunnel test, the Urban canyon,
 a real GNSS outage while the core is not leading, and the core-leading outage
@@ -189,13 +195,40 @@ runs on exactly the roads on screen.
   the real Delhi archive (in the repo, git-ignored) and through any archive in
   `MAP_PACK_DIR` (`adb pull` a phone's `files/offline_maps/*.pmtiles`); it
   skips what it does not find.
-- Not done: the tile graph is not fed to the core's HMM matcher
-  (`NavigationEngine(roadGraph:)`), so map matching still reports unavailable;
-  not checked on a physical phone; sharp single-vertex corners under real gyro
-  data can briefly relock onto a through road.
+- Real-data traps found only by driving real roads (both pinned by tests):
+  the follower could circle a sliver of digitising noise for ever (a closed edge
+  of a metre or two taken for a roundabout, or an exit back onto the edge just
+  left) - `RoadFollowConfig.ringMinLengthM` / `recentEdgeWindowM`, property test
+  `test/road_real_follower_property_test.dart` (fails within 1 m of "driving"
+  when the guards are off); and a graph cut at every junction made the matcher
+  say "two roads too close to call".
+- Evidence (all reproducible, numbers in `docs/evidence/`): region road-graph
+  coverage (`road_graph_coverage.json`), matching on real streets with simulated
+  sensors (`real_road_map_matching.json`), and real IO-VNBD drives on a real UK
+  OSM archive cut with the phone's own downloader
+  (`iovnbd_real_map_matching.json`). Not checked on a physical phone; lane level
+  is **not** claimed (the map data has no lanes).
 
 Tests live in `frontend/test/nav/` plus `test/nav_core_integration_test.dart`
 (303 of the suite's 416).
+
+## IO-VNBD dataset (v3)
+
+`IO-VNBD_DATASET/IO-VNBD-master` in the repo tree holds Git-LFS **pointer** stubs
+(130 bytes each), not data: fetch the real files with
+`python ml/src/dataset/fetch_iovnbd.py` (size + SHA-256 verified against the
+pointers) into the git-ignored `ml/data/raw/IO-VNBD_repo/`. What the data really
+is (phone GPS lags the VBOX 2-11 s per trip, the phone's yaw gyro is the column
+named "Pitch", only 5 of 72 pairs are aligned by gyro, the phone accelerometer
+is 10 Hz aliased and cannot align the mount) is in
+`docs/evidence/iovnbd_dataset_notes.md`. `ml/src/dataset/iovnbd_to_drive_log.py`
+turns trips into the app's JSONL drive-log format (phone IMU, or `--imu vehicle`
+= the car's ESP/CAN channels as an external-IMU proxy) so the app's own outage
+benchmark scores them: `DRIVE_LOG=<file> flutter test test/nav/score_drive_test.dart`,
+`IOVNBD_LOG_DIR=<dir> flutter test test/nav/iovnbd_outage_benchmark_test.dart`.
+`test/tool/extract_region_pack_test.dart` cuts any region's map pack the way the
+phone does (used for the UK roads under the IO-VNBD drives). Plan and status:
+`docs/architecture/V3_IMPLEMENTATION_PLAN.md`, `pending_work.md`.
 
 ## Frontend architecture (as of 2026-09-18)
 

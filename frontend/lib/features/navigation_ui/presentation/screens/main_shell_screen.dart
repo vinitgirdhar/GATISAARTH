@@ -152,14 +152,14 @@ class _MainShellScreenState extends State<MainShellScreen> {
           border: Border(
             top: BorderSide(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
+                  ? Colors.white.withValues(alpha: 0.08)
                   : AppColors.lightSurfaceBorder,
               width: 0.8,
             ),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.35 : 0.06),
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
               blurRadius: 16,
               offset: const Offset(0, -4),
             ),
@@ -231,7 +231,7 @@ class _NavBarItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color:
-              isSelected ? activeColor.withOpacity(0.12) : Colors.transparent,
+              isSelected ? activeColor.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(

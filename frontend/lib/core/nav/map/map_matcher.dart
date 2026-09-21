@@ -112,7 +112,7 @@ class MapMatcher {
     this.vehicle = VehicleAccess.cars,
   }) : _config = config.mapMatch;
 
-  final RoadGraph graph;
+  RoadGraph graph;
   final MapMatchConfig _config;
   VehicleAccess vehicle;
 
@@ -126,6 +126,16 @@ class MapMatcher {
   /// True when this matcher can say anything at all. With no road graph it
   /// reports unavailable rather than guessing (§83).
   bool get isAvailable => !graph.isEmpty;
+
+  /// Swaps the road network the matcher works on (roads are read from the
+  /// installed map as the vehicle moves). The hypotheses belonged to the old
+  /// graph's edge ids, so they are dropped; matching restarts from the next
+  /// position.
+  void useGraph(RoadGraph next) {
+    if (identical(next, graph)) return;
+    graph = next;
+    reset();
+  }
 
   void reset() {
     _hypotheses = [];
@@ -274,26 +284,41 @@ class MapMatcher {
   MapMatchResult _decide(
       List<MapMatchCandidate> candidates, int age, double sigmaM) {
     final best = candidates.first;
-    final runnerUp = candidates.length > 1 ? candidates[1].posterior : 0.0;
-    final margin = best.posterior - runnerUp;
+
+    // A graph read from map tiles is cut at every junction, so one physical
+    // road is a chain of edges and a position near a cut fits both sides of it
+    // equally well. They are one road, not rivals: their probability is
+    // pooled, and the runner-up is sought among genuinely different roads.
+    var road = best.posterior;
+    var runnerUp = 0.0;
+    var rivals = 0;
+    for (final other in candidates.skip(1)) {
+      if (_continues(best, other)) {
+        road += other.posterior;
+      } else {
+        rivals++;
+        runnerUp = math.max(runnerUp, other.posterior);
+      }
+    }
+    final margin = road - runnerUp;
 
     // Ambiguity is checked before strength, because "two roads, cannot
     // tell them apart" is the more useful thing to say when it is true.
-    if (candidates.length > 1 && margin < _config.runnerUpMargin) {
+    if (rivals > 0 && margin < _config.runnerUpMargin) {
       return MapMatchResult(
         candidates: candidates,
         snapped: false,
-        confidence: best.posterior,
+        confidence: road,
         reason: 'Two roads are too close to call '
             '(${(margin * 100).round()} % apart)',
       );
     }
-    if (best.posterior < _config.snapThreshold) {
+    if (road < _config.snapThreshold) {
       return MapMatchResult(
         candidates: candidates,
         snapped: false,
-        confidence: best.posterior,
-        reason: 'Leading road only ${(best.posterior * 100).round()} % likely',
+        confidence: road,
+        reason: 'Leading road only ${(road * 100).round()} % likely',
       );
     }
     // The posterior is a softmax over the roads considered, so one lone
@@ -305,7 +330,7 @@ class MapMatcher {
       return MapMatchResult(
         candidates: candidates,
         snapped: false,
-        confidence: best.posterior,
+        confidence: road,
         reason: '${best.perpendicularM.toStringAsFixed(0)} m from the '
             'nearest road, beyond the estimate\'s own uncertainty',
       );
@@ -314,7 +339,7 @@ class MapMatcher {
       return MapMatchResult(
         candidates: candidates,
         snapped: false,
-        confidence: best.posterior,
+        confidence: road,
         reason: 'Waiting for a second consistent fix',
       );
     }
@@ -324,9 +349,26 @@ class MapMatcher {
       matchedLat: best.lat,
       matchedLon: best.lon,
       matchedHeadingRad: best.roadHeadingRad,
-      confidence: best.posterior,
+      confidence: road,
       reason: best.roadName == null ? 'Matched' : 'Matched to ${best.roadName}',
     );
+  }
+
+  /// Whether [other] is the same physical road as [best]: the same edge, or a
+  /// neighbour that shares a node and carries on in nearly the same direction.
+  /// A side street at a junction points elsewhere and stays a rival.
+  bool _continues(MapMatchCandidate best, MapMatchCandidate other) {
+    if (best.edgeId == other.edgeId) return true;
+    final a = graph.edge(best.edgeId);
+    final b = graph.edge(other.edgeId);
+    if (a == null || b == null) return false;
+    final joined = a.fromNode == b.fromNode ||
+        a.fromNode == b.toNode ||
+        a.toNode == b.fromNode ||
+        a.toNode == b.toNode;
+    if (!joined) return false;
+    final turn = NavMath.wrapPi(best.roadHeadingRad - other.roadHeadingRad);
+    return turn.abs() < _config.continuationDeg * NavMath.degToRad;
   }
 
   /// `log P(position | road)`, or null when the road is incompatible.

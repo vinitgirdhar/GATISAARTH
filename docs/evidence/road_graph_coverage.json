@@ -1,0 +1,450 @@
+{
+  "what": "Road network the app derives on the phone from its installed offline map archives (OpenStreetMap vector tiles, Protomaps schema v4). Region totals: every tile of the archive. Topology: sample 5x5-tile blocks built exactly as on the phone.",
+  "regions": {
+    "delhi-ncr": {
+      "pack": "Delhi NCR",
+      "archive_max_zoom": 15,
+      "tile_zoom_used": 15,
+      "tiles_scanned": 3135,
+      "tiles_with_roads": 3065,
+      "road_lines": 216340,
+      "drivable_km_total": 38968.7,
+      "drivable_km_by_class": {
+        "primary": 695.1,
+        "residential": 24871.8,
+        "service": 4068.9,
+        "unclassified": 1227.2,
+        "tertiary": 4555.9,
+        "trunk": 916.0,
+        "motorway": 526.2,
+        "secondary": 2107.6
+      },
+      "one_way_km_percent": 18.7,
+      "bridge_km": 633.0,
+      "tunnel_km": 60.1,
+      "named_km_percent": 14.5,
+      "minor_streets_present": true,
+      "sample_block_topology": [
+        {
+          "edges": 12922,
+          "nodes": 9503,
+          "junction_nodes_percent": 75.4,
+          "dead_end_nodes_percent": 14.9,
+          "largest_connected_piece_percent": 99.1,
+          "one_way_edges_percent": 7.3
+        },
+        {
+          "edges": 13915,
+          "nodes": 10002,
+          "junction_nodes_percent": 78.0,
+          "dead_end_nodes_percent": 13.4,
+          "largest_connected_piece_percent": 99.1,
+          "one_way_edges_percent": 8.5
+        },
+        {
+          "edges": 13823,
+          "nodes": 10646,
+          "junction_nodes_percent": 69.6,
+          "dead_end_nodes_percent": 21.0,
+          "largest_connected_piece_percent": 98.0,
+          "one_way_edges_percent": 5.5
+        },
+        {
+          "edges": 13664,
+          "nodes": 9726,
+          "junction_nodes_percent": 79.6,
+          "dead_end_nodes_percent": 11.7,
+          "largest_connected_piece_percent": 99.2,
+          "one_way_edges_percent": 11.8
+        },
+        {
+          "edges": 9241,
+          "nodes": 7141,
+          "junction_nodes_percent": 70.6,
+          "dead_end_nodes_percent": 20.2,
+          "largest_connected_piece_percent": 98.9,
+          "one_way_edges_percent": 4.7
+        },
+        {
+          "edges": 13082,
+          "nodes": 9807,
+          "junction_nodes_percent": 72.3,
+          "dead_end_nodes_percent": 19.6,
+          "largest_connected_piece_percent": 98.3,
+          "one_way_edges_percent": 5.7
+        }
+      ]
+    },
+    "mumbai": {
+      "pack": "Mumbai, Thane & Navi Mumbai",
+      "archive_max_zoom": 15,
+      "tile_zoom_used": 15,
+      "tiles_scanned": 3127,
+      "tiles_with_roads": 2221,
+      "road_lines": 82280,
+      "drivable_km_total": 16424.3,
+      "drivable_km_by_class": {
+        "tertiary": 2528.2,
+        "residential": 7974.9,
+        "service": 1828.2,
+        "secondary": 1198.5,
+        "primary": 996.6,
+        "trunk": 807.7,
+        "unclassified": 712.1,
+        "motorway": 378.2
+      },
+      "one_way_km_percent": 26.4,
+      "bridge_km": 511.7,
+      "tunnel_km": 23.3,
+      "named_km_percent": 29.6,
+      "minor_streets_present": true,
+      "sample_block_topology": [
+        {
+          "edges": 5179,
+          "nodes": 4090,
+          "junction_nodes_percent": 64.2,
+          "dead_end_nodes_percent": 24.5,
+          "largest_connected_piece_percent": 96.3,
+          "one_way_edges_percent": 28.8
+        },
+        {
+          "edges": 5057,
+          "nodes": 3789,
+          "junction_nodes_percent": 69.4,
+          "dead_end_nodes_percent": 16.5,
+          "largest_connected_piece_percent": 97.9,
+          "one_way_edges_percent": 44.5
+        },
+        {
+          "edges": 4328,
+          "nodes": 3687,
+          "junction_nodes_percent": 57.5,
+          "dead_end_nodes_percent": 29.5,
+          "largest_connected_piece_percent": 95.7,
+          "one_way_edges_percent": 14.4
+        },
+        {
+          "edges": 4960,
+          "nodes": 3845,
+          "junction_nodes_percent": 65.4,
+          "dead_end_nodes_percent": 20.9,
+          "largest_connected_piece_percent": 98.1,
+          "one_way_edges_percent": 39.4
+        },
+        {
+          "edges": 6069,
+          "nodes": 4850,
+          "junction_nodes_percent": 63.3,
+          "dead_end_nodes_percent": 22.5,
+          "largest_connected_piece_percent": 97.1,
+          "one_way_edges_percent": 31.6
+        },
+        {
+          "edges": 5333,
+          "nodes": 4204,
+          "junction_nodes_percent": 62.3,
+          "dead_end_nodes_percent": 21.7,
+          "largest_connected_piece_percent": 97.5,
+          "one_way_edges_percent": 36.3
+        }
+      ]
+    },
+    "pune": {
+      "pack": "Pune & Pimpri-Chinchwad",
+      "archive_max_zoom": 15,
+      "tile_zoom_used": 15,
+      "tiles_scanned": 1330,
+      "tiles_with_roads": 1257,
+      "road_lines": 65743,
+      "drivable_km_total": 11621.1,
+      "drivable_km_by_class": {
+        "tertiary": 1144.6,
+        "unclassified": 422.4,
+        "residential": 6875.6,
+        "service": 1565.6,
+        "motorway": 21.5,
+        "secondary": 441.8,
+        "trunk": 433.7,
+        "primary": 715.8
+      },
+      "one_way_km_percent": 14.3,
+      "bridge_km": 134.2,
+      "tunnel_km": 9.0,
+      "named_km_percent": 20.7,
+      "minor_streets_present": true,
+      "sample_block_topology": [
+        {
+          "edges": 9624,
+          "nodes": 8235,
+          "junction_nodes_percent": 59.8,
+          "dead_end_nodes_percent": 32.7,
+          "largest_connected_piece_percent": 97.4,
+          "one_way_edges_percent": 10.2
+        },
+        {
+          "edges": 6919,
+          "nodes": 5863,
+          "junction_nodes_percent": 58.3,
+          "dead_end_nodes_percent": 29.8,
+          "largest_connected_piece_percent": 96.4,
+          "one_way_edges_percent": 26.2
+        },
+        {
+          "edges": 5359,
+          "nodes": 4662,
+          "junction_nodes_percent": 56.3,
+          "dead_end_nodes_percent": 33.8,
+          "largest_connected_piece_percent": 95.9,
+          "one_way_edges_percent": 15.9
+        },
+        {
+          "edges": 6483,
+          "nodes": 5657,
+          "junction_nodes_percent": 54.9,
+          "dead_end_nodes_percent": 32.3,
+          "largest_connected_piece_percent": 95.8,
+          "one_way_edges_percent": 16.4
+        },
+        {
+          "edges": 6194,
+          "nodes": 5135,
+          "junction_nodes_percent": 61.6,
+          "dead_end_nodes_percent": 27.2,
+          "largest_connected_piece_percent": 95.6,
+          "one_way_edges_percent": 15.3
+        },
+        {
+          "edges": 8054,
+          "nodes": 6491,
+          "junction_nodes_percent": 63.6,
+          "dead_end_nodes_percent": 24.8,
+          "largest_connected_piece_percent": 98.1,
+          "one_way_edges_percent": 27.4
+        }
+      ]
+    },
+    "nagpur": {
+      "pack": "Nagpur",
+      "archive_max_zoom": 15,
+      "tile_zoom_used": 15,
+      "tiles_scanned": 868,
+      "tiles_with_roads": 814,
+      "road_lines": 39157,
+      "drivable_km_total": 7633.1,
+      "drivable_km_by_class": {
+        "tertiary": 890.7,
+        "residential": 5189.0,
+        "service": 394.1,
+        "secondary": 230.0,
+        "unclassified": 222.0,
+        "trunk": 520.5,
+        "primary": 165.8,
+        "motorway": 21.1
+      },
+      "one_way_km_percent": 14.4,
+      "bridge_km": 108.5,
+      "tunnel_km": 2.4,
+      "named_km_percent": 8.1,
+      "minor_streets_present": true,
+      "sample_block_topology": [
+        {
+          "edges": 11722,
+          "nodes": 8687,
+          "junction_nodes_percent": 75.6,
+          "dead_end_nodes_percent": 16.6,
+          "largest_connected_piece_percent": 98.8,
+          "one_way_edges_percent": 4.1
+        },
+        {
+          "edges": 8550,
+          "nodes": 6520,
+          "junction_nodes_percent": 71.9,
+          "dead_end_nodes_percent": 19.6,
+          "largest_connected_piece_percent": 97.8,
+          "one_way_edges_percent": 4.9
+        },
+        {
+          "edges": 10168,
+          "nodes": 7873,
+          "junction_nodes_percent": 69.7,
+          "dead_end_nodes_percent": 21.3,
+          "largest_connected_piece_percent": 98.4,
+          "one_way_edges_percent": 5.8
+        },
+        {
+          "edges": 5712,
+          "nodes": 4349,
+          "junction_nodes_percent": 71.6,
+          "dead_end_nodes_percent": 18.3,
+          "largest_connected_piece_percent": 94.5,
+          "one_way_edges_percent": 3.8
+        },
+        {
+          "edges": 4865,
+          "nodes": 3888,
+          "junction_nodes_percent": 66.1,
+          "dead_end_nodes_percent": 23.7,
+          "largest_connected_piece_percent": 98.5,
+          "one_way_edges_percent": 4.6
+        },
+        {
+          "edges": 8868,
+          "nodes": 6613,
+          "junction_nodes_percent": 73.4,
+          "dead_end_nodes_percent": 16.4,
+          "largest_connected_piece_percent": 98.4,
+          "one_way_edges_percent": 11.1
+        }
+      ]
+    },
+    "nashik": {
+      "pack": "Nashik",
+      "archive_max_zoom": 15,
+      "tile_zoom_used": 15,
+      "tiles_scanned": 437,
+      "tiles_with_roads": 415,
+      "road_lines": 14977,
+      "drivable_km_total": 3254.4,
+      "drivable_km_by_class": {
+        "unclassified": 396.5,
+        "tertiary": 373.2,
+        "trunk": 118.6,
+        "residential": 1907.2,
+        "primary": 193.9,
+        "service": 103.2,
+        "secondary": 126.9,
+        "motorway": 34.9
+      },
+      "one_way_km_percent": 13.3,
+      "bridge_km": 34.8,
+      "tunnel_km": 0.2,
+      "named_km_percent": 14.2,
+      "minor_streets_present": true,
+      "sample_block_topology": [
+        {
+          "edges": 8076,
+          "nodes": 6126,
+          "junction_nodes_percent": 71.9,
+          "dead_end_nodes_percent": 17.2,
+          "largest_connected_piece_percent": 99.2,
+          "one_way_edges_percent": 11.5
+        },
+        {
+          "edges": 3794,
+          "nodes": 3067,
+          "junction_nodes_percent": 65.2,
+          "dead_end_nodes_percent": 24.4,
+          "largest_connected_piece_percent": 98.0,
+          "one_way_edges_percent": 7.1
+        },
+        {
+          "edges": 4288,
+          "nodes": 3355,
+          "junction_nodes_percent": 67.2,
+          "dead_end_nodes_percent": 20.5,
+          "largest_connected_piece_percent": 97.5,
+          "one_way_edges_percent": 8.2
+        },
+        {
+          "edges": 1266,
+          "nodes": 1057,
+          "junction_nodes_percent": 57.3,
+          "dead_end_nodes_percent": 27.2,
+          "largest_connected_piece_percent": 96.3,
+          "one_way_edges_percent": 1.7
+        },
+        {
+          "edges": 1517,
+          "nodes": 1240,
+          "junction_nodes_percent": 62.3,
+          "dead_end_nodes_percent": 23.9,
+          "largest_connected_piece_percent": 93.3,
+          "one_way_edges_percent": 3.0
+        }
+      ]
+    },
+    "sambhajinagar": {
+      "pack": "Chhatrapati Sambhajinagar",
+      "archive_max_zoom": 15,
+      "tile_zoom_used": 15,
+      "tiles_scanned": 323,
+      "tiles_with_roads": 297,
+      "road_lines": 18509,
+      "drivable_km_total": 3286.8,
+      "drivable_km_by_class": {
+        "trunk": 188.9,
+        "unclassified": 282.7,
+        "residential": 2088.0,
+        "service": 352.1,
+        "motorway": 27.2,
+        "secondary": 48.2,
+        "primary": 47.1,
+        "tertiary": 252.5
+      },
+      "one_way_km_percent": 14.0,
+      "bridge_km": 29.8,
+      "tunnel_km": 1.2,
+      "named_km_percent": 7.2,
+      "minor_streets_present": true,
+      "sample_block_topology": [
+        {
+          "edges": 11117,
+          "nodes": 8463,
+          "junction_nodes_percent": 72.6,
+          "dead_end_nodes_percent": 19.4,
+          "largest_connected_piece_percent": 97.4,
+          "one_way_edges_percent": 9.6
+        },
+        {
+          "edges": 6376,
+          "nodes": 5076,
+          "junction_nodes_percent": 66.3,
+          "dead_end_nodes_percent": 23.0,
+          "largest_connected_piece_percent": 93.9,
+          "one_way_edges_percent": 12.0
+        },
+        {
+          "edges": 5280,
+          "nodes": 4145,
+          "junction_nodes_percent": 69.5,
+          "dead_end_nodes_percent": 21.2,
+          "largest_connected_piece_percent": 96.9,
+          "one_way_edges_percent": 6.6
+        },
+        {
+          "edges": 436,
+          "nodes": 389,
+          "junction_nodes_percent": 51.7,
+          "dead_end_nodes_percent": 33.7,
+          "largest_connected_piece_percent": 93.6,
+          "one_way_edges_percent": 9.6
+        }
+      ]
+    },
+    "maharashtra-state": {
+      "pack": "Maharashtra statewide",
+      "archive_max_zoom": 12,
+      "tile_zoom_used": 12,
+      "tiles_scanned": 7505,
+      "tiles_with_roads": 7085,
+      "road_lines": 1268285,
+      "drivable_km_total": 650520.8,
+      "drivable_km_by_class": {
+        "primary": 40003.6,
+        "tertiary": 152545.5,
+        "unclassified": 157533.2,
+        "residential": 205584.4,
+        "trunk": 40649.6,
+        "motorway": 3080.7,
+        "secondary": 51086.4,
+        "service": 37.5
+      },
+      "one_way_km_percent": 0.0,
+      "bridge_km": 3836.9,
+      "tunnel_km": 150.9,
+      "named_km_percent": 4.5,
+      "minor_streets_present": false,
+      "sample_block_topology": []
+    }
+  }
+}

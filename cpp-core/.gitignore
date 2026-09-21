@@ -1,0 +1,5 @@
+# local build trees and copied/generated data (large; never committed)
+build/
+build-*/
+build-data/
+out/

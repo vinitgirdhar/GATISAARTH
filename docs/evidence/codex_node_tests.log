@@ -1,0 +1,13 @@
+
+> gatisaarth-backend@1.0.0 test
+> jest
+
+PASS src/__tests__/aiInference.test.ts (6.358 s)
+PASS src/__tests__/matrix.test.ts (6.408 s)
+PASS src/__tests__/navigationEngine.test.ts (7.363 s)
+
+Test Suites: 3 passed, 3 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        11.81 s
+Ran all test suites.

@@ -1,0 +1,13 @@
+Formatted lib\core\nav\ai\ai_fusion.dart
+Formatted lib\core\nav\ai\ai_types.dart
+Formatted lib\features\ai_motion\data\datasources\local_tflite_runner.dart
+Formatted lib\features\ai_motion\data\datasources\ml_disturbance_estimator.dart
+Formatted lib\features\ai_motion\data\datasources\ml_speed_estimator.dart
+Formatted lib/features/navigation_ui/presentation/controllers/live_session_controller.dart
+Formatted lib/features/navigation_ui/presentation/screens/tabs/home_tab.dart
+Formatted lib/features/navigation_ui/presentation/widgets/dashboard_header.dart
+Formatted test/model_feature_contract_test.dart
+Formatted test/drive_recording_test.dart
+Formatted test/nav/real_ai_ablation_test.dart
+Formatted integration_test/release_smoke_test.dart
+Formatted 25 files (12 changed) in 0.18 seconds.

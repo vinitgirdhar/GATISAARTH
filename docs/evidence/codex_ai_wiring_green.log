@@ -1,0 +1,34 @@
+00:00 +0: loading C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart
+00:00 +0: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: fresh neural outputs reach the recorded engine input once
+00:00 +1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: fresh neural outputs reach the recorded engine input once
+00:00 +2: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: fresh neural outputs reach the recorded engine input once
+00:00 +2 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: fresh neural outputs reach the recorded engine input once [E]
+  Expected: an object with length of <1>
+    Actual: []
+     Which: has length of <0>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\drive_recording_test.dart 124:5                main.<fn>
+  
+00:00 +2 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: recording is off until the driver asks for it
+00:00 +3 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: starting a recording writes a header then the drive
+00:00 +4 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: the header names the phone and the vehicle it was recorded on
+00:00 +5 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: the chosen vehicle survives an app restart
+00:00 +6 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: starting and stopping each give one confirmation, nothing else
+00:00 +7 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: a GNSS outage during a recording does not shake the recorded IMU
+00:00 +8 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: going to the background flushes the recording to disk
+00:00 +9 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: pausing without a recording does not touch storage
+00:00 +10 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: a recorded drive replays back through the engine
+00:00 +11 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: the barometer reading is captured when the phone has one
+00:00 +12 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: stopping closes the file and reports its size
+00:00 +13 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: nothing is recorded after stopping
+00:00 +14 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: a driver marker lands in the log
+00:00 +15 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: a marker outside a recording is simply ignored
+00:00 +16 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: storage failure is reported, not swallowed
+00:00 +17 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: starting twice does not open a second log
+00:00 +18 -1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: recording does not change what the driver sees
+00:00 +19 -1: Some tests failed.
+
+Failing tests:
+  C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: fresh neural outputs reach the recorded engine input once

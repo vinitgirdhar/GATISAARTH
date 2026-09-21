@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../ai/ai_types.dart';
 import '../gnss/gnss_quality.dart';
 import '../map/map_matcher.dart';
 import '../motion/motion_classifier.dart';
@@ -197,6 +198,7 @@ class NavigationSnapshot {
     this.calibrationQuality,
     this.contribution = FusionContribution.none,
     this.ai = SubsystemHealth.unavailable,
+    this.aiDiagnostics = AiDiagnostics.off,
     this.mapMatch = SubsystemHealth.unavailable,
     this.mapMatchResult,
     this.outageDuration = Duration.zero,
@@ -252,6 +254,11 @@ class NavigationSnapshot {
 
   final FusionContribution contribution;
   final SubsystemHealth ai;
+
+  /// What the AI path is doing (P1-P3): the speed gate's counters and reasons,
+  /// the disturbance estimate and fusion confidence in use, and the noise
+  /// factors actually applied. [AiDiagnostics.off] while the AI is disabled.
+  final AiDiagnostics aiDiagnostics;
   final SubsystemHealth mapMatch;
 
   /// Full matcher output including the runner-up roads (§21), or null

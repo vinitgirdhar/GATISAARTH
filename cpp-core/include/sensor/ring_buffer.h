@@ -26,6 +26,15 @@ public:
         return true;
     }
 
+    // Queued elements (a consistent snapshot when called from another thread), and the
+    // most it can hold: one slot is kept free to tell full from empty.
+    std::size_t size() const {
+        const std::size_t head = head_.load(std::memory_order_acquire);
+        const std::size_t tail = tail_.load(std::memory_order_acquire);
+        return (head + Capacity - tail) % Capacity;
+    }
+    static constexpr std::size_t capacity() { return Capacity - 1; }
+
     void clear() {
         const std::size_t head = head_.load(std::memory_order_acquire);
         tail_.store(head, std::memory_order_release);

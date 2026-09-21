@@ -49,7 +49,7 @@ class ProfileTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
+                  ? Colors.white.withValues(alpha: 0.08)
                   : AppColors.lightSurfaceBorder,
             ),
           ),
@@ -59,7 +59,7 @@ class ProfileTab extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.12),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -116,7 +116,7 @@ class ProfileTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
+                  ? Colors.white.withValues(alpha: 0.08)
                   : AppColors.lightSurfaceBorder,
             ),
           ),
@@ -129,7 +129,7 @@ class ProfileTab extends StatelessWidget {
                 subtitle: isDark ? 'Dark mode enabled' : 'Light mode enabled',
                 trailing: Switch(
                   value: isDark,
-                  activeColor: AppColors.primary,
+                  activeThumbColor: AppColors.primary,
                   onChanged: (val) => theme.toggle(),
                 ),
               ),
@@ -141,7 +141,7 @@ class ProfileTab extends StatelessWidget {
                     'starts or stops',
                 trailing: Switch(
                   value: session.hapticsEnabled,
-                  activeColor: AppColors.primary,
+                  activeThumbColor: AppColors.primary,
                   onChanged: session.setHapticsEnabled,
                 ),
               ),
@@ -188,7 +188,7 @@ class ProfileTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
+                  ? Colors.white.withValues(alpha: 0.08)
                   : AppColors.lightSurfaceBorder,
             ),
           ),
@@ -206,7 +206,7 @@ class ProfileTab extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
+                    color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -298,7 +298,7 @@ class _ProfileMenuTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.12),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: AppColors.primary, size: 20),

@@ -90,7 +90,7 @@ void main() {
   }, skip: _fixture.existsSync() ? false : 'fixture missing');
 
   test('replaces an older copy of the same map', () async {
-    final folder = Directory('${dir.path}/offline_maps')..createSync();
+    Directory('${dir.path}/offline_maps').createSync();
     installed().writeAsBytesSync([9, 9, 9]);
     await installer().install(_testPack);
     expect(installed().lengthSync(), greaterThan(1000));

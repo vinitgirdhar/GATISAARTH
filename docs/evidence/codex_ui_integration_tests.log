@@ -1,0 +1,41 @@
+
+┌─────────────────────────────────────────────────────────┐
+│ A new version of Flutter is available!                  │
+│                                                         │
+│ To update to the latest version, run "flutter upgrade". │
+└─────────────────────────────────────────────────────────┘
+00:00 +0: loading C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart
+00:00 +0: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: fresh neural outputs reach the recorded engine input once
+00:00 +1: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: recording is off until the driver asks for it
+00:00 +2: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: starting a recording writes a header then the drive
+00:00 +3: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: the header names the phone and the vehicle it was recorded on
+00:00 +4: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: the chosen vehicle survives an app restart
+00:00 +5: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: starting and stopping each give one confirmation, nothing else
+00:00 +6: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: a GNSS outage during a recording does not shake the recorded IMU
+00:00 +7: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: going to the background flushes the recording to disk
+00:00 +8: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: pausing without a recording does not touch storage
+00:00 +9: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: a recorded drive replays back through the engine
+00:00 +10: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: the barometer reading is captured when the phone has one
+00:00 +11: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: stopping closes the file and reports its size
+00:00 +12: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: nothing is recorded after stopping
+00:00 +13: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: a driver marker lands in the log
+00:00 +14: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: a marker outside a recording is simply ignored
+00:00 +15: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: storage failure is reported, not swallowed
+00:00 +16: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: starting twice does not open a second log
+00:00 +17: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/drive_recording_test.dart: recording does not change what the driver sees
+00:09 +18: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: (setUpAll)
+00:09 +18: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: dashboard lays out cleanly on 320x568 dp, top to bottom
+00:11 +19: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: dashboard lays out cleanly on 360x740 dp, top to bottom
+00:12 +20: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: dashboard lays out cleanly on 411x915 dp, top to bottom
+00:12 +21: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: honest header: no fabricated backend or map-match claims
+00:12 +22: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: searching state claims no confidence
+00:13 +23: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: losing GNSS switches the whole UI to dead reckoning
+00:13 +24: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: location switched off shows an actionable banner
+00:13 +25: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: blocked permission shows how to fix it
+00:13 +26: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: fullscreen navigation opens, renders and exits
+00:14 +27: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: choosing the two-wheeler profile reaches the engine
+00:14 +28: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: tunnel scenario button starts a simulated outage
+00:15 +29: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: reduced motion shows content immediately
+00:15 +30: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: backgrounding the app stops sensors and GPS; foregrounding brings them back
+00:15 +31: C:/Users/vidhy/Downloads/gathisarthi/frontend/test/screens_widget_test.dart: (tearDownAll)
+00:15 +31: All tests passed!

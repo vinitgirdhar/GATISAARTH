@@ -1,3 +1,4 @@
+import '../ai/ai_types.dart';
 import '../gnss/gnss_quality.dart';
 import '../math/nav_math.dart';
 import 'drive_log.dart';
@@ -117,6 +118,26 @@ class DriveRecorder {
       longitude: longitude,
       headingDeg: headingDeg,
       speedMps: speedMps,
+    ));
+  }
+
+  /// Records the model outputs pushed to the engine (any subset of the three
+  /// groups), stamped [monotonicUs] like the IMU frame they describe. Written
+  /// *after* that frame's IMU line, which is the order the engine saw them in, so
+  /// a replay reproduces the run exactly.
+  void recordAi({
+    required int monotonicUs,
+    AiSpeedObservation? speed,
+    DisturbanceEstimate? disturbance,
+    FusionConfidence? fusion,
+  }) {
+    if (!_recording) return;
+    if (speed == null && disturbance == null && fusion == null) return;
+    _write(DriveRecord.ai(
+      monotonicUs: monotonicUs,
+      speed: speed,
+      disturbance: disturbance,
+      fusion: fusion,
     ));
   }
 

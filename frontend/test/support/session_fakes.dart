@@ -90,6 +90,23 @@ class FakeSpeed implements SpeedEstimator {
   bool get isReady => true;
   @override
   void reset() => resets++;
+
+  /// What the AI speed gate would be handed: the model's raw head and its
+  /// sigma. Nothing comes out until a test sets [inferences] above zero, so
+  /// tests that are not about the AI path record and feed nothing extra.
+  int inferences = 0;
+  double sigmaValue = 0.5;
+  double featureZ = 1.0;
+  @override
+  double get modelSpeed => speed;
+  @override
+  double get sigma => sigmaValue;
+  @override
+  double get featureZMax => featureZ;
+  @override
+  int get windowsFed => frames;
+  @override
+  int get neuralInferenceCount => inferences;
 }
 
 class FakeTelemetry implements TelemetrySink {

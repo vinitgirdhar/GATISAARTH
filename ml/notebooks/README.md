@@ -1,95 +1,84 @@
-# GatiSaarth — Master AI/ML Training Pipeline Notebook (v2.0)
+# GatiSaarth — Master AI/ML Training Pipeline Notebook (v3.0, real IO-VNBD data)
 
-This directory contains the unified Master Training Pipeline for the **GatiSaarth Smartphone Inertial Dead Reckoning System** using the **IO-VNBD** dataset.
+The unified pipeline for the **GatiSaarth smartphone inertial dead-reckoning system**. v3.0 replaces the v2 synthetic data with the
+real **IO-VNBD** trips (smartphone + Racelogic VBOX). Results are in [`../README.md`](../README.md); every number is written to
+`ml/evaluation/metrics/*.json` by the notebook itself.
 
-👉 **[Complete Master Notebook Architecture & Cell-by-Cell Blueprint](../../docs/architecture/ml_phase_notebook_execution_plan.md)**
+* **File:** [`gati_ai_dead_reckoning_master_pipeline.ipynb`](gati_ai_dead_reckoning_master_pipeline.ipynb) (updated in place)
+* **Headless runner:** [`../run_pipeline_script_mode.py`](../run_pipeline_script_mode.py) executes the code cells in order in one namespace.
 
----
+## Before the first run: fetch the real data
 
-## Unified Master Notebook
+`IO-VNBD_DATASET/IO-VNBD-master` only contains Git-LFS **pointer** files (130 bytes each), not data. Fetch the real files (default: the 144
+synchronised + categorised csv files, 426 MB) into the git-ignored `ml/data/raw/IO-VNBD_repo/`; every file is checked against the size and
+SHA-256 in its pointer:
 
-* **File:** [`ml/notebooks/gati_ai_dead_reckoning_master_pipeline.ipynb`](file:///c:/dev/GATISAARTHI/ml/notebooks/gati_ai_dead_reckoning_master_pipeline.ipynb)
-* **Version:** 2.0 (Maximum Accuracy & Production Deployment Upgrade)
+```bash
+python ml/src/dataset/fetch_iovnbd.py            # --dry-run, --subset {sync-categorised,sync-all,all}, --include-images
+python -m pytest ml/tests -q                     # offline unit tests (fetch tool, sync, windows, evaluation)
+```
 
-### Key v2.0 Enhancements:
-1. **Full Dataset Utilization**: Processes all sessions across the dataset without artificial slicing limits.
-2. **Data Augmentation**: Gaussian noise ($\sigma=0.02$) and temporal jitter applied to training windows for enhanced generalization.
-3. **Optimized Sampling**: Train window stride reduced from 4 to 2, generating ~2× more training examples.
-4. **Enhanced SpeedEstimatorNet**:
-   - 2-layer Bi-GRU with dropout (0.15) and Kaiming/Xavier initialization
-   - 30 epochs with 3-epoch linear warmup followed by Cosine Annealing LR
-   - Gradient clipping (`max_norm=1.0`) and Early Stopping (`patience=5`)
-5. **Enhanced VibrationClassifierNet**:
-   - Deeper multi-scale 1D-CNN backbone with batch normalization
-   - `OneCycleLR` scheduling with validation checkpointing and Early Stopping (`patience=5`)
-6. **Supervised MotionQualityNet**:
-   - Trained end-to-end with composite proxy labels derived from speed estimation error and vibration severity
-7. **Adaptive UKF v2.0**:
-   - Exponential velocity decay ZUPT (`vel *= 0.85`) to avoid unphysical hard zero discontinuities
-   - Dynamic measurement covariance scaled by both vibration roughness and motion quality score
-   - Velocity clamping ($[0, 60\text{ m/s}]$)
-8. **Deployment & Validation**:
-   - Automated ONNX export with opset 14
-   - ONNX Runtime numerical parity verification (`diff < 0.001 m/s`)
-   - CPU latency benchmarking (< 12 ms target)
-   - Synchronized export to both Flutter mobile (`mobile/assets/models`) and web frontend (`frontend/assets/models`)
+## Running
 
----
+```bash
+python ml/run_pipeline_script_mode.py                 # whole pipeline, ~30-40 min on a GPU (speed model <= 20 min)
+python ml/run_pipeline_script_mode.py --upto 14       # data, split, baselines, training, evaluation, position drift only
+python ml/run_pipeline_script_mode.py --force-reprocess   # re-synchronise the raw csv even if the cleaned parquet exists
+jupyter notebook ml/notebooks/gati_ai_dead_reckoning_master_pipeline.ipynb    # interactive: Restart & Run All
+```
 
-### Sequential Cell Structure
+The repository root is discovered from the working directory (or `GATISAARTH_ROOT`), so the notebook runs from any checkout location.
+Smoke-run knobs: `GATI_SPEED_EPOCHS=2` and `GATI_AUX_EPOCHS=1` shorten the speed / vibration / motion-quality training.
+The notebook only writes under `ml/`; it does **not** touch `frontend/` or `mobile/` (deployment is stage 2).
 
-| Cell # | Phase | Operation | Output Artifacts |
+## Cell map
+
+| Cell | Phase | What it does | Main outputs |
 |---|---|---|---|
-| **01–02** | **Phase 0** | Full reproducibility setup (PyTorch/CUDA seeds, deterministic cuDNN), directory tree initialization | Directory tree verified |
-| **03–05** | **Phase 1.1** | IO-VNBD dataset discovery, jitter correction, cubic spline interpolation to uniform 10 Hz | `ml/data/processed/cleaned/iovnbd_cleaned_10hz.parquet`, jitter before/after plot |
-| **06–07** | **Phase 1.2** | 13-channel kinematic feature extraction, windowing ($T=2\text{s}, L=20, \text{stride}=2$), Gaussian noise augmentation, leak-free splits | `ml/data/processed/windows/*.npz`, `dataset_splits.json`, split distribution plot |
-| **08** | **Phase 1.3** | Classical Dead Reckoning baseline benchmark (Double-integration + Heuristic ZUPT) | `03_classical_baseline_metrics.json`, trajectory comparison plot |
-| **09–10** | **Phase 2.1** | StandardScaler fitting with RobustScaler sanity stats, serialization to JSON & PKL | `ml/data/scalers/imu_feature_scaler.json`, correlation heatmap |
-| **11–14** | **Phase 2.2** | Speed Estimator (1D-CNN + ResBlock + 2-layer Bi-GRU + Heteroscedastic Head) training with warmup, grad clip, early stop | `speed_model_best.pth`, `05_speed_estimator_evaluation.json`, 3 diagnostic plots |
-| **15–17** | **Phase 2.3** | Road Vibration Classifier (Deeper CNN + OneCycleLR + Val Checkpoint) | `vibration_model_best.pth`, `06_vibration_classifier_metrics.json`, confusion matrix plot |
-| **18–19** | **Phase 2.4** | Motion Quality Network trained end-to-end with multi-task proxy labels | `motion_quality_best.pth`, `07_motion_quality_calibration.json` |
-| **20–22** | **Phase 3** | AI + 15-State UKF fusion, exponential ZUPT, 5s/10s/30s/60s GNSS blackout benchmark suite | `08_gnss_outage_benchmark_results.json`, 30s/60s trajectory plots, CDF plot |
-| **23–24** | **Phase 4** | GNSS Anomaly & Multipath Detector, innovation gating, autonomous failover switching | `gnss_anomaly_detector.pth`, `09_gnss_anomaly_detection_metrics.json`, failover plot |
-| **25–28** | **Phase 5** | ONNX export (3 models), INT8 TFLite PTQ containers, numerical parity check, CPU latency benchmark, deployment to mobile & web assets | `speed_estimator.onnx`, `vibration_classifier.onnx`, `motion_quality.onnx`, `*.tflite`, `model_metadata.json` |
+| 01 | 0 | imports, seeds, device | — |
+| 02 | 0 | portable paths, `ml/src` imports | `ml/` directory tree |
+| 03 | 1 STEP 1 | manifest + size check of the fetched files, pairs S/V, schema and physics audit | — |
+| 04 | 1 STEP 2 | wall-clock S<->V pairing, yaw-rate clock lag, mount-yaw estimate, vehicle-frame remap, cleaning | `cleaned/iovnbd_cleaned_10hz.parquet`, `cleaned/trip_audit.json`, `01_sampling_jitter_before_after.png` |
+| 05 | 1 STEP 3 | integrity gate, quality gate, trip-level split | `01_dataset_summary.json` |
+| 06 | 1.2 | 13-channel features (contract unchanged) | — |
+| 07 | 1.2 | windows (20 samples @ 10 Hz, stride 2) per split, leak checks | `splits/dataset_splits.json`, `02_speed_distribution_splits.png` |
+| 08 | 1.3 | classical baselines on the held-out windows | `03_classical_baseline_metrics.json`, `03_classical_dr_trajectory_drift.png` |
+| 09-10 | 2 | scaler fitted on train windows only, window shards | `scalers/imu_feature_scaler.json` + `.pkl`, `windows/*.npz`, `04_*.png` |
+| 11-12 | 2 | `SpeedEstimatorNet` (unchanged architecture), heteroscedastic Huber loss | — |
+| 13 | 2 | training: warmup + cosine, grad clip 1.0, early stopping (patience 5), <= 20 min | `speed_model_best.pth` |
+| 14 | 2 | held-out MAE / RMSE / R2 (per trip, per speed band), calibration, baselines on the same windows | `05_speed_estimator_evaluation.json`, `05_*.png` |
+| 14b | 2 | IO-VNBD held-out position reconstruction and drift (30 s, 60 s, ~1 km) | `11_iovnbd_position_drift.json`, `11_iovnbd_position_<trip>.png` |
+| 15-17 | 2.3 | `VibrationClassifierNet` (v2 recipe, proxy labels) | `06_*` |
+| 18-19 | 2.4 | `MotionQualityNet` (v2 recipe, proxy labels) | `07_*` |
+| 20-22 | 3 | AI + adaptive UKF outage demo (v2 simulation on a held-out segment) | `08_*` |
+| 23-24 | 4 | GNSS anomaly gating demo | `09_*` |
+| 25 | 5 | ONNX export (skipped with a message if the exporter is unavailable) | `models/*/exported/*.onnx` |
+| 26 | 5 | TFLite conversion: **skipped** (stage 2; needs tensorflow) — the `.tflite` next to the ONNX is the stale v2 model | — |
+| 27 | 5 | ONNX parity (needs onnxruntime) and CPU latency | `10_model_benchmarks_and_parity.json` |
+| 28 | 5 | hand-off metadata | `models/speed_estimator/exported/model_metadata_v3.0.json` |
 
----
+## What v3.0 changed (data pipeline)
 
-## Execution Modes
+1. **Ground truth = VBOX**: 10 Hz speed, position and heading. The phone's own "GPS SPEED (Kmh)" column is in m/s, is held between fixes (median 9 s) and lags
+   the VBOX by 3-4 s, so it is only used for the baselines.
+2. **Synchronisation** ([`ml/src/dataset/sync.py`](../src/dataset/sync.py)): "synchronised" only means the authors trimmed both files by hand. Phone rows are
+   re-paired by wall-clock time (phone `DATE` column vs VBOX GPS time of day, whole-hour timezone removed), then the remaining clock offset is measured
+   by cross-correlating the phone vertical gyro (the column named **"Pitch"**) with the VBOX yaw rate. A trip keeps its own offset when it is statistically
+   clear, otherwise it borrows the median of its recording session.
+3. **Axes**: the phone lies flat (gravity on z) at an arbitrary yaw per trip. The mount yaw is estimated from the horizontal acceleration against the VBOX
+   forward/lateral acceleration and applied **once**, in `sync.phone_to_vehicle`, giving the vehicle frame (ax forward, ay left, az up + gravity, gz yaw rate
+   counter-clockwise positive) that the app also feeds the model.
+4. **Quality gate** ([`ml/src/dataset/build.py`](../src/dataset/build.py)): trips shorter than 30 s, trips whose clock cannot be verified, trips not shown to be the
+   same drive (yaw rate unverified *and* phone GPS speed correlation < 0.8) and trips without a mount estimate are excluded; each exclusion and its reason is
+   listed in `01_dataset_summary.json`. Only trips whose **own** yaw rate verified the clock (`eval_eligible`) may be used for validation and test.
+5. **Split** (trip level, deterministic): test = whole drivers **B** and **D** + the whole category **Vtb**; validation = one eval-eligible trip per remaining category;
+   train = the rest. A window never crosses a trip or a gap segment (asserted in Cell 07). The scaler is fitted on train windows only.
 
-### 1. Interactive Mode (Jupyter Notebook / JupyterLab)
-Open the notebook from the repository root:
-```bash
-jupyter notebook ml/notebooks/gati_ai_dead_reckoning_master_pipeline.ipynb
-```
-Select **Kernel $\to$ Restart & Run All**.
+## Stage-2 hand-over (search the notebook for `TODO(v3.1 stage 2)`)
 
-### 2. Automated Script Mode (Headless CLI)
-To execute the pipeline non-interactively from the terminal with live phase tracking:
-```bash
-python ml/run_pipeline_script_mode.py
-```
-Optional flags:
-- `--force-reprocess`: Forces re-reading and re-interpolating all 169 raw CSVs even if cleaned parquet exists.
-- `--stop-on-error`: Aborts immediately if an unhandled error occurs (default: enabled).
-
----
-
-## Data Pipeline Flow: "See $\to$ Preprocess $\to$ Clean $\to$ Work"
-
-Every run strictly follows this 4-step quality assurance protocol:
-1. **[Step 1: See the Data] (Cell 03)**:
-   - Discovers all raw driving files (`vehicle_extracted` and `smartphone_recorded`).
-   - Audits schemas, column mappings, datatypes, and missing values.
-   - Computes raw sampling rate statistics ($\Delta t$) and verifies baseline physics (Earth gravity $\|\mathbf{a}\| \approx 9.81\text{ m/s}^2$).
-2. **[Step 2: Preprocess] (Cell 04)**:
-   - Enforces timestamp monotonicity (rejects backwards or non-advancing packets).
-   - Resamples signals to a strictly uniform 10 Hz time grid ($\Delta t = 0.100\text{ s}$) using `CubicSpline` interpolation.
-   - Synchronizes ground truth vehicle speed.
-3. **[Step 3: Clean & Verify Gate] (Cell 05)**:
-   - Applies 3-tap median filtering to eliminate sensor spikes.
-   - Applies physical bounding box clipping (accel $\pm 25\text{ m/s}^2$, gyro $\pm 10\text{ rad/s}$, speed $0 - 55\text{ m/s}$).
-   - **Quality Verification Gate**: Strictly asserts $\ge 1,000$ rows, zero NaNs, and valid ranges before saving `iovnbd_cleaned_10hz.parquet`.
-4. **[Step 4: Start Working] (Cells 06–28)**:
-   - Extracts sliding windows, fits feature scalers, trains the 3 deep learning models, runs adaptive UKF fusion, detects GNSS anomalies, and exports production ONNX & INT8 mobile assets.
-
-
+* Vibration and motion-quality labels are **proxies computed from the input itself** (or from the speed model's error on its own training windows): their scores
+  are not evidence. Replace them with labels tied to real events / road classes and evaluate on the held-out trips.
+* The UKF outage demo and the GNSS anomaly detector are v2 simulations. The real IO-VNBD outage evidence is the position-drift table of Cell 14b.
+* ONNX -> TFLite (`ml/src/export/onnx_to_tflite.py`, needs tensorflow) and copying model + metadata into the app are not done here.
+* Contract notes for the app: jerk features are `(a[t] - a[t-1]) / 0.1 s` in training (the Dart `MlSpeedEstimator` uses the raw per-frame difference), and pitch/roll are
+  computed from the levelled accelerometer (`atan2(ax, sqrt(ay^2+az^2))`, `atan2(ay, az)`), not passed as 0.

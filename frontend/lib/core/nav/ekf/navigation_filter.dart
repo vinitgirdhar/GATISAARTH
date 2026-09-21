@@ -262,10 +262,16 @@ class NavigationFilter {
   /// removed), [gyroBody] raw angular rate (rad/s). Returns false when the
   /// step was refused — `dt` out of range, non-finite input, or the filter is
   /// not running.
+  ///
+  /// [processNoiseScale] multiplies the whole process-noise matrix for this
+  /// step (1 = as configured). It is how a disturbance estimate or an AI trust
+  /// tells the filter the inertial data is worse than nominal right now. A
+  /// non-positive or non-finite value is ignored rather than trusted.
   bool predict({
     required Vector3 accelBody,
     required Vector3 gyroBody,
     required double dt,
+    double processNoiseScale = 1.0,
   }) {
     final current = _state;
     if (current == null || _failed) return false;
@@ -322,7 +328,14 @@ class NavigationFilter {
       return false;
     }
 
-    _propagateCovariance(cbn: cbn, fNav: fNav, dt: dt);
+    _propagateCovariance(
+      cbn: cbn,
+      fNav: fNav,
+      dt: dt,
+      noiseScale: processNoiseScale.isFinite && processNoiseScale > 0
+          ? processNoiseScale
+          : 1.0,
+    );
     _state = next;
     _predictions++;
     return true;
@@ -332,6 +345,7 @@ class NavigationFilter {
     required Matrix3 cbn,
     required Vector3 fNav,
     required double dt,
+    required double noiseScale,
   }) {
     // F = I + A*dt, first order. At 50-100 Hz the higher-order terms are
     // several orders of magnitude below the process noise.
@@ -365,10 +379,10 @@ class NavigationFilter {
     }
 
     final q = Matrix(ErrorState.size, ErrorState.size);
-    final accelVar = _sq(_ekf.accelNoiseDensity) * dt;
-    final gyroVar = _sq(_ekf.gyroNoiseDensity) * dt;
-    final accelBiasVar = _sq(_ekf.accelBiasRandomWalk) * dt;
-    final gyroBiasVar = _sq(_ekf.gyroBiasRandomWalk) * dt;
+    final accelVar = _sq(_ekf.accelNoiseDensity) * dt * noiseScale;
+    final gyroVar = _sq(_ekf.gyroNoiseDensity) * dt * noiseScale;
+    final accelBiasVar = _sq(_ekf.accelBiasRandomWalk) * dt * noiseScale;
+    final gyroBiasVar = _sq(_ekf.gyroBiasRandomWalk) * dt * noiseScale;
     for (var i = 0; i < 3; i++) {
       // Velocity random walk driven by accelerometer noise, and the position
       // noise it induces over the step.
@@ -466,6 +480,7 @@ class NavigationFilter {
     required List<double> measured,
     required List<double> sigmas,
     String name = 'body_velocity',
+    bool gated = true,
   }) {
     final current = _state;
     if (current == null || _failed) return _skip(name);
@@ -478,27 +493,51 @@ class NavigationFilter {
       return _skip(name);
     }
 
+    final model = _bodyVelocityModel(current, axes);
+    final residual = Matrix(axes.length, 1);
+    for (var row = 0; row < axes.length; row++) {
+      residual.set(row, 0, measured[row] - model.predicted[axes[row]]);
+    }
+    return _applyUpdate(
+      name: name,
+      h: model.h,
+      residual: residual,
+      r: Matrix.diagonal(sigmas.map(_sq).toList()),
+      gated: gated,
+    );
+  }
+
+  /// The measurement Jacobian for observing the body-frame velocity components
+  /// in [axes], and the body-frame velocity the state currently predicts.
+  ({Matrix h, Vector3 predicted}) _bodyVelocityModel(
+      InsState current, List<int> axes) {
     final cnb = NavMath.rotationMatrix(current.qBodyToNav).transposed();
     final Vector3 predicted = cnb * current.velocityNed;
     // d(v_body)/d(dTheta) = C_nb [v_nav x]  (see EVOLUTION_PLAN §8)
     final Matrix3 jacobianAttitude = cnb * NavMath.skew(current.velocityNed);
 
     final h = Matrix(axes.length, ErrorState.size);
-    final residual = Matrix(axes.length, 1);
     for (var row = 0; row < axes.length; row++) {
       final axis = axes[row];
       for (var c = 0; c < 3; c++) {
         h.set(row, ErrorState.velocityN + c, cnb.entry(axis, c));
         h.set(row, ErrorState.attitudeN + c, jacobianAttitude.entry(axis, c));
       }
-      residual.set(row, 0, measured[row] - predicted[axis]);
     }
-    return _applyUpdate(
-      name: name,
-      h: h,
-      residual: residual,
-      r: Matrix.diagonal(sigmas.map(_sq).toList()),
-    );
+    return (h: h, predicted: predicted);
+  }
+
+  /// The forward speed the filter believes (m/s, body x), or null when it is
+  /// not running. This is what an AI speed measurement is compared with.
+  double? get forwardSpeed =>
+      isInitialised ? _state!.velocityBody.x : null;
+
+  /// Variance of that forward speed, `H P H^T` for the forward axis (m²/s²).
+  double? get forwardSpeedVariance {
+    final current = _state;
+    if (current == null || _failed) return null;
+    final h = _bodyVelocityModel(current, const [0]).h;
+    return (h * _p * h.transposed).at(0, 0);
   }
 
   /// Zero-velocity update: the vehicle is stopped, so body velocity is zero on
@@ -552,16 +591,26 @@ class NavigationFilter {
       );
 
   /// Forward-speed update, e.g. from the neural velocity estimator (§8).
+  ///
+  /// With [preGated] the caller has already decided this measurement is
+  /// believable (the AI speed gate compares it with the INS in combined
+  /// sigmas), so the filter's chi-square test is skipped — and, importantly, so
+  /// is the reject streak: a filter left to refuse a biased model over and over
+  /// would widen its own velocity covariance every few refusals (see
+  /// [_applyUpdate]) until it gave in. The NIS is still reported. **A pre-gated
+  /// update is applied whatever it says**, so only pass it after gating.
   MeasurementResult updateForwardSpeed({
     required double speedMps,
     required double sigma,
     String name = 'forward_speed',
+    bool preGated = false,
   }) =>
       updateBodyVelocity(
         axes: const [0],
         measured: [speedMps],
         sigmas: [sigma],
         name: name,
+        gated: !preGated,
       );
 
   /// Barometric altitude update (§18). Secondary evidence, never truth: the
@@ -652,6 +701,7 @@ class NavigationFilter {
     required Matrix h,
     required Matrix residual,
     required Matrix r,
+    bool gated = true,
   }) {
     if (!h.isFinite || !residual.isFinite || !r.isFinite) return _skip(name);
 
@@ -672,7 +722,7 @@ class NavigationFilter {
         ? NavMath.chiSquare99[dof]
         : dof * 3.0;
     if (!nis.isFinite) return _skip(name);
-    if (nis > gate) {
+    if (gated && nis > gate) {
       // Rejected. The measurement is inconsistent with the state and its
       // covariance — folding it in would teleport the estimate (§14).
       //

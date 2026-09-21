@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
+import '../../domain/imu_feature_window.dart';
 import '../../domain/speed_estimator.dart';
 
 /// GatiSaarth Edge AI Speed Estimator
@@ -22,51 +23,26 @@ class MlSpeedEstimator implements SpeedEstimator {
   bool _initialized = false;
 
   // Window size: 20 samples at 10 Hz (2 s temporal context)
-  static const int windowSize = 20;
-  static const int numFeatures = 13;
+  static const int windowSize = ImuFeatureWindow.size;
+  static const int numFeatures = ImuFeatureWindow.features;
 
-  final List<List<double>> _rollingWindow = [];
-  double _lastAx = 0.0;
-  double _lastAy = 0.0;
-  double _lastAz = 9.81;
+  /// The 13-feature, 20-frame window (shared with the other on-device models).
+  final ImuFeatureWindow _window = ImuFeatureWindow();
 
   double _latestEstimatedSpeed = 0.0;
   double _latestConfidence = 0.0;
   int _latestInferenceLatencyMs = 0;
-  int _modelRuns = 0;
+
+  // The last neural inference's raw outputs, for the navigation engine's AI
+  // gate. Never set by the heuristic fallback.
+  double _latestModelSpeed = 0.0;
+  double _latestSigma = 0.0;
+  double _latestFeatureZ = 0.0;
+  int _neuralRuns = 0;
 
   // Normalization parameters from training dataset (model_metadata.json)
-  static const List<double> scalerMean = [
-    -0.006436917204641048,
-    0.0015932520408620627,
-    9.813988583580786,
-    0.00029069510777557627,
-    -2.6694672256006832e-05,
-    -0.0005267534435531443,
-    9.864373398724725,
-    0.06743461390520612,
-    0.0011695408378255905,
-    0.0008564605232577426,
-    0.0005478108230194564,
-    -0.0006498998805616586,
-    0.0001259820234195228,
-  ];
-
-  static const List<double> scalerScale = [
-    0.9300446514524384,
-    0.35982188347774474,
-    0.12516862631115197,
-    0.015818761262360623,
-    0.015782822736439495,
-    0.0725727892130425,
-    0.13393944396405216,
-    0.031940192383929776,
-    0.668776417256872,
-    0.40920679044616004,
-    0.75133715827334,
-    0.09464653315412107,
-    0.0379910512759541,
-  ];
+  static const List<double> scalerMean = ImuFeatureWindow.mean;
+  static const List<double> scalerScale = ImuFeatureWindow.scale;
 
   @override
   double get estimatedSpeed => _latestEstimatedSpeed;
@@ -74,12 +50,26 @@ class MlSpeedEstimator implements SpeedEstimator {
   double get confidence => _latestConfidence;
   @override
   int get latencyMs => _latestInferenceLatencyMs;
+
+  /// True once the *neural* model has run. The heuristic fallback does not
+  /// count: it is never presented as AI.
   @override
-  bool get hasModelInference => _modelRuns > 0;
+  bool get hasModelInference => _neuralRuns > 0;
   @override
   bool get isModelLoaded => _isModelLoaded;
   @override
   bool get isReady => _initialized;
+
+  @override
+  double get modelSpeed => _latestModelSpeed;
+  @override
+  double get sigma => _latestSigma;
+  @override
+  double get featureZMax => _latestFeatureZ;
+  @override
+  int get windowsFed => _window.fed;
+  @override
+  int get neuralInferenceCount => _neuralRuns;
 
   @override
   Future<void> initialize() async {
@@ -93,9 +83,11 @@ class MlSpeedEstimator implements SpeedEstimator {
         options: options,
       );
       _isModelLoaded = true;
-      debugPrint('[MlSpeedEstimator] TFLite Speed Estimator model loaded successfully.');
+      debugPrint(
+          '[MlSpeedEstimator] TFLite Speed Estimator model loaded successfully.');
     } catch (e) {
-      debugPrint('[MlSpeedEstimator] TFLite model not loaded, using the rule-based fallback: $e');
+      debugPrint(
+          '[MlSpeedEstimator] TFLite model not loaded, using the rule-based fallback: $e');
       _isModelLoaded = false;
     } finally {
       _isLoading = false;
@@ -117,46 +109,19 @@ class MlSpeedEstimator implements SpeedEstimator {
     required double pitch,
     required double roll,
   }) {
-    final normA = sqrt(ax * ax + ay * ay + az * az);
-    final normG = sqrt(gx * gx + gy * gy + gz * gz);
-    final dax = ax - _lastAx;
-    final day = ay - _lastAy;
-    final daz = az - _lastAz;
-
-    _lastAx = ax;
-    _lastAy = ay;
-    _lastAz = az;
-
-    // Construct 13-feature vector
-    final rawFeatures = [
-      ax,
-      ay,
-      az,
-      gx,
-      gy,
-      gz,
-      normA,
-      normG,
-      dax,
-      day,
-      daz,
-      pitch,
-      roll,
-    ];
-
-    // Standardize features
-    final normalized = List<double>.generate(numFeatures, (i) {
-      final scale = scalerScale[i] == 0 ? 1.0 : scalerScale[i];
-      return (rawFeatures[i] - scalerMean[i]) / scale;
-    });
-
-    _rollingWindow.add(normalized);
-    if (_rollingWindow.length > windowSize) {
-      _rollingWindow.removeAt(0);
-    }
+    _window.add(
+      ax: ax,
+      ay: ay,
+      az: az,
+      gx: gx,
+      gy: gy,
+      gz: gz,
+      pitch: pitch,
+      roll: roll,
+    );
 
     // Run inference once we have enough temporal context
-    if (_rollingWindow.length >= 10) {
+    if (_window.length >= windowSize) {
       _runInference();
     }
 
@@ -164,26 +129,26 @@ class MlSpeedEstimator implements SpeedEstimator {
   }
 
   void _runInference() {
+    final frames = _window.frames;
+
     // 1. Strict Zero-Velocity Update (ZUPT) Detection over temporal window
     double sumNormA = 0.0;
     double sumNormG = 0.0;
 
-    for (final sample in _rollingWindow) {
-      final normA = (sample[6] * scalerScale[6]) + scalerMean[6];
-      final normG = (sample[7] * scalerScale[7]) + scalerMean[7];
-      sumNormA += normA;
-      sumNormG += normG;
+    for (final sample in frames) {
+      sumNormA += ImuFeatureWindow.physical(sample, 6);
+      sumNormG += ImuFeatureWindow.physical(sample, 7);
     }
 
-    final meanNormA = sumNormA / _rollingWindow.length;
-    final meanNormG = sumNormG / _rollingWindow.length;
+    final meanNormA = sumNormA / frames.length;
+    final meanNormG = sumNormG / frames.length;
 
     double varianceNormA = 0.0;
-    for (final sample in _rollingWindow) {
-      final normA = (sample[6] * scalerScale[6]) + scalerMean[6];
+    for (final sample in frames) {
+      final normA = ImuFeatureWindow.physical(sample, 6);
       varianceNormA += (normA - meanNormA) * (normA - meanNormA);
     }
-    final stdNormA = sqrt(varianceNormA / _rollingWindow.length);
+    final stdNormA = sqrt(varianceNormA / frames.length);
 
     final interpreter = _interpreter;
     if (interpreter != null && _isModelLoaded) {
@@ -194,52 +159,70 @@ class MlSpeedEstimator implements SpeedEstimator {
           1,
           (_) => List.generate(
             windowSize,
-            (t) => t < _rollingWindow.length
-                ? _rollingWindow[t]
-                : List.filled(numFeatures, 0.0),
+            (t) =>
+                t < frames.length ? frames[t] : List.filled(numFeatures, 0.0),
           ),
         );
 
-        final output = List.generate(1, (_) => List.filled(2, 0.0)); // [speed, log_variance]
+        final output = List.generate(
+            1, (_) => List.filled(2, 0.0)); // [speed, log_variance]
         interpreter.run(input, output);
         stopwatch.stop();
 
         final rawSpeed = output[0][0];
         final variance = exp(output[0][1].clamp(-5.0, 5.0));
+        final sigma = sqrt(variance);
 
-        // When dynamic motion is present, scale model prediction with physical variance
-        if (stdNormA > 0.45 || meanNormG > 0.30) {
-          _latestEstimatedSpeed = rawSpeed.clamp(0.0, 45.0);
-        } else {
+        // When physical stillness is present, clamp to 0.0 with 98% confidence
+        final isStationary = stdNormA < 0.40 && meanNormG < 0.25;
+        if (isStationary) {
           _latestEstimatedSpeed = 0.0;
+          _latestConfidence = 0.98;
+        } else {
+          _latestEstimatedSpeed = rawSpeed.clamp(0.0, 45.0);
+          // Calibrated operational confidence using Gaussian Error Tolerance CDF:
+          // P(|error| <= deltaV) = erf(deltaV / (sqrt(2) * sigma))
+          // Operational tolerance: deltaV = 2.2 m/s (8.0 km/h)
+          const double deltaV = 2.2;
+          double conf = _erf(deltaV / (sqrt(2) * sigma));
+
+          // Apply soft attenuation if features sit in the tail of the training distribution (zMax > 3.5)
+          final zMax = _window.zMax;
+          if (zMax > 3.5) {
+            final penalty = exp(-0.5 * (zMax - 3.5));
+            conf *= penalty;
+          }
+          _latestConfidence = conf.clamp(0.05, 0.99);
         }
-        // Shown as-is: an earlier 0.70 floor made a poorly-fitting window read
-        // as a confident one.
-        _latestConfidence = (1.0 / (1.0 + variance)).clamp(0.0, 0.99);
+
         _latestInferenceLatencyMs =
             max(1, (stopwatch.elapsedMicroseconds / 1000).round());
-        _modelRuns++;
+        // The raw heads, without the stillness gate above: what the engine's AI
+        // speed gate wants (a smooth cruise is not a stop).
+        _latestModelSpeed = rawSpeed;
+        _latestSigma = sigma;
+        _latestFeatureZ = _window.zMax;
+        _neuralRuns++;
         return;
       } catch (e) {
         debugPrint('[MlSpeedEstimator] inference failed, using fallback: $e');
       }
     }
-    _latestEstimatedSpeed = _kinematicFallbackSpeed(stdNormA);
+    _latestEstimatedSpeed = _kinematicFallbackSpeed(frames, stdNormA);
     _latestConfidence = (stdNormA < 0.32 && meanNormG < 0.22) ? 0.99 : 0.85;
     _latestInferenceLatencyMs = 1;
-    _modelRuns++;
   }
 
   /// Rule-based fallback used only when the TFLite model is unavailable. It is
   /// a heuristic, not a neural estimate, and is never reported as one.
-  double _kinematicFallbackSpeed(double stdNormA) {
-    if (_rollingWindow.isEmpty || stdNormA < 0.32) return 0.0;
+  double _kinematicFallbackSpeed(List<List<double>> frames, double stdNormA) {
+    if (frames.isEmpty || stdNormA < 0.32) return 0.0;
 
     double dynamicForwardEnergy = 0.0;
 
-    for (final sample in _rollingWindow) {
-      final ax = (sample[0] * scalerScale[0]) + scalerMean[0];
-      final pitch = (sample[11] * scalerScale[11]) + scalerMean[11];
+    for (final sample in frames) {
+      final ax = ImuFeatureWindow.physical(sample, 0);
+      final pitch = ImuFeatureWindow.physical(sample, 11);
 
       // Remove gravity projection: a_dyn_x = ax - g * sin(pitch)
       final gravityForward = 9.81 * sin(pitch);
@@ -250,21 +233,39 @@ class MlSpeedEstimator implements SpeedEstimator {
       }
     }
 
-    final avgDynamicForward = dynamicForwardEnergy / _rollingWindow.length;
+    final avgDynamicForward = dynamicForwardEnergy / frames.length;
 
     if (avgDynamicForward < 0.25 && stdNormA < 0.40) {
       return 0.0;
     }
 
     // Dynamic forward speed proportional to real physical kinetic energy
-    final speed = (avgDynamicForward * 3.2 + (stdNormA - 0.32) * 1.8).clamp(0.0, 35.0);
+    final speed =
+        (avgDynamicForward * 3.2 + (stdNormA - 0.32) * 1.8).clamp(0.0, 35.0);
     return speed > 0.3 ? speed : 0.0;
   }
 
   @override
   void reset() {
-    _rollingWindow.clear();
+    _window.reset();
     _latestEstimatedSpeed = 0.0;
+  }
+
+  /// Numerical approximation of the error function erf(x)
+  /// with maximum error < 1.5e-7 (Abramowitz and Stegun 7.1.26).
+  static double _erf(double x) {
+    final sign = x < 0 ? -1.0 : 1.0;
+    final a = x.abs();
+    const p = 0.3275911;
+    const a1 = 0.254829592;
+    const a2 = -0.284496736;
+    const a3 = 1.421413741;
+    const a4 = -1.453152027;
+    const a5 = 1.061405429;
+    final t = 1.0 / (1.0 + p * a);
+    final y =
+        1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * exp(-a * a);
+    return sign * y;
   }
 
   void dispose() {

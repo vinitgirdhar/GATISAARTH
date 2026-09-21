@@ -33,7 +33,7 @@ class SatelliteBreakdown extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: color.withOpacity(0.4),
+                          color: color.withValues(alpha: 0.4),
                           blurRadius: 4,
                           offset: const Offset(0, 1),
                         ),
@@ -60,10 +60,10 @@ class SatelliteBreakdown extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                       border: Border.all(
-                        color: color.withOpacity(0.25),
+                        color: color.withValues(alpha: 0.25),
                         width: 1,
                       ),
                     ),
@@ -87,7 +87,7 @@ class SatelliteBreakdown extends StatelessWidget {
             height: 1,
             thickness: 1,
             color: isDark
-                ? const Color(0xFF334155).withOpacity(0.5)
+                ? const Color(0xFF334155).withValues(alpha: 0.5)
                 : const Color(0xFFE2E8F0),
           ),
       ],
@@ -107,10 +107,10 @@ class SatelliteBreakdown extends StatelessWidget {
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.12),
+          color: AppColors.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.primary.withOpacity(0.25),
+            color: AppColors.primary.withValues(alpha: 0.25),
             width: 1,
           ),
         ),

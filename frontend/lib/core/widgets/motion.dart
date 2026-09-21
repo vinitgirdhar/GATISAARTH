@@ -55,15 +55,29 @@ class _FadeSlideInState extends State<FadeSlideIn>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
     if (MediaQuery.disableAnimationsOf(context)) {
-      _controller.value = 1;
-    } else if (widget.delay == Duration.zero) {
+      _controller.value = 1.0;
+      return;
+    }
+    // If TickerMode is disabled (e.g. while offscreen or in ListView cacheExtent),
+    // do not start or mark as started until it becomes enabled.
+    if (!TickerMode.of(context)) {
+      return;
+    }
+    if (_started) {
+      if (!_controller.isAnimating && _controller.value < 1.0) {
+        _controller.forward();
+      }
+      return;
+    }
+    _started = true;
+    if (widget.delay == Duration.zero) {
       _controller.forward();
     } else {
       _timer = Timer(widget.delay, () {
-        if (mounted) _controller.forward();
+        if (mounted && TickerMode.of(context)) {
+          _controller.forward();
+        }
       });
     }
   }

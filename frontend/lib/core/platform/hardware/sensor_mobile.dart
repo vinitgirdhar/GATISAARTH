@@ -44,10 +44,11 @@ class MobileSensorDriver implements HardwareSensorInterface {
   void start() {
     if (_accelerometerSubscription != null) return;
 
-    // Gyro and magnetometer are sampled by the 10 Hz model and a smoothed
-    // compass, so 15 Hz is plenty; only the accelerometer drives 50 Hz frames.
+    // Gyroscope and accelerometer both run at 50 Hz (gameInterval) to feed
+    // the strapdown inertial navigation core with synchronized IMU frames.
+    // Magnetometer is sampled at ~15 Hz (uiInterval).
     _gyroscopeSubscription = gyroscopeEventStream(
-      samplingPeriod: SensorInterval.uiInterval,
+      samplingPeriod: SensorInterval.gameInterval,
     ).listen((event) {
       _latestGyroscope = [event.x, event.y, event.z];
     });

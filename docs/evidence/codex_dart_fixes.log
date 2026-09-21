@@ -1,0 +1,68 @@
+Computing fixes in frontend...
+Applying fixes...
+
+integration_test\release_smoke_test.dart
+  unused_import - 1 fix
+
+lib\core\widgets\standard_card.dart
+  deprecated_member_use - 1 fix
+
+lib\features\boot\presentation\boot_screen.dart
+  deprecated_member_use - 2 fixes
+
+lib\features\navigation_ui\presentation\screens\main_shell_screen.dart
+  deprecated_member_use - 3 fixes
+
+lib\features\navigation_ui\presentation\screens\tabs\home_tab.dart
+  deprecated_member_use - 9 fixes
+
+lib\features\navigation_ui\presentation\screens\tabs\map_tab.dart
+  deprecated_member_use - 6 fixes
+
+lib\features\navigation_ui\presentation\screens\tabs\profile_tab.dart
+  deprecated_member_use - 8 fixes
+
+lib\features\navigation_ui\presentation\screens\tabs\sensors_tab.dart
+  deprecated_member_use - 5 fixes
+
+lib\features\navigation_ui\presentation\widgets\ai_inference_panel.dart
+  deprecated_member_use - 4 fixes
+  unnecessary_import - 1 fix
+
+lib\features\navigation_ui\presentation\widgets\dashboard_header.dart
+  unused_import - 2 fixes
+
+lib\features\navigation_ui\presentation\widgets\engine_status_card.dart
+  deprecated_member_use - 1 fix
+
+lib\features\navigation_ui\presentation\widgets\road_anomaly_ticker.dart
+  deprecated_member_use - 4 fixes
+
+lib\features\navigation_ui\presentation\widgets\satellite_breakdown.dart
+  deprecated_member_use - 6 fixes
+
+lib\features\navigation_ui\presentation\widgets\thermal_compensation_card.dart
+  deprecated_member_use - 1 fix
+
+pubspec.yaml
+  missing_dependency - 1 fix
+
+test\engine_spec_screen_test.dart
+  unused_import - 1 fix
+
+test\map_download_sheet_test.dart
+  unused_import - 1 fix
+
+test\model_facts_test.dart
+  unnecessary_import - 1 fix
+
+test\nav\ai\engine_ai_test.dart
+  unused_import - 2 fixes
+
+test\support\app_harness.dart
+  unnecessary_import - 1 fix
+
+test\tool\road_graph_coverage_report_test.dart
+  unused_import - 1 fix
+
+62 fixes made in 21 files.

@@ -523,6 +523,72 @@ void main() {
     });
   });
 
+  group('MapMatcher on a graph cut at every junction', () {
+    // The graph read from map tiles is cut at each junction: one physical road
+    // is a chain of edges. A position near a cut fits both sides equally well,
+    // and that must not read as "two roads too close to call".
+    RoadGraph cutRoad({double branchEastAt = 0}) => RoadGraph(
+          nodes: [
+            nodeAt(1, 0, 0),
+            nodeAt(2, 500, 0),
+            nodeAt(3, 1000, 0),
+            if (branchEastAt > 0) nodeAt(4, 500, branchEastAt),
+          ],
+          edges: [
+            straightEdge(
+                id: 10, from: 1, to: 2, n0: 0, e0: 0, n1: 500, e1: 0,
+                name: 'Ring Road'),
+            straightEdge(
+                id: 11, from: 2, to: 3, n0: 500, e0: 0, n1: 1000, e1: 0,
+                name: 'Ring Road'),
+            if (branchEastAt > 0)
+              straightEdge(
+                  id: 12, from: 2, to: 4, n0: 500, e0: 0, n1: 500,
+                  e1: branchEastAt),
+          ],
+        );
+
+    MapMatchResult? matchNearCut(RoadGraph graph) {
+      final matcher = MapMatcher(graph: graph);
+      MapMatchResult? result;
+      // Driving north through the cut at 500 m, a metre either side of it.
+      for (var i = 0; i < 6; i++) {
+        final p = at(490 + i * 4.0, 1.5);
+        result = matcher.update(
+          lat: p[0],
+          lon: p[1],
+          sigmaM: 3,
+          headingRad: 0,
+          speedMps: 10,
+        );
+      }
+      return result;
+    }
+
+    test('two edges of one road pool their probability and snap', () {
+      final result = matchNearCut(cutRoad())!;
+
+      expect(result.snapped, isTrue, reason: result.reason);
+      expect(result.confidence, greaterThan(0.9));
+      expect(result.matchedHeadingRad, closeTo(0, 0.05));
+    });
+
+    test('a side street at the cut is still a different road', () {
+      // A branch leaving the same node at right angles: not a continuation.
+      final matcher = MapMatcher(graph: cutRoad(branchEastAt: 300));
+      MapMatchResult? result;
+      // Stopped exactly at the junction, heading unknown: north road and east
+      // branch fit equally well and the matcher must say so.
+      for (var i = 0; i < 6; i++) {
+        final p = at(500, 1.0);
+        result = matcher.update(lat: p[0], lon: p[1], sigmaM: 3);
+      }
+
+      expect(result!.snapped, isFalse);
+      expect(result.reason, contains('too close to call'));
+    });
+  });
+
   group('RoadGraph.fromJson', () {
     Map<String, dynamic> validJson() => {
           'region': 'test',

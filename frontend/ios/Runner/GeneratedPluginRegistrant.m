@@ -12,6 +12,12 @@
 @import geolocator_apple;
 #endif
 
+#if __has_include(<integration_test/IntegrationTestPlugin.h>)
+#import <integration_test/IntegrationTestPlugin.h>
+#else
+@import integration_test;
+#endif
+
 #if __has_include(<sensors_plus/FPPSensorsPlusPlugin.h>)
 #import <sensors_plus/FPPSensorsPlusPlugin.h>
 #else
@@ -34,6 +40,7 @@
 
 + (void)registerWithRegistry:(NSObject<FlutterPluginRegistry>*)registry {
   [GeolocatorPlugin registerWithRegistrar:[registry registrarForPlugin:@"GeolocatorPlugin"]];
+  [IntegrationTestPlugin registerWithRegistrar:[registry registrarForPlugin:@"IntegrationTestPlugin"]];
   [FPPSensorsPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPSensorsPlusPlugin"]];
   [FPPSharePlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPSharePlusPlugin"]];
   [SharedPreferencesPlugin registerWithRegistrar:[registry registrarForPlugin:@"SharedPreferencesPlugin"]];

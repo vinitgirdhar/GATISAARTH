@@ -193,6 +193,14 @@ class MotionClassifier {
   /// null — never a guess. [filterSpeedMps] is the filter's current speed,
   /// used only as a prior against the smooth-cruise false stop. [rollRad] is
   /// the filter's roll estimate, used for the two-wheeler lean.
+  ///
+  /// [shockHold] says a shock (pothole, bump, a knock on the phone) is being
+  /// held: the one-second variance of |a| and |gyro| is then the shock's, not
+  /// the vehicle's, so it is left out of the stillness test and a vehicle that
+  /// was already stopped stays stopped through it (a shock never starts a
+  /// stop). The sustained horizontal force that a real pull-away produces is
+  /// still tested, so a vehicle that genuinely sets off is still released
+  /// quickly.
   MotionSnapshot addSample({
     required Vector3 accelBody,
     required Vector3 gyroBody,
@@ -200,6 +208,7 @@ class MotionClassifier {
     double? gnssSpeedMps,
     double? filterSpeedMps,
     double? rollRad,
+    bool shockHold = false,
   }) {
     if (!_finite(accelBody) || !_finite(gyroBody)) {
       _snapshot = MotionSnapshot(
@@ -237,6 +246,7 @@ class MotionClassifier {
       monotonicUs: monotonicUs,
       gnssSpeedMps: gnssSpeedMps,
       filterSpeedMps: filterSpeedMps,
+      shockHold: shockHold,
     );
 
     final lean = vehicleClass == VehicleClass.twoWheeler
@@ -280,6 +290,7 @@ class MotionClassifier {
     required int monotonicUs,
     double? gnssSpeedMps,
     double? filterSpeedMps,
+    bool shockHold = false,
   }) {
     // GNSS, when it is live, is the strongest evidence either way — it is the
     // one signal that sees actual ground motion. When it is present it
@@ -307,8 +318,13 @@ class MotionClassifier {
     // one-second mean takes half a second to notice a pull-away, and every
     // one of those samples tells the filter it is not moving while it plainly
     // is. Slow to declare a stop, quick to abandon one.
-    final quiet = stats.accelStd < _config.zuptAccelStd &&
-        stats.gyroStd < _config.zuptGyroStd &&
+    // A held shock can keep a stop, never start one: entering stillness on the
+    // strength of ignoring the variance would let a bump at a crawl read as a
+    // stop.
+    final varianceQuiet = (shockHold && _stationary) ||
+        (stats.accelStd < _config.zuptAccelStd &&
+            stats.gyroStd < _config.zuptGyroStd);
+    final quiet = varianceQuiet &&
         stats.recentHorizontal < _config.zuptMaxHorizontalAccel &&
         !motionVeto;
 

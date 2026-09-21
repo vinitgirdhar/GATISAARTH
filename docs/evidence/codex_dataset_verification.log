@@ -1,0 +1,14 @@
+[fetch] 144 files (426.4 MB) subset=sync-categorised -> C:\Users\vidhy\Downloads\gathisarthi\ml\data\raw\IO-VNBD_repo
+[dry-run] 144 already verified, 0 to download (0.0 MB)
+
+Manifest summary
+------------------------------------------------------------------------------
+  Synchronised V abd S datasets/Categorised IOVNB Dataset/M (Driver B)      2 files     42.3 MB
+  Synchronised V abd S datasets/Categorised IOVNB Dataset/S (Driver A)     12 files    123.3 MB
+  Synchronised V abd S datasets/Categorised IOVNB Dataset/Vf (Driver E)     4 files     31.1 MB
+  Synchronised V abd S datasets/Categorised IOVNB Dataset/Vta (Driver E)   60 files     51.1 MB
+  Synchronised V abd S datasets/Categorised IOVNB Dataset/Vtb (Driver E)   24 files     45.6 MB
+  Synchronised V abd S datasets/Categorised IOVNB Dataset/Vw (Driver E)    40 files    104.9 MB
+  Synchronised V abd S datasets/Categorised IOVNB Dataset/Y (Driver D)      2 files     28.0 MB
+------------------------------------------------------------------------------
+  selected 144 files, 426.4 MB | 

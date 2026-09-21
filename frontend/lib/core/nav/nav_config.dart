@@ -1,5 +1,9 @@
 import 'package:flutter/foundation.dart';
 
+import 'ai/ai_config.dart';
+
+export 'ai/ai_config.dart';
+
 /// Every tunable the navigation core has, in one versioned place (§70).
 ///
 /// Nothing in `lib/core/nav/` may hard-code a threshold, a covariance or a
@@ -22,6 +26,7 @@ class NavConfig {
     this.gnss = const GnssConfig(),
     this.motion = const MotionConfig(),
     this.ai = const AiConfig(),
+    this.disturbance = const DisturbanceConfig(),
     this.mapMatch = const MapMatchConfig(),
     this.roadFollow = const RoadFollowConfig(),
     this.power = const PowerConfig(),
@@ -43,12 +48,21 @@ class NavConfig {
   final GnssConfig gnss;
   final MotionConfig motion;
   final AiConfig ai;
+  final DisturbanceConfig disturbance;
   final MapMatchConfig mapMatch;
   final RoadFollowConfig roadFollow;
   final PowerConfig power;
   final FeatureFlags features;
 
   static const NavConfig defaults = NavConfig();
+
+  /// v3.1 phone policy. The model must pass live GNSS validation before any
+  /// outage update. Disturbance handling uses the statistical estimator;
+  /// proxy-trained neural trust models remain excluded from production fusion.
+  /// Real replay evidence: docs/evidence/codex_ai_ablation_*.json.
+  static const NavConfig live = NavConfig(
+    ai: AiConfig(enabled: true, fusionTrust: false),
+  );
 
   NavConfig copyWith({
     SensorConfig? sensors,
@@ -61,6 +75,7 @@ class NavConfig {
     GnssConfig? gnss,
     MotionConfig? motion,
     AiConfig? ai,
+    DisturbanceConfig? disturbance,
     MapMatchConfig? mapMatch,
     RoadFollowConfig? roadFollow,
     PowerConfig? power,
@@ -78,6 +93,7 @@ class NavConfig {
         gnss: gnss ?? this.gnss,
         motion: motion ?? this.motion,
         ai: ai ?? this.ai,
+        disturbance: disturbance ?? this.disturbance,
         mapMatch: mapMatch ?? this.mapMatch,
         roadFollow: roadFollow ?? this.roadFollow,
         power: power ?? this.power,
@@ -91,6 +107,7 @@ class NavConfig {
         'gnss': gnss.toJson(),
         'motion': motion.toJson(),
         'ai': ai.toJson(),
+        'disturbance': disturbance.toJson(),
         'features': features.toJson(),
       };
 }
@@ -372,7 +389,7 @@ class AlignmentConfig {
 class SensorFaultConfig {
   const SensorFaultConfig({
     this.windowSamples = 50,
-    this.frozenSamples = 25,
+    this.frozenSamples = 50,
     this.maxAccelMagnitude = 100,
     this.maxGyroMagnitude = 35,
     this.maxAccelNoise = 12,
@@ -722,66 +739,6 @@ class MotionConfig {
       };
 }
 
-/// Neural-velocity gating (§8, §9).
-@immutable
-class AiConfig {
-  const AiConfig({
-    this.enabled = false,
-    this.feedHz = 10,
-    this.windowSamples = 20,
-    this.warmupWindows = 10,
-    this.maxLatencyMs = 40,
-    this.maxFeatureZ = 6.0,
-    this.minContribution = 0.0,
-    this.maxContribution = 0.8,
-    this.physicsDisagreeSigma = 4.0,
-    this.floorSigma = 0.4,
-    this.maxSpeed = 45.0,
-  });
-
-  /// **Off by default.** The shipped model's own benchmark
-  /// (`ml/evaluation/metrics/08_*.json`) reports worse drift than classical
-  /// DR, and the packaged TFLite asset is a Git-LFS pointer, so it has never
-  /// run on a phone. Turning this on requires a model that passes its own
-  /// smoke test *and* a replay that shows it helps (§8, §83).
-  final bool enabled;
-
-  final int feedHz;
-  final int windowSamples;
-
-  /// Model outputs are ignored until this many windows have been fed.
-  final int warmupWindows;
-
-  /// Inference slower than this is dropped from the fusion — a late velocity
-  /// is worse than none (§9).
-  final int maxLatencyMs;
-
-  /// Largest standardised feature value still considered in-distribution.
-  final double maxFeatureZ;
-
-  /// Contribution is clamped to this range; the model never owns the estimate
-  /// outright (§8 "the fusion layer decides how much to trust it").
-  final double minContribution;
-  final double maxContribution;
-
-  /// Disagreement with the INS beyond this many combined sigmas closes the
-  /// gate.
-  final double physicsDisagreeSigma;
-
-  /// Floor on the model's reported sigma — a heteroscedastic head can be
-  /// overconfident, and a zero sigma would dominate every other measurement.
-  final double floorSigma; // m/s
-
-  final double maxSpeed; // m/s
-
-  Map<String, dynamic> toJson() => {
-        'enabled': enabled,
-        'feedHz': feedHz,
-        'maxLatencyMs': maxLatencyMs,
-        'maxContribution': maxContribution,
-      };
-}
-
 /// HMM map matching (§19, §20, §21).
 @immutable
 class MapMatchConfig {
@@ -796,6 +753,7 @@ class MapMatchConfig {
     this.runnerUpMargin = 0.15,
     this.maxSnapDistanceSigma = 2.5,
     this.headingFeedbackMinConfidence = 0.75,
+    this.continuationDeg = 25.0,
   });
 
   /// **Off by default** — `maps/processed_graphs/road_edges.json` is
@@ -828,6 +786,11 @@ class MapMatchConfig {
 
   /// Road heading only feeds the filter above this match confidence (§58).
   final double headingFeedbackMinConfidence;
+
+  /// Two edges that share a node and differ in direction by less than this are
+  /// one road (a graph cut at every junction splits a road into a chain), so
+  /// their probability is pooled instead of counted as rivals.
+  final double continuationDeg;
 }
 
 /// Locking the dead-reckoned marker onto the road network (`RoadFollower`).
@@ -852,6 +815,8 @@ class RoadFollowConfig {
     this.rebindRadiusM = 8.0,
     this.correctMinPerpM = 25.0,
     this.candidateLimit = 32,
+    this.ringMinLengthM = 20.0,
+    this.recentEdgeWindowM = 30.0,
   });
 
   /// Metres of perpendicular distance one degree of heading disagreement
@@ -910,6 +875,16 @@ class RoadFollowConfig {
   /// A noisy fix this far off the road (or 2 sigma, if larger) is not evidence
   /// about where along the road the vehicle is.
   final double correctMinPerpM;
+
+  /// A closed edge shorter than this is a digitising artefact (a sliver cut
+  /// off at a junction), not a roundabout or a loop street. Treating one as a
+  /// ring traps the follower on it, going round and round.
+  final double ringMinLengthM;
+
+  /// A junction exit is never onto an edge entered within this many metres of
+  /// driving: that is the road just left, and taking it again is how a chain
+  /// of slivers becomes a loop.
+  final double recentEdgeWindowM;
 
   /// Candidate roads examined per lookup. Bounds the cost in a dense junction.
   final int candidateLimit;

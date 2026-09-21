@@ -1,21 +1,2968 @@
 {
-  "total_rows": 14998,
-  "total_tracks": 5,
-  "duration_hours": 0.42,
-  "mean_speed_kmh": 36.01,
-  "max_speed_kmh": 65.43,
-  "columns": [
-    "time",
-    "track_id",
-    "ax",
-    "ay",
-    "az",
-    "gx",
-    "gy",
-    "gz",
-    "speed_ms"
-  ],
-  "null_values": 0,
-  "parquet_file_size_mb": 0.78,
+  "dataset": "IO-VNBD synchronised + categorised (real data; Git-LFS objects fetched and SHA-256 verified)",
+  "integrity": {
+    "files_in_manifest": 144,
+    "all_verified": true,
+    "bytes": 426448958
+  },
+  "files": {
+    "csv_files": 144,
+    "trips": 72,
+    "per_driver": {
+      "A": {
+        "trips": 6,
+        "csv_files": 12,
+        "rows_vbox": 308839,
+        "hours": 8.58,
+        "km": 275.3,
+        "included_trips": 6,
+        "included_hours": 8.48,
+        "included_km": 275.3
+      },
+      "B": {
+        "trips": 1,
+        "csv_files": 2,
+        "rows_vbox": 105974,
+        "hours": 2.94,
+        "km": 105.1,
+        "included_trips": 1,
+        "included_hours": 2.94,
+        "included_km": 105.1
+      },
+      "D": {
+        "trips": 1,
+        "csv_files": 2,
+        "rows_vbox": 70285,
+        "hours": 1.95,
+        "km": 58.5,
+        "included_trips": 1,
+        "included_hours": 1.91,
+        "included_km": 58.5
+      },
+      "E": {
+        "trips": 64,
+        "csv_files": 128,
+        "rows_vbox": 585937,
+        "hours": 16.28,
+        "km": 902.4,
+        "included_trips": 48,
+        "included_hours": 15.71,
+        "included_km": 891.0
+      }
+    },
+    "per_category": {
+      "M": {
+        "trips": 1,
+        "csv_files": 2,
+        "rows_vbox": 105974,
+        "hours": 2.94,
+        "km": 105.1,
+        "included_trips": 1,
+        "included_hours": 2.94,
+        "included_km": 105.1
+      },
+      "S": {
+        "trips": 6,
+        "csv_files": 12,
+        "rows_vbox": 308839,
+        "hours": 8.58,
+        "km": 275.3,
+        "included_trips": 6,
+        "included_hours": 8.48,
+        "included_km": 275.3
+      },
+      "Vf": {
+        "trips": 2,
+        "csv_files": 4,
+        "rows_vbox": 79290,
+        "hours": 2.2,
+        "km": 181.9,
+        "included_trips": 2,
+        "included_hours": 2.19,
+        "included_km": 181.9
+      },
+      "Vta": {
+        "trips": 30,
+        "csv_files": 60,
+        "rows_vbox": 128618,
+        "hours": 3.57,
+        "km": 147.9,
+        "included_trips": 26,
+        "included_hours": 3.5,
+        "included_km": 146.2
+      },
+      "Vtb": {
+        "trips": 12,
+        "csv_files": 24,
+        "rows_vbox": 114437,
+        "hours": 3.18,
+        "km": 163.6,
+        "included_trips": 7,
+        "included_hours": 2.92,
+        "included_km": 159.6
+      },
+      "Vw": {
+        "trips": 20,
+        "csv_files": 40,
+        "rows_vbox": 263592,
+        "hours": 7.32,
+        "km": 409.0,
+        "included_trips": 13,
+        "included_hours": 7.1,
+        "included_km": 403.3
+      },
+      "Y": {
+        "trips": 1,
+        "csv_files": 2,
+        "rows_vbox": 70285,
+        "hours": 1.95,
+        "km": 58.5,
+        "included_trips": 1,
+        "included_hours": 1.91,
+        "included_km": 58.5
+      }
+    }
+  },
+  "totals_all_trips": {
+    "rows_phone": 1070745,
+    "rows_vbox": 1071035,
+    "hours": 29.75,
+    "km_from_vbox_speed": 1341.3
+  },
+  "totals_used": {
+    "trips": 53,
+    "rows": 1044487,
+    "hours": 29.01,
+    "km_from_vbox_speed": 1319.2,
+    "gap_free_segments": 98
+  },
+  "speed_distribution_used": {
+    "mean_kmh": 45.47,
+    "max_kmh": 131.9,
+    "p1": 0.0,
+    "p5": 0.1,
+    "p25": 22.9,
+    "p50": 42.1,
+    "p75": 67.5,
+    "p95": 101.1,
+    "p99": 111.9,
+    "time_share_by_band_kmh": {
+      "stationary (<1)": 0.1025,
+      "1-30": 0.2329,
+      "30-60": 0.3591,
+      "60-90": 0.1955,
+      ">=90": 0.1099
+    }
+  },
+  "sampling": {
+    "phone_dt_ms_median_over_trips": 100.0,
+    "phone_dt_ms_std_excluding_1pct_tails_median_over_trips": 0.55,
+    "phone_rows_share_with_dt_in_95_105_ms": 0.9925,
+    "phone_gaps_over_0p35s": 11,
+    "phone_gaps_over_1s": 11,
+    "phone_largest_gap_s": 661.4,
+    "phone_timestamp_column_backwards_jumps": 8,
+    "vbox_irregular_timestamps": 6,
+    "phone_gps_fix_interval_s": {
+      "median_over_trips": 9.0,
+      "min": 1.0,
+      "max": 13.0,
+      "trips_with_1s_fixes": 3,
+      "trips_with_9s_or_slower_fixes": 65
+    }
+  },
+  "missing_values": {
+    "raw_nan_phone_imu_cells": 0,
+    "raw_nan_vbox_key_cells": 0,
+    "vbox_samples_without_phone_data_after_alignment_pct": 1.68,
+    "nan_in_used_table": 0
+  },
+  "synchronisation": {
+    "meaning": "'Synchronised' means the authors trimmed S and V by hand so that row i of S is roughly row i of V. It is not a timestamp guarantee: row-index pairing leaves the phone up to several seconds off, the phone drops rows, and its 'TIME SINCE START' column jumps backwards in some files. The pipeline re-pairs by wall-clock time (phone DATE column vs VBOX GPS time of day, whole-hour timezone removed) and then measures the remaining clock offset from the yaw rate.",
+    "row_counts": {
+      "trips_with_equal_rows": 63,
+      "trips_with_different_rows": 9,
+      "largest_row_difference": 232
+    },
+    "phone_log_start_minus_vbox_start_s": {
+      "median_abs": 1.6,
+      "max_abs": 167.8
+    },
+    "trips_with_own_verified_clock_offset": 25,
+    "yaw_rate_lag_when_pairing_by_row_index_s": {
+      "median_abs": 1.8,
+      "max_abs": 13.8
+    },
+    "yaw_rate_lag_after_wall_clock_pairing_s": {
+      "median_abs": 0.3,
+      "max_abs": 1.8,
+      "note": "constant along each trip (no drift found); differs per recording session"
+    },
+    "row_index_fallback_trips": [
+      "Vw07",
+      "Vw08"
+    ],
+    "timezone_offsets_hours_seen": [
+      0,
+      1
+    ],
+    "lag_sources": {
+      "own": 25,
+      "session": 47,
+      "unverified": 0
+    },
+    "phone_gps_speed_vs_vbox_speed": {
+      "units_finding": "column 'GPS SPEED (Kmh)' holds metres per second (median GPS/VBOX ratio in m/s = 0.992)",
+      "best_lag_s_median": 3.5,
+      "best_lag_s_range": [
+        0.0,
+        7.4
+      ],
+      "reading": "GPS speed is held between fixes (median fix interval 9 s), so its lag is hold delay, not a clock offset",
+      "trips_with_corr_ge_0p8": 54
+    }
+  },
+  "axes": {
+    "mean_abs_corr_of_phone_gyro_column_with_vbox_yaw_rate": {
+      "gyro_yaw_col": 0.034,
+      "gyro_pitch_col": 0.499,
+      "gyro_roll_col": 0.105
+    },
+    "yaw_axis_is_column_labelled": "Pitch (positive = counter-clockwise, same sign as VBOX yaw rate)",
+    "phone_gravity_mean_all_trips": {
+      "min": -0.01,
+      "max": 9.81,
+      "reading": "gravity is (0, 0, +9.81) in every trip: the phone lies flat, z is up"
+    },
+    "mount_yaw_deg_own_estimates": {
+      "trips": 17,
+      "min": -124.0,
+      "median": -43.9,
+      "max": 48.2,
+      "reading": "the forward axis is at a per-trip angle to the phone x axis, so a yaw alignment is required"
+    },
+    "mount_source_counts": {
+      "own": 17,
+      "session": 55,
+      "unverified": 0
+    }
+  },
+  "quality_gate": {
+    "rules": [
+      "at least 30 s of valid synchronised samples (VBOX speed jumps > 30 m/s^2 and missing values removed)",
+      "phone clock offset verified from the yaw rate: own (z >= 3) or the median of the same recording session",
+      "same-drive check: excluded when the yaw rate is unverified AND the phone GPS speed does not follow the VBOX speed (corr < 0.8)",
+      "phone mount yaw must be estimable (own or pooled over the session, z >= 3)",
+      "stationary trips (max speed < 1 m/s) are kept for the zero-speed windows",
+      "validation/test additionally need the trip's OWN yaw rate to verify its clock (eval_eligible)"
+    ],
+    "excluded_trips": [
+      {
+        "trip_id": "Vta05",
+        "category": "Vta",
+        "hours": 0.01,
+        "reasons": [
+          "fewer than 30 s of valid synchronised samples",
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.76 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vta09",
+        "category": "Vta",
+        "hours": 0.0,
+        "reasons": [
+          "fewer than 30 s of valid synchronised samples"
+        ]
+      },
+      {
+        "trip_id": "Vta11",
+        "category": "Vta",
+        "hours": 0.01,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.75 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vta19",
+        "category": "Vta",
+        "hours": 0.01,
+        "reasons": [
+          "fewer than 30 s of valid synchronised samples",
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.69 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vtb06",
+        "category": "Vtb",
+        "hours": 0.01,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.77 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vtb08",
+        "category": "Vtb",
+        "hours": 0.02,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.72 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vtb09",
+        "category": "Vtb",
+        "hours": 0.01,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.75 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vtb10",
+        "category": "Vtb",
+        "hours": 0.01,
+        "reasons": [
+          "fewer than 30 s of valid synchronised samples",
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.65 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vtb11",
+        "category": "Vtb",
+        "hours": 0.01,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.60 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vw05",
+        "category": "Vw",
+        "hours": 0.03,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.65 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vw06",
+        "category": "Vw",
+        "hours": 0.04,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.58 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vw07",
+        "category": "Vw",
+        "hours": 0.04,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.35 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vw08",
+        "category": "Vw",
+        "hours": 0.04,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.69 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vw09",
+        "category": "Vw",
+        "hours": 0.02,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr -0.70 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vw13",
+        "category": "Vw",
+        "hours": 0.01,
+        "reasons": [
+          "fewer than 30 s of valid synchronised samples",
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.68 < 0.8"
+        ]
+      },
+      {
+        "trip_id": "Vw17",
+        "category": "Vw",
+        "hours": 0.01,
+        "reasons": [
+          "not shown to be the same drive: yaw rate unverified and phone GPS speed corr 0.76 < 0.8"
+        ]
+      }
+    ]
+  },
+  "splits": {
+    "rules": {
+      "test_drivers": [
+        "B",
+        "D"
+      ],
+      "test_categories": [
+        "Vtb"
+      ],
+      "val_rule": "per remaining category with >= 2 trips: the eval-eligible trip whose length is closest to 12% of the category's samples",
+      "unit": "whole trips; a window never crosses a trip or a gap segment",
+      "eval_eligible": "validation/test trips must have their phone clock verified by their own yaw rate",
+      "held_out_group_trips_dropped_unverified": [
+        "Vtb04",
+        "Vtb07",
+        "Vtb12"
+      ]
+    },
+    "train": {
+      "trips": [
+        "S1",
+        "S2",
+        "S3a",
+        "S3b",
+        "S4",
+        "Vfa02",
+        "Vta01a",
+        "Vta01b",
+        "Vta02",
+        "Vta03",
+        "Vta04",
+        "Vta06",
+        "Vta07",
+        "Vta08",
+        "Vta10",
+        "Vta12",
+        "Vta13",
+        "Vta14",
+        "Vta15",
+        "Vta16",
+        "Vta17",
+        "Vta20",
+        "Vta21",
+        "Vta22",
+        "Vta23",
+        "Vta24",
+        "Vta25",
+        "Vta26",
+        "Vta27",
+        "Vta28",
+        "Vta29",
+        "Vw01",
+        "Vw02",
+        "Vw03",
+        "Vw04",
+        "Vw10",
+        "Vw11",
+        "Vw12",
+        "Vw14a",
+        "Vw14b",
+        "Vw15",
+        "Vw16a",
+        "Vw16b"
+      ],
+      "n_trips": 43,
+      "hours": 19.01,
+      "km": 913.4,
+      "drivers": [
+        "A",
+        "E"
+      ],
+      "categories": [
+        "S",
+        "Vf",
+        "Vta",
+        "Vw"
+      ]
+    },
+    "val": {
+      "trips": [
+        "S3c",
+        "Vfa01",
+        "Vta30",
+        "Vw14c"
+      ],
+      "n_trips": 4,
+      "hours": 2.27,
+      "km": 91.1,
+      "drivers": [
+        "A",
+        "E"
+      ],
+      "categories": [
+        "S",
+        "Vf",
+        "Vta",
+        "Vw"
+      ]
+    },
+    "test": {
+      "trips": [
+        "M",
+        "Vtb01",
+        "Vtb02",
+        "Vtb03",
+        "Vtb05",
+        "Y1"
+      ],
+      "n_trips": 6,
+      "hours": 7.73,
+      "km": 314.7,
+      "drivers": [
+        "B",
+        "D",
+        "E"
+      ],
+      "categories": [
+        "M",
+        "Vtb",
+        "Y"
+      ]
+    }
+  },
+  "trips": {
+    "M": {
+      "category": "M",
+      "driver": "B",
+      "session": "M-20190907",
+      "rows_phone": 105974,
+      "rows_vbox": 105974,
+      "distance_km": 105.108,
+      "mean_kmh": 35.71,
+      "max_kmh": 100.7,
+      "included": true,
+      "eval_eligible": true,
+      "split": "test",
+      "wall_clock_mode": "wall",
+      "lag_samples": 2,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.91,
+      "row_pairing_yaw_lag_s": -1.3,
+      "gps_speed_corr": 0.95,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -33.4,
+        "own": {
+          "theta_deg": -33.4,
+          "rho": 0.546,
+          "z": 23.4
+        },
+        "session": {
+          "theta_deg": -33.4,
+          "rho": 0.546,
+          "z": 23.4
+        }
+      },
+      "valid_samples": 105897
+    },
+    "S1": {
+      "category": "S",
+      "driver": "A",
+      "session": "S-20190908",
+      "rows_phone": 51746,
+      "rows_vbox": 51746,
+      "distance_km": 37.948,
+      "mean_kmh": 26.4,
+      "max_kmh": 93.8,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 3,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.97,
+      "row_pairing_yaw_lag_s": -0.2,
+      "gps_speed_corr": 0.93,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -44.8,
+        "own": {
+          "theta_deg": -44.8,
+          "rho": 0.445,
+          "z": 13.0
+        },
+        "session": {
+          "theta_deg": -26.6,
+          "rho": 0.338,
+          "z": 16.4
+        }
+      },
+      "valid_samples": 51703
+    },
+    "S2": {
+      "category": "S",
+      "driver": "A",
+      "session": "S-20190908",
+      "rows_phone": 93876,
+      "rows_vbox": 93876,
+      "distance_km": 75.469,
+      "mean_kmh": 28.94,
+      "max_kmh": 105.2,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -2,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.95,
+      "row_pairing_yaw_lag_s": -8.7,
+      "gps_speed_corr": 0.96,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -13.2,
+        "own": {
+          "theta_deg": -13.2,
+          "rho": 0.304,
+          "z": 11.8
+        },
+        "session": {
+          "theta_deg": -26.6,
+          "rho": 0.338,
+          "z": 16.4
+        }
+      },
+      "valid_samples": 93789
+    },
+    "S3a": {
+      "category": "S",
+      "driver": "A",
+      "session": "S-20190904",
+      "rows_phone": 24621,
+      "rows_vbox": 24621,
+      "distance_km": 25.946,
+      "mean_kmh": 37.94,
+      "max_kmh": 98.0,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 2,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.98,
+      "row_pairing_yaw_lag_s": 6.7,
+      "gps_speed_corr": 0.97,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -29.1,
+        "own": {
+          "theta_deg": -29.1,
+          "rho": 0.409,
+          "z": 8.5
+        },
+        "session": {
+          "theta_deg": -34.9,
+          "rho": 0.148,
+          "z": 5.1
+        }
+      },
+      "valid_samples": 24554
+    },
+    "S3b": {
+      "category": "S",
+      "driver": "A",
+      "session": "S-20190904",
+      "rows_phone": 6813,
+      "rows_vbox": 6813,
+      "distance_km": 3.767,
+      "mean_kmh": 19.9,
+      "max_kmh": 44.7,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 3,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.6,
+      "row_pairing_yaw_lag_s": -4.7,
+      "gps_speed_corr": 0.79,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -34.9,
+        "own": {
+          "theta_deg": 70.2,
+          "rho": 0.023,
+          "z": 0.2
+        },
+        "session": {
+          "theta_deg": -34.9,
+          "rho": 0.148,
+          "z": 5.1
+        }
+      },
+      "valid_samples": 6761
+    },
+    "S3c": {
+      "category": "S",
+      "driver": "A",
+      "session": "S-20190904",
+      "rows_phone": 37183,
+      "rows_vbox": 37183,
+      "distance_km": 43.699,
+      "mean_kmh": 42.31,
+      "max_kmh": 117.1,
+      "included": true,
+      "eval_eligible": true,
+      "split": "val",
+      "wall_clock_mode": "wall",
+      "lag_samples": 3,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 1.0,
+      "row_pairing_yaw_lag_s": -0.5,
+      "gps_speed_corr": 0.98,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -34.9,
+        "own": {
+          "theta_deg": -68.7,
+          "rho": 0.05,
+          "z": 1.3
+        },
+        "session": {
+          "theta_deg": -34.9,
+          "rho": 0.148,
+          "z": 5.1
+        }
+      },
+      "valid_samples": 37159
+    },
+    "S4": {
+      "category": "S",
+      "driver": "A",
+      "session": "S-20190906",
+      "rows_phone": 94600,
+      "rows_vbox": 94600,
+      "distance_km": 88.425,
+      "mean_kmh": 33.65,
+      "max_kmh": 109.6,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -1,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.92,
+      "row_pairing_yaw_lag_s": -1.8,
+      "gps_speed_corr": 0.97,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -49.6,
+        "own": {
+          "theta_deg": -49.6,
+          "rho": 0.25,
+          "z": 9.6
+        },
+        "session": {
+          "theta_deg": -49.6,
+          "rho": 0.25,
+          "z": 9.6
+        }
+      },
+      "valid_samples": 91448
+    },
+    "Vfa01": {
+      "category": "Vf",
+      "driver": "E",
+      "session": "Vf-20191108",
+      "rows_phone": 11486,
+      "rows_vbox": 11535,
+      "distance_km": 18.778,
+      "mean_kmh": 58.61,
+      "max_kmh": 98.4,
+      "included": true,
+      "eval_eligible": true,
+      "split": "val",
+      "wall_clock_mode": "wall",
+      "lag_samples": -10,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.33,
+      "row_pairing_yaw_lag_s": -5.3,
+      "gps_speed_corr": 0.97,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -63.6,
+        "own": {
+          "theta_deg": -63.6,
+          "rho": 0.49,
+          "z": 7.1
+        },
+        "session": {
+          "theta_deg": -69.8,
+          "rho": 0.38,
+          "z": 14.9
+        }
+      },
+      "valid_samples": 11483
+    },
+    "Vfa02": {
+      "category": "Vf",
+      "driver": "E",
+      "session": "Vf-20191108",
+      "rows_phone": 67523,
+      "rows_vbox": 67755,
+      "distance_km": 163.137,
+      "mean_kmh": 86.68,
+      "max_kmh": 117.9,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -11,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.19,
+      "row_pairing_yaw_lag_s": -8.8,
+      "gps_speed_corr": 0.98,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -72.7,
+        "own": {
+          "theta_deg": -72.7,
+          "rho": 0.347,
+          "z": 12.6
+        },
+        "session": {
+          "theta_deg": -69.8,
+          "rho": 0.38,
+          "z": 14.9
+        }
+      },
+      "valid_samples": 67523
+    },
+    "Vta01a": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 25676,
+      "rows_vbox": 25676,
+      "distance_km": 40.722,
+      "mean_kmh": 57.1,
+      "max_kmh": 103.4,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 2,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.28,
+      "row_pairing_yaw_lag_s": 13.8,
+      "gps_speed_corr": 1.0,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -25.8,
+        "own": {
+          "theta_deg": -25.8,
+          "rho": 0.326,
+          "z": 7.3
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 25538
+    },
+    "Vta01b": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 954,
+      "rows_vbox": 953,
+      "distance_km": 1.259,
+      "mean_kmh": 47.55,
+      "max_kmh": 77.7,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.16,
+      "row_pairing_yaw_lag_s": -0.7,
+      "gps_speed_corr": 0.99,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 10.1,
+          "rho": 0.424,
+          "z": 1.8
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 948
+    },
+    "Vta02": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 10991,
+      "rows_vbox": 10991,
+      "distance_km": 11.049,
+      "mean_kmh": 36.19,
+      "max_kmh": 81.6,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 2,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.33,
+      "row_pairing_yaw_lag_s": -0.8,
+      "gps_speed_corr": 0.99,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -14.8,
+        "own": {
+          "theta_deg": -14.8,
+          "rho": 0.307,
+          "z": 4.3
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 10981
+    },
+    "Vta03": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 645,
+      "rows_vbox": 645,
+      "distance_km": 0.376,
+      "mean_kmh": 20.99,
+      "max_kmh": 45.8,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.82,
+      "row_pairing_yaw_lag_s": -2.0,
+      "gps_speed_corr": 0.84,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -66.3,
+          "rho": 0.556,
+          "z": 1.2
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 443
+    },
+    "Vta04": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 1789,
+      "rows_vbox": 1789,
+      "distance_km": 1.993,
+      "mean_kmh": 40.1,
+      "max_kmh": 51.7,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.21,
+      "row_pairing_yaw_lag_s": -1.7,
+      "gps_speed_corr": 0.83,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -8.1,
+          "rho": 0.195,
+          "z": 1.2
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 1767
+    },
+    "Vta05": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 307,
+      "rows_vbox": 307,
+      "distance_km": 0.362,
+      "mean_kmh": 42.47,
+      "max_kmh": 51.1,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.44,
+      "row_pairing_yaw_lag_s": -0.6,
+      "gps_speed_corr": 0.76,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -1.7,
+          "rho": 0.566,
+          "z": 1.4
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 299
+    },
+    "Vta06": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 1376,
+      "rows_vbox": 1376,
+      "distance_km": 2.594,
+      "mean_kmh": 67.87,
+      "max_kmh": 103.9,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.08,
+      "row_pairing_yaw_lag_s": 8.9,
+      "gps_speed_corr": 0.92,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -18.1,
+          "rho": 0.192,
+          "z": 1.0
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 1353
+    },
+    "Vta07": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 840,
+      "rows_vbox": 840,
+      "distance_km": 1.507,
+      "mean_kmh": 64.59,
+      "max_kmh": 113.1,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.4,
+      "row_pairing_yaw_lag_s": -1.4,
+      "gps_speed_corr": 0.95,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 5.6,
+          "rho": 0.487,
+          "z": 2.0
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 824
+    },
+    "Vta08": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 3676,
+      "rows_vbox": 3676,
+      "distance_km": 3.403,
+      "mean_kmh": 33.33,
+      "max_kmh": 77.6,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.25,
+      "row_pairing_yaw_lag_s": -1.3,
+      "gps_speed_corr": 0.97,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -18.4,
+          "rho": 0.277,
+          "z": 2.1
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 3663
+    },
+    "Vta09": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 156,
+      "rows_vbox": 156,
+      "distance_km": 0.311,
+      "mean_kmh": 71.76,
+      "max_kmh": 87.4,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": -0.29,
+      "row_pairing_yaw_lag_s": -9.8,
+      "gps_speed_corr": 0.82,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -96.4,
+          "rho": 0.188,
+          "z": 0.3
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 153
+    },
+    "Vta10": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 1502,
+      "rows_vbox": 1502,
+      "distance_km": 3.755,
+      "mean_kmh": 89.99,
+      "max_kmh": 118.0,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.22,
+      "row_pairing_yaw_lag_s": -0.1,
+      "gps_speed_corr": 0.94,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -78.0,
+          "rho": 0.31,
+          "z": 1.7
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 1497
+    },
+    "Vta11": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 510,
+      "rows_vbox": 510,
+      "distance_km": 0.716,
+      "mean_kmh": 50.57,
+      "max_kmh": 97.7,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.69,
+      "row_pairing_yaw_lag_s": -0.4,
+      "gps_speed_corr": 0.75,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -28.1,
+          "rho": 0.499,
+          "z": 1.6
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 505
+    },
+    "Vta12": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 610,
+      "rows_vbox": 610,
+      "distance_km": 1.124,
+      "mean_kmh": 66.32,
+      "max_kmh": 85.3,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.18,
+      "row_pairing_yaw_lag_s": -0.9,
+      "gps_speed_corr": 0.81,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 7.2,
+          "rho": 0.457,
+          "z": 1.6
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 607
+    },
+    "Vta13": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 404,
+      "rows_vbox": 404,
+      "distance_km": 0.98,
+      "mean_kmh": 87.35,
+      "max_kmh": 103.6,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.21,
+      "row_pairing_yaw_lag_s": 0.0,
+      "gps_speed_corr": 0.81,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 3.6,
+          "rho": 0.585,
+          "z": 1.7
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 400
+    },
+    "Vta14": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 2885,
+      "rows_vbox": 2885,
+      "distance_km": 5.434,
+      "mean_kmh": 67.8,
+      "max_kmh": 91.0,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.12,
+      "row_pairing_yaw_lag_s": -0.5,
+      "gps_speed_corr": 0.94,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 44.8,
+          "rho": 0.211,
+          "z": 1.6
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 2878
+    },
+    "Vta15": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 833,
+      "rows_vbox": 833,
+      "distance_km": 1.656,
+      "mean_kmh": 71.57,
+      "max_kmh": 78.8,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.11,
+      "row_pairing_yaw_lag_s": -5.0,
+      "gps_speed_corr": 0.86,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 78.5,
+          "rho": 0.26,
+          "z": 1.0
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 803
+    },
+    "Vta16": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 11335,
+      "rows_vbox": 11335,
+      "distance_km": 13.653,
+      "mean_kmh": 43.36,
+      "max_kmh": 93.9,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.35,
+      "row_pairing_yaw_lag_s": -1.7,
+      "gps_speed_corr": 0.97,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 126.1,
+          "rho": 0.188,
+          "z": 2.7
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 11316
+    },
+    "Vta17": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 4519,
+      "rows_vbox": 4519,
+      "distance_km": 4.103,
+      "mean_kmh": 32.69,
+      "max_kmh": 56.2,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.3,
+      "row_pairing_yaw_lag_s": -1.5,
+      "gps_speed_corr": 0.89,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -128.2,
+          "rho": 0.229,
+          "z": 2.1
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 4501
+    },
+    "Vta19": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 292,
+      "rows_vbox": 292,
+      "distance_km": 0.236,
+      "mean_kmh": 29.08,
+      "max_kmh": 54.3,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.44,
+      "row_pairing_yaw_lag_s": 0.0,
+      "gps_speed_corr": 0.69,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -143.5,
+          "rho": 0.601,
+          "z": 1.3
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 287
+    },
+    "Vta20": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 3223,
+      "rows_vbox": 3223,
+      "distance_km": 0.378,
+      "mean_kmh": 4.22,
+      "max_kmh": 44.8,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -10,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.44,
+      "row_pairing_yaw_lag_s": -13.0,
+      "gps_speed_corr": 0.97,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -133.1,
+          "rho": 0.38,
+          "z": 1.1
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 2946
+    },
+    "Vta21": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 2079,
+      "rows_vbox": 2079,
+      "distance_km": 2.76,
+      "mean_kmh": 47.79,
+      "max_kmh": 74.8,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.32,
+      "row_pairing_yaw_lag_s": -9.4,
+      "gps_speed_corr": 0.89,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 61.9,
+          "rho": 0.15,
+          "z": 0.9
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 1996
+    },
+    "Vta22": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 1564,
+      "rows_vbox": 1564,
+      "distance_km": 1.66,
+      "mean_kmh": 38.2,
+      "max_kmh": 55.8,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.36,
+      "row_pairing_yaw_lag_s": -4.9,
+      "gps_speed_corr": 0.84,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 53.6,
+          "rho": 0.124,
+          "z": 0.7
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 1526
+    },
+    "Vta23": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 1110,
+      "rows_vbox": 1110,
+      "distance_km": 1.089,
+      "mean_kmh": 35.33,
+      "max_kmh": 51.9,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.23,
+      "row_pairing_yaw_lag_s": -1.8,
+      "gps_speed_corr": 0.89,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -26.5,
+          "rho": 0.206,
+          "z": 0.9
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 1101
+    },
+    "Vta24": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 1171,
+      "rows_vbox": 1171,
+      "distance_km": 0.694,
+      "mean_kmh": 21.35,
+      "max_kmh": 56.4,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.57,
+      "row_pairing_yaw_lag_s": -1.0,
+      "gps_speed_corr": 0.92,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -14.4,
+          "rho": 0.31,
+          "z": 1.1
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 1170
+    },
+    "Vta25": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 646,
+      "rows_vbox": 646,
+      "distance_km": 0.159,
+      "mean_kmh": 8.85,
+      "max_kmh": 48.6,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.76,
+      "row_pairing_yaw_lag_s": 0.3,
+      "gps_speed_corr": 0.88,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -8.6,
+          "rho": 0.472,
+          "z": 0.9
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 632
+    },
+    "Vta26": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 1935,
+      "rows_vbox": 1935,
+      "distance_km": 1.001,
+      "mean_kmh": 18.62,
+      "max_kmh": 55.1,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.16,
+      "row_pairing_yaw_lag_s": -2.8,
+      "gps_speed_corr": 0.96,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 102.2,
+          "rho": 0.16,
+          "z": 0.7
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 1922
+    },
+    "Vta27": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 2540,
+      "rows_vbox": 2540,
+      "distance_km": 3.151,
+      "mean_kmh": 44.66,
+      "max_kmh": 65.0,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.12,
+      "row_pairing_yaw_lag_s": -5.6,
+      "gps_speed_corr": 0.91,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 101.4,
+          "rho": 0.141,
+          "z": 0.9
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 2267
+    },
+    "Vta28": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 4210,
+      "rows_vbox": 4210,
+      "distance_km": 3.927,
+      "mean_kmh": 33.58,
+      "max_kmh": 66.0,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": 1,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.31,
+      "row_pairing_yaw_lag_s": 0.4,
+      "gps_speed_corr": 0.89,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": 142.4,
+          "rho": 0.136,
+          "z": 1.1
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 4195
+    },
+    "Vta29": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 23705,
+      "rows_vbox": 23705,
+      "distance_km": 26.062,
+      "mean_kmh": 39.58,
+      "max_kmh": 102.0,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -13,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.25,
+      "row_pairing_yaw_lag_s": 4.3,
+      "gps_speed_corr": 0.96,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -12.1,
+        "own": {
+          "theta_deg": -12.1,
+          "rho": 0.173,
+          "z": 3.5
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 23645
+    },
+    "Vta30": {
+      "category": "Vta",
+      "driver": "E",
+      "session": "Vta-20191106",
+      "rows_phone": 17136,
+      "rows_vbox": 17136,
+      "distance_km": 11.746,
+      "mean_kmh": 24.68,
+      "max_kmh": 100.0,
+      "included": true,
+      "eval_eligible": true,
+      "split": "val",
+      "wall_clock_mode": "wall",
+      "lag_samples": -13,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.34,
+      "row_pairing_yaw_lag_s": -3.6,
+      "gps_speed_corr": 0.96,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -13.8,
+        "own": {
+          "theta_deg": -17.6,
+          "rho": 0.179,
+          "z": 2.7
+        },
+        "session": {
+          "theta_deg": -13.8,
+          "rho": 0.17,
+          "z": 7.9
+        }
+      },
+      "valid_samples": 17100
+    },
+    "Vtb01": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 32459,
+      "rows_vbox": 32459,
+      "distance_km": 41.559,
+      "mean_kmh": 46.09,
+      "max_kmh": 101.2,
+      "included": true,
+      "eval_eligible": true,
+      "split": "test",
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.3,
+      "row_pairing_yaw_lag_s": -1.1,
+      "gps_speed_corr": 0.94,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -49.7,
+        "own": {
+          "theta_deg": -49.7,
+          "rho": 0.222,
+          "z": 4.9
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 25662
+    },
+    "Vtb02": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 5712,
+      "rows_vbox": 5712,
+      "distance_km": 4.314,
+      "mean_kmh": 27.19,
+      "max_kmh": 61.1,
+      "included": true,
+      "eval_eligible": true,
+      "split": "test",
+      "wall_clock_mode": "wall",
+      "lag_samples": -18,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.32,
+      "row_pairing_yaw_lag_s": -0.9,
+      "gps_speed_corr": 0.96,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -71.4,
+          "rho": 0.271,
+          "z": 2.5
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 5694
+    },
+    "Vtb03": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 8240,
+      "rows_vbox": 8240,
+      "distance_km": 0.678,
+      "mean_kmh": 2.96,
+      "max_kmh": 37.5,
+      "included": true,
+      "eval_eligible": true,
+      "split": "test",
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.39,
+      "row_pairing_yaw_lag_s": -0.3,
+      "gps_speed_corr": 0.95,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -36.9,
+          "rho": 0.168,
+          "z": 0.5
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 8223
+    },
+    "Vtb04": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 556,
+      "rows_vbox": 556,
+      "distance_km": 0.241,
+      "mean_kmh": 15.63,
+      "max_kmh": 32.7,
+      "included": true,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.25,
+      "row_pairing_yaw_lag_s": -3.5,
+      "gps_speed_corr": 0.88,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -120.9,
+          "rho": 0.116,
+          "z": 0.3
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 539
+    },
+    "Vtb05": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 64388,
+      "rows_vbox": 64388,
+      "distance_km": 111.525,
+      "mean_kmh": 62.35,
+      "max_kmh": 112.9,
+      "included": true,
+      "eval_eligible": true,
+      "split": "test",
+      "wall_clock_mode": "wall",
+      "lag_samples": -18,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.21,
+      "row_pairing_yaw_lag_s": 1.9,
+      "gps_speed_corr": 0.99,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -43.9,
+        "own": {
+          "theta_deg": -43.9,
+          "rho": 0.246,
+          "z": 8.6
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 64089
+    },
+    "Vtb06": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 498,
+      "rows_vbox": 498,
+      "distance_km": 0.876,
+      "mean_kmh": 63.32,
+      "max_kmh": 73.0,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.2,
+      "row_pairing_yaw_lag_s": -0.4,
+      "gps_speed_corr": 0.77,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -45.2,
+          "rho": 0.264,
+          "z": 0.8
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 481
+    },
+    "Vtb07": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 461,
+      "rows_vbox": 461,
+      "distance_km": 0.722,
+      "mean_kmh": 56.4,
+      "max_kmh": 69.2,
+      "included": true,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.25,
+      "row_pairing_yaw_lag_s": -0.2,
+      "gps_speed_corr": 0.83,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -49.3,
+          "rho": 0.495,
+          "z": 1.5
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 443
+    },
+    "Vtb08": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 668,
+      "rows_vbox": 668,
+      "distance_km": 1.295,
+      "mean_kmh": 69.81,
+      "max_kmh": 76.5,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "session",
+      "yaw_corr_at_lag": -0.22,
+      "row_pairing_yaw_lag_s": -7.6,
+      "gps_speed_corr": 0.72,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -39.8,
+          "rho": 0.248,
+          "z": 0.9
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 651
+    },
+    "Vtb09": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 452,
+      "rows_vbox": 452,
+      "distance_km": 0.968,
+      "mean_kmh": 77.09,
+      "max_kmh": 92.0,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "session",
+      "yaw_corr_at_lag": -0.2,
+      "row_pairing_yaw_lag_s": -1.7,
+      "gps_speed_corr": 0.75,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -44.5,
+          "rho": 0.257,
+          "z": 0.8
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 435
+    },
+    "Vtb10": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 196,
+      "rows_vbox": 195,
+      "distance_km": 0.226,
+      "mean_kmh": 41.72,
+      "max_kmh": 58.5,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.59,
+      "row_pairing_yaw_lag_s": -1.8,
+      "gps_speed_corr": 0.65,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -41.4,
+          "rho": 0.685,
+          "z": 1.3
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 173
+    },
+    "Vtb11": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 361,
+      "rows_vbox": 361,
+      "distance_km": 0.7,
+      "mean_kmh": 69.82,
+      "max_kmh": 75.3,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "session",
+      "yaw_corr_at_lag": -0.21,
+      "row_pairing_yaw_lag_s": -5.2,
+      "gps_speed_corr": 0.6,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -44.4,
+          "rho": 0.161,
+          "z": 0.4
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 344
+    },
+    "Vtb12": {
+      "category": "Vtb",
+      "driver": "E",
+      "session": "Vtb-20191106",
+      "rows_phone": 447,
+      "rows_vbox": 447,
+      "distance_km": 0.531,
+      "mean_kmh": 42.77,
+      "max_kmh": 71.0,
+      "included": true,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -17,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.67,
+      "row_pairing_yaw_lag_s": 0.1,
+      "gps_speed_corr": 0.85,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -47.7,
+        "own": {
+          "theta_deg": -22.2,
+          "rho": 0.711,
+          "z": 2.1
+        },
+        "session": {
+          "theta_deg": -47.7,
+          "rho": 0.229,
+          "z": 9.9
+        }
+      },
+      "valid_samples": 430
+    },
+    "Vw01": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 20476,
+      "rows_vbox": 20475,
+      "distance_km": 0.023,
+      "mean_kmh": 0.04,
+      "max_kmh": 0.3,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.08,
+      "row_pairing_yaw_lag_s": 2.4,
+      "gps_speed_corr": 0.0,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 0.0,
+          "rho": 0.0,
+          "z": 0.0
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 19468
+    },
+    "Vw02": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 52713,
+      "rows_vbox": 52712,
+      "distance_km": 98.576,
+      "mean_kmh": 67.32,
+      "max_kmh": 115.4,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.29,
+      "row_pairing_yaw_lag_s": -2.2,
+      "gps_speed_corr": 0.98,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -63.9,
+        "own": {
+          "theta_deg": -63.9,
+          "rho": 0.265,
+          "z": 8.3
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 52681
+    },
+    "Vw03": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 3861,
+      "rows_vbox": 3861,
+      "distance_km": 4.94,
+      "mean_kmh": 46.06,
+      "max_kmh": 77.4,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -4,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.38,
+      "row_pairing_yaw_lag_s": -0.3,
+      "gps_speed_corr": 0.92,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": -53.3,
+          "rho": 0.16,
+          "z": 1.3
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 3857
+    },
+    "Vw04": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 126526,
+      "rows_vbox": 126527,
+      "distance_km": 214.369,
+      "mean_kmh": 60.99,
+      "max_kmh": 131.9,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.29,
+      "row_pairing_yaw_lag_s": -0.6,
+      "gps_speed_corr": 0.99,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -88.4,
+        "own": {
+          "theta_deg": -88.4,
+          "rho": 0.068,
+          "z": 3.3
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 126518
+    },
+    "Vw05": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 1012,
+      "rows_vbox": 1012,
+      "distance_km": 0.666,
+      "mean_kmh": 23.69,
+      "max_kmh": 37.4,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.61,
+      "row_pairing_yaw_lag_s": -3.1,
+      "gps_speed_corr": 0.65,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 56.8,
+          "rho": 0.296,
+          "z": 1.3
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 981
+    },
+    "Vw06": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 1281,
+      "rows_vbox": 1281,
+      "distance_km": 1.079,
+      "mean_kmh": 30.34,
+      "max_kmh": 40.7,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.46,
+      "row_pairing_yaw_lag_s": 1.1,
+      "gps_speed_corr": 0.58,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 174.4,
+          "rho": 0.054,
+          "z": 0.3
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 1268
+    },
+    "Vw07": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 1602,
+      "rows_vbox": 1602,
+      "distance_km": 1.159,
+      "mean_kmh": 26.05,
+      "max_kmh": 42.2,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "row",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.2,
+      "row_pairing_yaw_lag_s": 4.6,
+      "gps_speed_corr": 0.35,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 133.2,
+          "rho": 0.03,
+          "z": 0.2
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 1599
+    },
+    "Vw08": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 1529,
+      "rows_vbox": 1529,
+      "distance_km": 1.061,
+      "mean_kmh": 24.98,
+      "max_kmh": 46.4,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "row",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.26,
+      "row_pairing_yaw_lag_s": -3.5,
+      "gps_speed_corr": 0.69,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": -51.4,
+          "rho": 0.056,
+          "z": 0.3
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 1526
+    },
+    "Vw09": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 552,
+      "rows_vbox": 553,
+      "distance_km": 0.422,
+      "mean_kmh": 27.45,
+      "max_kmh": 42.0,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.53,
+      "row_pairing_yaw_lag_s": -0.8,
+      "gps_speed_corr": -0.7,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": -147.3,
+          "rho": 0.496,
+          "z": 1.6
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 545
+    },
+    "Vw10": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 652,
+      "rows_vbox": 652,
+      "distance_km": 0.733,
+      "mean_kmh": 40.49,
+      "max_kmh": 58.9,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.2,
+      "row_pairing_yaw_lag_s": -0.2,
+      "gps_speed_corr": 0.86,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 16.6,
+          "rho": 0.374,
+          "z": 1.3
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 647
+    },
+    "Vw11": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 4909,
+      "rows_vbox": 4909,
+      "distance_km": 5.838,
+      "mean_kmh": 42.81,
+      "max_kmh": 98.4,
+      "included": true,
+      "eval_eligible": true,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -2,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.37,
+      "row_pairing_yaw_lag_s": -1.7,
+      "gps_speed_corr": 0.96,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 19.0,
+          "rho": 0.312,
+          "z": 2.8
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 4892
+    },
+    "Vw12": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 918,
+      "rows_vbox": 918,
+      "distance_km": 2.305,
+      "mean_kmh": 90.41,
+      "max_kmh": 97.4,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": -0.07,
+      "row_pairing_yaw_lag_s": -10.0,
+      "gps_speed_corr": 0.92,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 58.0,
+          "rho": 0.099,
+          "z": 0.4
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 875
+    },
+    "Vw13": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 284,
+      "rows_vbox": 284,
+      "distance_km": 0.778,
+      "mean_kmh": 98.57,
+      "max_kmh": 113.5,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": -0.16,
+      "row_pairing_yaw_lag_s": 1.8,
+      "gps_speed_corr": 0.68,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 49.6,
+          "rho": 0.134,
+          "z": 0.3
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 271
+    },
+    "Vw14a": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 3138,
+      "rows_vbox": 3138,
+      "distance_km": 7.919,
+      "mean_kmh": 90.85,
+      "max_kmh": 109.4,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.09,
+      "row_pairing_yaw_lag_s": -6.7,
+      "gps_speed_corr": 0.86,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 62.8,
+          "rho": 0.264,
+          "z": 2.1
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 3086
+    },
+    "Vw14b": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 19588,
+      "rows_vbox": 19588,
+      "distance_km": 41.165,
+      "mean_kmh": 75.65,
+      "max_kmh": 120.1,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.06,
+      "row_pairing_yaw_lag_s": -4.2,
+      "gps_speed_corr": 0.99,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": 48.2,
+        "own": {
+          "theta_deg": 48.2,
+          "rho": 0.155,
+          "z": 3.1
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 19546
+    },
+    "Vw14c": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 15826,
+      "rows_vbox": 15826,
+      "distance_km": 17.084,
+      "mean_kmh": 38.86,
+      "max_kmh": 100.5,
+      "included": true,
+      "eval_eligible": true,
+      "split": "val",
+      "wall_clock_mode": "wall",
+      "lag_samples": -1,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.27,
+      "row_pairing_yaw_lag_s": -2.1,
+      "gps_speed_corr": 0.98,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 10.8,
+          "rho": 0.176,
+          "z": 2.7
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 15805
+    },
+    "Vw15": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 1380,
+      "rows_vbox": 1391,
+      "distance_km": 0.003,
+      "mean_kmh": 0.08,
+      "max_kmh": 0.8,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": -0.09,
+      "row_pairing_yaw_lag_s": -1.2,
+      "gps_speed_corr": 0.0,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": 0.0,
+          "rho": 0.0,
+          "z": 0.0
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 1358
+    },
+    "Vw16a": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 5879,
+      "rows_vbox": 5879,
+      "distance_km": 8.477,
+      "mean_kmh": 51.91,
+      "max_kmh": 83.5,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.14,
+      "row_pairing_yaw_lag_s": 10.0,
+      "gps_speed_corr": 0.97,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -35.4,
+        "own": {
+          "theta_deg": -35.4,
+          "rho": 0.299,
+          "z": 3.0
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 5777
+    },
+    "Vw16b": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 1126,
+      "rows_vbox": 1126,
+      "distance_km": 1.891,
+      "mean_kmh": 60.45,
+      "max_kmh": 86.3,
+      "included": true,
+      "eval_eligible": false,
+      "split": "train",
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.16,
+      "row_pairing_yaw_lag_s": 0.2,
+      "gps_speed_corr": 0.94,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": -34.0,
+          "rho": 0.439,
+          "z": 2.1
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 1123
+    },
+    "Vw17": {
+      "category": "Vw",
+      "driver": "E",
+      "session": "Vw-20200108",
+      "rows_phone": 329,
+      "rows_vbox": 329,
+      "distance_km": 0.54,
+      "mean_kmh": 59.05,
+      "max_kmh": 72.7,
+      "included": false,
+      "eval_eligible": false,
+      "split": null,
+      "wall_clock_mode": "wall",
+      "lag_samples": -3,
+      "lag_source": "session",
+      "yaw_corr_at_lag": 0.16,
+      "row_pairing_yaw_lag_s": 0.3,
+      "gps_speed_corr": 0.76,
+      "mount": {
+        "source": "session",
+        "theta_deg_used": -59.4,
+        "own": {
+          "theta_deg": -36.5,
+          "rho": 0.681,
+          "z": 1.7
+        },
+        "session": {
+          "theta_deg": -59.4,
+          "rho": 0.092,
+          "z": 6.1
+        }
+      },
+      "valid_samples": 310
+    },
+    "Y1": {
+      "category": "Y",
+      "driver": "D",
+      "session": "Y-20190830",
+      "rows_phone": 70285,
+      "rows_vbox": 70285,
+      "distance_km": 58.539,
+      "mean_kmh": 29.98,
+      "max_kmh": 87.5,
+      "included": true,
+      "eval_eligible": true,
+      "split": "test",
+      "wall_clock_mode": "wall",
+      "lag_samples": -8,
+      "lag_source": "own",
+      "yaw_corr_at_lag": 0.82,
+      "row_pairing_yaw_lag_s": 0.6,
+      "gps_speed_corr": 0.93,
+      "mount": {
+        "source": "own",
+        "theta_deg_used": -124.0,
+        "own": {
+          "theta_deg": -124.0,
+          "rho": 0.1,
+          "z": 3.4
+        },
+        "session": {
+          "theta_deg": -124.0,
+          "rho": 0.1,
+          "z": 3.4
+        }
+      },
+      "valid_samples": 68850
+    }
+  },
   "data_integrity_status": "PASSED_VERIFIED"
 }

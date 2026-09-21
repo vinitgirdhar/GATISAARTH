@@ -1,0 +1,11 @@
+MSBuild version 17.13.9+e0f243f1e for .NET Framework
+
+  Checking File Globs
+  gati_engine_obj.vcxproj -> C:\Users\vidhy\Downloads\gathisarthi\cpp-core\build-codex\gati_engine_obj.dir\Release\gati_engine_obj.lib
+  gati_legacy_obj.vcxproj -> C:\Users\vidhy\Downloads\gathisarthi\cpp-core\build-codex\gati_legacy_obj.dir\Release\gati_legacy_obj.lib
+  gati_engine.vcxproj -> C:\Users\vidhy\Downloads\gathisarthi\cpp-core\build-codex\Release\gati_engine.lib
+  bench_200hz.cpp
+  bench_200hz.vcxproj -> C:\Users\vidhy\Downloads\gathisarthi\cpp-core\build-codex\Release\bench_200hz.exe
+  cpp_core.vcxproj -> C:\Users\vidhy\Downloads\gathisarthi\cpp-core\build-codex\Release\cpp_core.dll
+  replay_external_imu.vcxproj -> C:\Users\vidhy\Downloads\gathisarthi\cpp-core\build-codex\Release\replay_external_imu.exe
+  test_engine.vcxproj -> C:\Users\vidhy\Downloads\gathisarthi\cpp-core\build-codex\Release\test_engine.exe

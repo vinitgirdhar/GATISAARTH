@@ -1,0 +1,11 @@
+Collecting onnx==1.17.0
+  Downloading onnx-1.17.0-cp311-cp311-win_amd64.whl.metadata (16 kB)
+Requirement already satisfied: numpy>=1.20 in c:\users\vidhy\appdata\local\programs\python\python311\lib\site-packages (from onnx==1.17.0) (2.4.6)
+Requirement already satisfied: protobuf>=3.20.2 in c:\users\vidhy\appdata\local\programs\python\python311\lib\site-packages (from onnx==1.17.0) (4.25.8)
+Downloading onnx-1.17.0-cp311-cp311-win_amd64.whl (14.5 MB)
+   ---------------------------------------- 14.5/14.5 MB 10.4 MB/s  0:00:01
+Installing collected packages: onnx
+Successfully installed onnx-1.17.0
+
+[notice] A new release of pip is available: 25.3 -> 26.2.1
+[notice] To update, run: python.exe -m pip install --upgrade pip

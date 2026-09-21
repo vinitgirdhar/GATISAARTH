@@ -7,9 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/nav/gnss/gnss_quality.dart';
 import '../../../../core/nav/math/nav_math.dart' show Vector3;
 import '../../../../core/nav/model/nav_snapshot.dart';
-import '../../../../core/nav/motion/motion_classifier.dart'
-    show VehicleClass;
+import '../../../../core/nav/motion/motion_classifier.dart' show VehicleClass;
 import '../../../../core/nav/navigation_engine.dart';
+import '../../../../core/nav/nav_config.dart';
 import '../../../../core/nav/replay/drive_log.dart';
 import '../../../../core/nav/replay/drive_recorder.dart';
 import '../../../../core/nav/sensors/sensor_sample.dart';
@@ -75,7 +75,6 @@ const int _canyonRelockAfter = 3;
 // included) — see assets/models/model_metadata.json — so it is fed at that
 // rate, not at the 50 Hz sensor rate.
 const double _mlFeedSeconds = 0.1;
-const double _gravity = 9.81;
 const int _mlWarmFrames = 10; // model ticks (= 1 s) before its output is used
 
 // While GNSS is live, sensor-only changes repaint at 4 Hz; the map marker
@@ -228,7 +227,7 @@ class LiveSessionController extends ChangeNotifier {
   /// (docs/architecture/EVOLUTION_PLAN.md, step 0.10) hands the position
   /// over only once a replay of a recorded drive shows it beating the
   /// heuristic on real phone data — simulation is not that evidence.
-  final NavigationEngine _engine = NavigationEngine();
+  final NavigationEngine _engine = NavigationEngine(config: NavConfig.live);
   NavigationSnapshot? _navSnapshot;
   int _engineFeedCount = 0;
   int _engineMicrosTotal = 0;
@@ -379,7 +378,8 @@ class LiveSessionController extends ChangeNotifier {
   Future<void> _loadVehicleProfile() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final saved = VehicleProfile.values.asNameMap()[prefs.getString(_vehicleKey)];
+      final saved =
+          VehicleProfile.values.asNameMap()[prefs.getString(_vehicleKey)];
       if (saved != null && !_disposed) _applyVehicleProfile(saved);
     } catch (_) {}
   }
@@ -580,7 +580,7 @@ class LiveSessionController extends ChangeNotifier {
     final gx = v[3], gy = v[4], gz = v[5];
 
     final vehicleAccel = _alignment.transformToVehicleFrame(ax, ay, az);
-    final nhc = _alignment.applyNonHolonomicConstraints(vehicleAccel);
+    _alignment.applyNonHolonomicConstraints(vehicleAccel);
     final netAccel = (sqrt(ax * ax + ay * ay + az * az) - 9.81).abs();
 
     _sampleCount++;
@@ -603,7 +603,7 @@ class LiveSessionController extends ChangeNotifier {
     _vibrationRms = _vibrationRms * 0.85 + netAccel * 0.15;
     _vibrationLevel = _vibrationLevelFor(_vibrationRms);
 
-    _advanceMotion(_feedModel(nhc, gx, gy, gz, dt), dt, now);
+    _advanceMotion(_feedModel([ax, ay, az], gx, gy, gz, dt), dt, now);
     _detectAnomaly(netAccel, now);
     _feedEngineImu(v, t);
 
@@ -633,17 +633,51 @@ class LiveSessionController extends ChangeNotifier {
     return speed;
   }
 
-  double _runModel(List<double> nhc, double gx, double gy, double gz) {
+  double _runModel(List<double> raw, double gx, double gy, double gz) {
+    // The trained model expects raw FLU (forward, left, up), including
+    // gravity. Never pass NHC-clamped acceleration: it removes road signal.
+    final mount = _engine.alignment;
+    if (mount != null) {
+      final acceleration = mount.toVehicle(Vector3(raw[0], raw[1], raw[2]));
+      final angularRate = mount.toVehicle(Vector3(gx, gy, gz));
+      return _ml.addImuFrame(
+        ax: acceleration.x,
+        ay: -acceleration.y,
+        az: -acceleration.z,
+        gx: angularRate.x,
+        gy: -angularRate.y,
+        gz: -angularRate.z,
+        // The accelerations are already levelled, so the model sees a flat frame.
+        pitch: 0,
+        roll: 0,
+      );
+    }
+
+    // Mount has not fully converged yet (e.g. at start, on desk, or on emulator).
+    // Level using estimated or instantaneous gravity vector so gravity is aligned
+    // with +Z (up), preventing massive out-of-distribution feature errors.
+    final rawAcc = Vector3(raw[0], raw[1], raw[2]);
+    final rawG = Vector3(gx, gy, gz);
+    final up = _engine.upInPhone ??
+        (rawAcc.length > 1.0 ? rawAcc.normalized() : Vector3(0, 0, 1));
+
+    // Decompose acceleration into vertical (along up) and horizontal plane
+    final az = rawAcc.dot(up);
+    final aHoriz = rawAcc - (up * az);
+    final ax = aHoriz.length > 0.05 ? aHoriz.length : 0.0;
+    const ay = 0.0;
+
+    // Project angular rate: rotation about vertical is gz
+    final gzLevel = rawG.dot(up);
+    final gHoriz = rawG - (up * gzLevel);
+
     return _ml.addImuFrame(
-      ax: nhc[0],
-      ay: nhc[1],
-      // Levelled, gravity-free input is off-distribution: the scaler expects
-      // raw accelerometer data with ~9.81 m/s² on the vertical axis.
-      az: nhc[2] + _gravity,
-      gx: gx,
-      gy: gy,
-      gz: gz,
-      // The accelerations are already levelled, so the model sees a flat frame.
+      ax: ax,
+      ay: ay,
+      az: az,
+      gx: gHoriz.x,
+      gy: gHoriz.y,
+      gz: gzLevel,
       pitch: 0,
       roll: 0,
     );
@@ -660,8 +694,7 @@ class LiveSessionController extends ChangeNotifier {
     return -rateUp * dt * 180 / pi;
   }
 
-  void _updateHeading(double mx, double my, double mz,
-      {required bool steer}) {
+  void _updateHeading(double mx, double my, double mz, {required bool steer}) {
     if (mx == 0 && my == 0 && mz == 0) return;
     _hasMagnetometer = true;
     _magX = mx;
@@ -908,7 +941,8 @@ class LiveSessionController extends ChangeNotifier {
   }) async {
     if (isRecording || _disposed) return _recordingPath;
     final startedAt = _clock();
-    final sessionId = 'drive-${startedAt.toIso8601String().replaceAll(RegExp(r'[^0-9A-Za-z]'), '')}';
+    final sessionId =
+        'drive-${startedAt.toIso8601String().replaceAll(RegExp(r'[^0-9A-Za-z]'), '')}';
     final path = await _logStore.open(sessionId);
     if (path == null) return null;
     unawaited(_haptics.fire(HapticEvent.recordingStarted));
@@ -1080,7 +1114,8 @@ class LiveSessionController extends ChangeNotifier {
 
   void _applyFix(GnssFix fix) {
     _feedEngineFix(fix);
-    _accuracy = _simCanyon ? max(fix.accuracy, _canyonMinAccuracy) : fix.accuracy;
+    _accuracy =
+        _simCanyon ? max(fix.accuracy, _canyonMinAccuracy) : fix.accuracy;
     _stillSeconds = 0;
     _positionSeeded = true;
     _maybeCache(fix);
@@ -1103,7 +1138,9 @@ class LiveSessionController extends ChangeNotifier {
         movedM = dist;
         final derivedSpeed = dist / dt;
 
-        if (resolvedSpeed < 0.35 && derivedSpeed >= 0.35 && derivedSpeed < 70.0) {
+        if (resolvedSpeed < 0.35 &&
+            derivedSpeed >= 0.35 &&
+            derivedSpeed < 70.0) {
           resolvedSpeed = derivedSpeed;
         }
 
@@ -1198,7 +1235,9 @@ class LiveSessionController extends ChangeNotifier {
   void _maybeCache(GnssFix fix) {
     final now = _clock();
     final last = _lastCacheAt;
-    if (last != null && now.difference(last) < _cacheEvery && _appliedFixCount > 1) return;
+    if (last != null &&
+        now.difference(last) < _cacheEvery &&
+        _appliedFixCount > 1) return;
     _lastCacheAt = now;
     unawaited(_writeCache(fix.latitude, fix.longitude));
   }
@@ -1386,8 +1425,7 @@ class LiveSessionController extends ChangeNotifier {
   List<ModeTransition> get engineTransitions => _engine.transitions;
 
   /// True only once the core's phone-to-vehicle transform has converged.
-  bool get isMountCalibrated =>
-      _navSnapshot?.isMountCalibrated ?? false;
+  bool get isMountCalibrated => _navSnapshot?.isMountCalibrated ?? false;
 
   /// Mount-alignment confidence, or null while it is unknown.
   double? get mountConfidence => _navSnapshot?.alignmentConfidence;
@@ -1399,12 +1437,10 @@ class LiveSessionController extends ChangeNotifier {
 
   /// Mean microseconds the navigation core takes per sensor frame, or
   /// null before it has run. Measured, not estimated (§44).
-  double? get engineMeanMicros => _engineFeedCount == 0
-      ? null
-      : _engineMicrosTotal / _engineFeedCount;
+  double? get engineMeanMicros =>
+      _engineFeedCount == 0 ? null : _engineMicrosTotal / _engineFeedCount;
 
-  int? get enginePeakMicros =>
-      _engineFeedCount == 0 ? null : _engineMicrosPeak;
+  int? get enginePeakMicros => _engineFeedCount == 0 ? null : _engineMicrosPeak;
 
   int get engineFixCount => _appliedEngineFixCount;
 

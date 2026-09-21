@@ -24,4 +24,3 @@ class LocalTfliteRunner {
     return [0.0, 0.90];
   }
 }
-

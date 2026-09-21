@@ -1,0 +1,7 @@
+synthetic_flat_out_600s        120000 samples |    272632 samples/s (1363x real time) | latency us p50 3.50 p95 7.00 p99 11.80 max 476.7 | drops 0 | err 0.67 m
+synthetic_paced                  2001 samples | e2e us p50 9 p99 81 max 8532 | misses(>5.0 ms) 1 | queue max 3/1023 | dropped 0 | recovery -1 ms | err 7.93 m
+iovnbd_flat_out_600s           120000 samples |    251534 samples/s (1258x real time) | latency us p50 3.20 p95 6.20 p99 7.30 max 185.2 | drops 0 | err 0.15 m
+iovnbd_paced                     2001 samples | e2e us p50 19 p99 14866 max 44302 | misses(>5.0 ms) 82 | queue max 8/1023 | dropped 0 | recovery -1 ms | err 0.08 m
+burst_producer_stall_200ms       2001 samples | e2e us p50 11 p99 95625 max 195520 | misses(>5.0 ms) 40 | queue max 40/1023 | dropped 0 | recovery -1 ms | err 7.93 m
+burst_consumer_stall_200ms       2001 samples | e2e us p50 8 p99 101038 max 200963 | misses(>5.0 ms) 40 | queue max 41/1023 | dropped 0 | recovery 1 ms | err 7.93 m
+burst_consumer_stall_6s_overflow     2401 samples | e2e us p50 22 p99 5885268 max 6000264 | misses(>5.0 ms) 1015 | queue max 1023/1023 | dropped 190 | recovery 3 ms | err 10.58 m

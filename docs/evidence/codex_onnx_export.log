@@ -1,0 +1,7 @@
+C:\Users\vidhy\Downloads\gathisarthi\ml\src\export\release_models.py:43: DeprecationWarning: You are using the legacy TorchScript-based ONNX export. Starting in PyTorch 2.9, the new torch.export-based ONNX exporter has become the default. Learn more about the new export logic: https://docs.pytorch.org/docs/stable/onnx_export.html. For exporting control flow: https://pytorch.org/tutorials/beginner/onnx/export_control_flow_model_to_onnx_tutorial.html
+  torch.onnx.export(model, torch.zeros(1, 20, 13), str(target), dynamo=False,
+C:\Users\vidhy\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch\onnx\_internal\torchscript_exporter\symbolic_opset9.py:4571: UserWarning: Exporting a model to ONNX with a batch_size other than 1, with a variable length with GRU can cause an error when running the ONNX model with a different batch size. Make sure to save the model with a batch size of 1, or define the initial states (h0/c0) as inputs of the model. 
+  return _generic_rnn(
+Exported C:\Users\vidhy\Downloads\gathisarthi\ml\models\speed_estimator\exported\speed_estimator.onnx (263860 bytes)
+Exported C:\Users\vidhy\Downloads\gathisarthi\ml\models\vibration_classifier\exported\vibration_classifier.onnx (95294 bytes)
+Exported C:\Users\vidhy\Downloads\gathisarthi\ml\models\motion_quality\exported\motion_quality.onnx (23953 bytes)

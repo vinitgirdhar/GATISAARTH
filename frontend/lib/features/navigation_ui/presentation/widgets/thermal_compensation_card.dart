@@ -62,7 +62,7 @@ class ThermalCompensationCard extends StatelessWidget {
             height: 38,
             margin: const EdgeInsets.symmetric(horizontal: 16),
             color: isDark
-                ? const Color(0xFF334155).withOpacity(0.6)
+                ? const Color(0xFF334155).withValues(alpha: 0.6)
                 : const Color(0xFFE2E8F0),
           ),
           Expanded(

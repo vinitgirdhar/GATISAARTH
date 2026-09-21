@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
+import '../nav_config.dart';
 import '../replay/drive_log.dart';
 import 'outage_benchmark.dart';
 import 'outage_report.dart';
@@ -15,6 +16,7 @@ class BenchmarkJob {
     this.text,
     this.path,
     this.config = const OutageBenchmarkConfig(),
+    this.engineConfig = NavConfig.defaults,
   }) : assert(text != null || path != null);
 
   final String label;
@@ -26,6 +28,9 @@ class BenchmarkJob {
   final String? path;
 
   final OutageBenchmarkConfig config;
+
+  /// The navigation core's configuration for the replay (AI on or off).
+  final NavConfig engineConfig;
 }
 
 /// Parses the log and scores it. Throws [FormatException] when nothing in it is
@@ -53,6 +58,7 @@ OutageReport runBenchmarkJob(
   return OutageBenchmark.run(
     records,
     config: job.config,
+    engineConfig: job.engineConfig,
     source: job.label,
     onProgress: onProgress,
   );

@@ -56,10 +56,10 @@ class SensorsTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.12),
+                color: AppColors.success.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColors.success.withOpacity(0.3),
+                  color: AppColors.success.withValues(alpha: 0.3),
                 ),
               ),
               child: const Row(
@@ -86,19 +86,14 @@ class SensorsTab extends StatelessWidget {
         // 2. Sensor Item Cards (Matching UI/UX Board Screen 4)
         Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.lightSurfaceBorder,
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Column(
             children: [
@@ -313,7 +308,7 @@ class _SensorStatusTile extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: AppColors.primary, size: 20),
@@ -344,7 +339,7 @@ class _SensorStatusTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
+              color: statusColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

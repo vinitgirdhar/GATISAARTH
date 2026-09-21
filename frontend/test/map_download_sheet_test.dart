@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gatisaarth/core/platform/maps/map_download_service.dart';
 import 'package:gatisaarth/core/platform/maps/offline_catalog.dart';
-import 'package:gatisaarth/core/platform/maps/offline_map_service.dart';
 import 'package:gatisaarth/features/offline_maps/domain/map_download_prompt.dart';
 import 'package:gatisaarth/features/offline_maps/presentation/map_download_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';

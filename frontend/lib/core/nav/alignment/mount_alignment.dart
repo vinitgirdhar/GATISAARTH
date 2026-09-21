@@ -174,16 +174,23 @@ class MountAlignmentEstimator {
   ///
   /// [gnssSpeedMps] must be a real, trusted fix speed or null. Feeding a
   /// dead-reckoned speed here would make the regression circular.
+  ///
+  /// With [hold] the sample is not learned from: no gravity or tilt update and
+  /// no regression step. A shock (pothole, phone knocked) corrupts exactly the
+  /// readings the estimate is built from, and one such sample can move a slow
+  /// gravity average further than a second of quiet driving.
   MountAlignment? add({
     required Vector3 accelPhone,
     required Vector3 gyroPhone,
     required int monotonicUs,
     double? gnssSpeedMps,
     int? gnssUs,
+    bool hold = false,
   }) {
     if (!_finite(accelPhone) || !_finite(gyroPhone)) return _alignment;
 
     _updateSpeedDerivative(gnssSpeedMps, gnssUs ?? monotonicUs);
+    if (hold) return _alignment;
     final dvdt = _applicableDvdt(monotonicUs);
 
     // Gravity must be estimated from samples where the vehicle is NOT

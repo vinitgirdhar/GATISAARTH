@@ -1,0 +1,146 @@
+{
+  "what": "Simulated sensors on real OSM streets read from the app's offline map archives; engine with vs without the road graph, same sensor stream. Not field accuracy.",
+  "places": {
+    "Delhi, Dwarka": {
+      "graph_edges": 6669,
+      "without_map": {
+        "route_m": 4500,
+        "outage_distance_m": 600.0,
+        "final_error_m": 11.4,
+        "max_error_m": 22.1,
+        "mean_distance_to_nearest_road_m": 2.1,
+        "mean_heading_error_deg": 0.7,
+        "drift_percent": 1.89,
+        "matched_share_gnss_aided": 0.0,
+        "map_assisted_share_outage": 0.0,
+        "imu_frame_mean_us": 95.1,
+        "imu_frame_max_us": 23462,
+        "not_matched_reasons_percent": {}
+      },
+      "with_map": {
+        "route_m": 4500,
+        "outage_distance_m": 600.0,
+        "final_error_m": 10.1,
+        "max_error_m": 23.4,
+        "mean_distance_to_nearest_road_m": 0.4,
+        "mean_heading_error_deg": 0.3,
+        "drift_percent": 1.68,
+        "matched_share_gnss_aided": 0.846,
+        "map_assisted_share_outage": 0.915,
+        "imu_frame_mean_us": 79.4,
+        "imu_frame_max_us": 8109,
+        "not_matched_reasons_percent": {
+          "no result": 11,
+          "N m from the nearest road, beyond the estimate's own uncertainty": 4,
+          "Leading road only N % likely": 0,
+          "Two roads are too close to call (N % apart)": 0
+        }
+      }
+    },
+    "Delhi, Rohini": {
+      "graph_edges": 8857,
+      "without_map": {
+        "route_m": 4500,
+        "outage_distance_m": 600.0,
+        "final_error_m": 8.8,
+        "max_error_m": 9.0,
+        "mean_distance_to_nearest_road_m": 2.6,
+        "mean_heading_error_deg": 0.7,
+        "drift_percent": 1.47,
+        "matched_share_gnss_aided": 0.0,
+        "map_assisted_share_outage": 0.0,
+        "imu_frame_mean_us": 59.6,
+        "imu_frame_max_us": 5037,
+        "not_matched_reasons_percent": {}
+      },
+      "with_map": {
+        "route_m": 4500,
+        "outage_distance_m": 600.0,
+        "final_error_m": 4.3,
+        "max_error_m": 5.4,
+        "mean_distance_to_nearest_road_m": 0.5,
+        "mean_heading_error_deg": 0.2,
+        "drift_percent": 0.72,
+        "matched_share_gnss_aided": 0.886,
+        "map_assisted_share_outage": 0.915,
+        "imu_frame_mean_us": 49.4,
+        "imu_frame_max_us": 831,
+        "not_matched_reasons_percent": {
+          "no result": 11,
+          "Leading road only N % likely": 1,
+          "Waiting for a second consistent fix": 0
+        }
+      }
+    },
+    "Delhi, Vasant Kunj": {
+      "graph_edges": 3226,
+      "without_map": {
+        "route_m": 4500,
+        "outage_distance_m": 564.1,
+        "final_error_m": 2.4,
+        "max_error_m": 68.9,
+        "mean_distance_to_nearest_road_m": 1.6,
+        "mean_heading_error_deg": 0.5,
+        "drift_percent": 0.42,
+        "matched_share_gnss_aided": 0.0,
+        "map_assisted_share_outage": 0.0,
+        "imu_frame_mean_us": 43.6,
+        "imu_frame_max_us": 666,
+        "not_matched_reasons_percent": {}
+      },
+      "with_map": {
+        "route_m": 4500,
+        "outage_distance_m": 564.1,
+        "final_error_m": 7.4,
+        "max_error_m": 66.2,
+        "mean_distance_to_nearest_road_m": 1.7,
+        "mean_heading_error_deg": 0.6,
+        "drift_percent": 1.31,
+        "matched_share_gnss_aided": 0.878,
+        "map_assisted_share_outage": 0.89,
+        "imu_frame_mean_us": 48.0,
+        "imu_frame_max_us": 1106,
+        "not_matched_reasons_percent": {
+          "no result": 11,
+          "N m from the nearest road, beyond the estimate's own uncertainty": 1,
+          "Waiting for a second consistent fix": 0,
+          "Two roads are too close to call (N % apart)": 0
+        }
+      }
+    },
+    "Mumbai, Andheri": {
+      "graph_edges": 5104,
+      "without_map": {
+        "route_m": 4500,
+        "outage_distance_m": 600.0,
+        "final_error_m": 17.8,
+        "max_error_m": 17.8,
+        "mean_distance_to_nearest_road_m": 2.1,
+        "mean_heading_error_deg": 0.6,
+        "drift_percent": 2.97,
+        "matched_share_gnss_aided": 0.0,
+        "map_assisted_share_outage": 0.0,
+        "imu_frame_mean_us": 43.1,
+        "imu_frame_max_us": 658,
+        "not_matched_reasons_percent": {}
+      },
+      "with_map": {
+        "route_m": 4500,
+        "outage_distance_m": 600.0,
+        "final_error_m": 14.1,
+        "max_error_m": 14.1,
+        "mean_distance_to_nearest_road_m": 0.4,
+        "mean_heading_error_deg": 0.3,
+        "drift_percent": 2.35,
+        "matched_share_gnss_aided": 0.892,
+        "map_assisted_share_outage": 0.915,
+        "imu_frame_mean_us": 54.3,
+        "imu_frame_max_us": 878,
+        "not_matched_reasons_percent": {
+          "no result": 11,
+          "Waiting for a second consistent fix": 0
+        }
+      }
+    }
+  }
+}

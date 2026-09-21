@@ -1,0 +1,291 @@
+Collecting tensorflow==2.18.1
+  Obtaining dependency information for tensorflow==2.18.1 from https://files.pythonhosted.org/packages/28/2a/5f5ade4be81e521a16e143234747570ffd0d1a90e001ecc2688aa54bb419/tensorflow-2.18.1-cp311-cp311-win_amd64.whl.metadata
+  Downloading tensorflow-2.18.1-cp311-cp311-win_amd64.whl.metadata (4.1 kB)
+Collecting onnx==1.17.0
+  Obtaining dependency information for onnx==1.17.0 from https://files.pythonhosted.org/packages/51/a5/19b0dfcb567b62e7adf1a21b08b23224f0c2d13842aee4d0abc6f07f9cf5/onnx-1.17.0-cp311-cp311-win_amd64.whl.metadata
+  Downloading onnx-1.17.0-cp311-cp311-win_amd64.whl.metadata (16 kB)
+Collecting onnxruntime==1.20.1
+  Obtaining dependency information for onnxruntime==1.20.1 from https://files.pythonhosted.org/packages/2c/2d/2d4d202c0bcfb3a4cc2b171abb9328672d7f91d7af9ea52572722c6d8d96/onnxruntime-1.20.1-cp311-cp311-win_amd64.whl.metadata
+  Downloading onnxruntime-1.20.1-cp311-cp311-win_amd64.whl.metadata (4.7 kB)
+Collecting pip-audit
+  Obtaining dependency information for pip-audit from https://files.pythonhosted.org/packages/a3/a7/b0c504148114047bd1bc9d97447453c6850ca176bb2f3c0038835994e8b7/pip_audit-2.10.1-py3-none-any.whl.metadata
+  Downloading pip_audit-2.10.1-py3-none-any.whl.metadata (28 kB)
+Collecting absl-py>=1.0.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for absl-py>=1.0.0 from https://files.pythonhosted.org/packages/58/0a/a10b45aab35b175aded078a462dc8d0c698f5b13946e7cb0869097b78bb6/absl_py-2.5.0-py3-none-any.whl.metadata
+  Downloading absl_py-2.5.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting astunparse>=1.6.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for astunparse>=1.6.0 from https://files.pythonhosted.org/packages/2b/03/13dde6512ad7b4557eb792fbcf0c653af6076b81e5941d36ec61f7ce6028/astunparse-1.6.3-py2.py3-none-any.whl.metadata
+  Downloading astunparse-1.6.3-py2.py3-none-any.whl.metadata (4.4 kB)
+Collecting flatbuffers>=24.3.25 (from tensorflow==2.18.1)
+  Obtaining dependency information for flatbuffers>=24.3.25 from https://files.pythonhosted.org/packages/e8/2d/d2a548598be01649e2d46231d151a6c56d10b964d94043a335ae56ea2d92/flatbuffers-25.12.19-py2.py3-none-any.whl.metadata
+  Downloading flatbuffers-25.12.19-py2.py3-none-any.whl.metadata (1.0 kB)
+Collecting gast!=0.5.0,!=0.5.1,!=0.5.2,>=0.2.1 (from tensorflow==2.18.1)
+  Obtaining dependency information for gast!=0.5.0,!=0.5.1,!=0.5.2,>=0.2.1 from https://files.pythonhosted.org/packages/1d/33/f1c6a276de27b7d7339a34749cc33fa87f077f921969c47185d34a887ae2/gast-0.7.0-py3-none-any.whl.metadata
+  Downloading gast-0.7.0-py3-none-any.whl.metadata (1.5 kB)
+Collecting google-pasta>=0.1.1 (from tensorflow==2.18.1)
+  Obtaining dependency information for google-pasta>=0.1.1 from https://files.pythonhosted.org/packages/a3/de/c648ef6835192e6e2cc03f40b19eeda4382c49b5bafb43d88b931c4c74ac/google_pasta-0.2.0-py3-none-any.whl.metadata
+  Downloading google_pasta-0.2.0-py3-none-any.whl.metadata (814 bytes)
+Collecting libclang>=13.0.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for libclang>=13.0.0 from https://files.pythonhosted.org/packages/0b/2d/3f480b1e1d31eb3d6de5e3ef641954e5c67430d5ac93b7fa7e07589576c7/libclang-18.1.1-py2.py3-none-win_amd64.whl.metadata
+  Downloading libclang-18.1.1-py2.py3-none-win_amd64.whl.metadata (5.3 kB)
+Collecting opt-einsum>=2.3.2 (from tensorflow==2.18.1)
+  Obtaining dependency information for opt-einsum>=2.3.2 from https://files.pythonhosted.org/packages/23/cd/066e86230ae37ed0be70aae89aabf03ca8d9f39c8aea0dec8029455b5540/opt_einsum-3.4.0-py3-none-any.whl.metadata
+  Downloading opt_einsum-3.4.0-py3-none-any.whl.metadata (6.3 kB)
+Collecting packaging (from tensorflow==2.18.1)
+  Obtaining dependency information for packaging from https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl.metadata
+  Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+Collecting protobuf!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5,<6.0.0dev,>=3.20.3 (from tensorflow==2.18.1)
+  Obtaining dependency information for protobuf!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5,<6.0.0dev,>=3.20.3 from https://files.pythonhosted.org/packages/1c/66/2dc736a4d576847134fb6d80bd995c569b13cdc7b815d669050bf0ce2d2c/protobuf-5.29.6-cp310-abi3-win_amd64.whl.metadata
+  Using cached protobuf-5.29.6-cp310-abi3-win_amd64.whl.metadata (592 bytes)
+Collecting requests<3,>=2.21.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for requests<3,>=2.21.0 from https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl.metadata
+  Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+Requirement already satisfied: setuptools in c:\users\vidhy\downloads\gathisarthi\ml\.venv-export\lib\site-packages (from tensorflow==2.18.1) (65.5.0)
+Collecting six>=1.12.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for six>=1.12.0 from https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl.metadata
+  Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting termcolor>=1.1.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for termcolor>=1.1.0 from https://files.pythonhosted.org/packages/33/d1/8bb87d21e9aeb323cc03034f5eaf2c8f69841e40e4853c2627edf8111ed3/termcolor-3.3.0-py3-none-any.whl.metadata
+  Downloading termcolor-3.3.0-py3-none-any.whl.metadata (6.5 kB)
+Collecting typing-extensions>=3.6.6 (from tensorflow==2.18.1)
+  Obtaining dependency information for typing-extensions>=3.6.6 from https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl.metadata
+  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting wrapt>=1.11.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for wrapt>=1.11.0 from https://files.pythonhosted.org/packages/d9/10/5f7d2dd40c97c5e572dce771b8d4c1c78d46a90cfc24c7b25f158253215a/wrapt-2.4.1-cp311-cp311-win_amd64.whl.metadata
+  Downloading wrapt-2.4.1-cp311-cp311-win_amd64.whl.metadata (7.6 kB)
+Collecting grpcio<2.0,>=1.24.3 (from tensorflow==2.18.1)
+  Obtaining dependency information for grpcio<2.0,>=1.24.3 from https://files.pythonhosted.org/packages/da/1e/da99356b3b573af357d059753a47fba54f1ca1a9c0e4deccd0210cb7f4ba/grpcio-1.84.0-cp311-cp311-win_amd64.whl.metadata
+  Downloading grpcio-1.84.0-cp311-cp311-win_amd64.whl.metadata (3.9 kB)
+Collecting tensorboard<2.19,>=2.18 (from tensorflow==2.18.1)
+  Obtaining dependency information for tensorboard<2.19,>=2.18 from https://files.pythonhosted.org/packages/b1/de/021c1d407befb505791764ad2cbd56ceaaa53a746baed01d2e2143f05f18/tensorboard-2.18.0-py3-none-any.whl.metadata
+  Downloading tensorboard-2.18.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting keras>=3.5.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for keras>=3.5.0 from https://files.pythonhosted.org/packages/8d/b3/c9b848bbdba18e765a8051917c0cc82585b64278ce87895f2e521a27438f/keras-3.15.1-py3-none-any.whl.metadata
+  Downloading keras-3.15.1-py3-none-any.whl.metadata (6.4 kB)
+Collecting numpy<2.1.0,>=1.26.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for numpy<2.1.0,>=1.26.0 from https://files.pythonhosted.org/packages/eb/57/3a3f14d3a759dcf9bf6e9eda905794726b758819df4663f217d658a58695/numpy-2.0.2-cp311-cp311-win_amd64.whl.metadata
+  Downloading numpy-2.0.2-cp311-cp311-win_amd64.whl.metadata (59 kB)
+     -------------------------------------- 59.7/59.7 kB 532.3 kB/s eta 0:00:00
+Collecting h5py>=3.11.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for h5py>=3.11.0 from https://files.pythonhosted.org/packages/f7/20/e6c0ff62ca2ad1a396a34f4380bafccaaf8791ff8fccf3d995a1fc12d417/h5py-3.16.0-cp311-cp311-win_amd64.whl.metadata
+  Downloading h5py-3.16.0-cp311-cp311-win_amd64.whl.metadata (3.1 kB)
+Collecting ml-dtypes<1.0.0,>=0.4.0 (from tensorflow==2.18.1)
+  Obtaining dependency information for ml-dtypes<1.0.0,>=0.4.0 from https://files.pythonhosted.org/packages/07/23/8870bb62d6e499d6bcbc1242b9f11689bae00a3d39d3684a9aefad8b6ee6/ml_dtypes-0.6.0-cp311-cp311-win_amd64.whl.metadata
+  Downloading ml_dtypes-0.6.0-cp311-cp311-win_amd64.whl.metadata (8.8 kB)
+Collecting tensorflow-io-gcs-filesystem>=0.23.1 (from tensorflow==2.18.1)
+  Obtaining dependency information for tensorflow-io-gcs-filesystem>=0.23.1 from https://files.pythonhosted.org/packages/ac/4e/9566a313927be582ca99455a9523a097c7888fc819695bdc08415432b202/tensorflow_io_gcs_filesystem-0.31.0-cp311-cp311-win_amd64.whl.metadata
+  Downloading tensorflow_io_gcs_filesystem-0.31.0-cp311-cp311-win_amd64.whl.metadata (14 kB)
+Collecting coloredlogs (from onnxruntime==1.20.1)
+  Obtaining dependency information for coloredlogs from https://files.pythonhosted.org/packages/a7/06/3d6badcf13db419e25b07041d9c7b4a2c331d3f4e7134445ec5df57714cd/coloredlogs-15.0.1-py2.py3-none-any.whl.metadata
+  Downloading coloredlogs-15.0.1-py2.py3-none-any.whl.metadata (12 kB)
+Collecting sympy (from onnxruntime==1.20.1)
+  Obtaining dependency information for sympy from https://files.pythonhosted.org/packages/a2/09/77d55d46fd61b4a135c444fc97158ef34a095e5681d0a6c10b75bf356191/sympy-1.14.0-py3-none-any.whl.metadata
+  Using cached sympy-1.14.0-py3-none-any.whl.metadata (12 kB)
+Collecting CacheControl[filecache]>=0.13.0 (from pip-audit)
+  Obtaining dependency information for CacheControl[filecache]>=0.13.0 from https://files.pythonhosted.org/packages/ef/79/c45f2d53efe6ada1110cf6f9fca095e4ff47a0454444aefdde6ac4789179/cachecontrol-0.14.4-py3-none-any.whl.metadata
+  Downloading cachecontrol-0.14.4-py3-none-any.whl.metadata (3.1 kB)
+Collecting cyclonedx-python-lib<12,>=5 (from pip-audit)
+  Obtaining dependency information for cyclonedx-python-lib<12,>=5 from https://files.pythonhosted.org/packages/cf/f0/b2cb999244f2f4194df63ecff6939228178fa63a33be809c412684ca8db7/cyclonedx_python_lib-11.12.0-py3-none-any.whl.metadata
+  Downloading cyclonedx_python_lib-11.12.0-py3-none-any.whl.metadata (6.9 kB)
+Collecting pip-api>=0.0.28 (from pip-audit)
+  Obtaining dependency information for pip-api>=0.0.28 from https://files.pythonhosted.org/packages/1d/2e/d424c5b5877be862dd9a2c8b7e9ddb13382bb25e132e6dd50cc09c0a7dde/pip_api-0.0.35-py3-none-any.whl.metadata
+  Downloading pip_api-0.0.35-py3-none-any.whl.metadata (17 kB)
+Collecting pip-requirements-parser>=32.0.0 (from pip-audit)
+  Obtaining dependency information for pip-requirements-parser>=32.0.0 from https://files.pythonhosted.org/packages/54/d0/d04f1d1e064ac901439699ee097f58688caadea42498ec9c4b4ad2ef84ab/pip_requirements_parser-32.0.1-py3-none-any.whl.metadata
+  Downloading pip_requirements_parser-32.0.1-py3-none-any.whl.metadata (9.3 kB)
+Collecting rich>=12.4 (from pip-audit)
+  Obtaining dependency information for rich>=12.4 from https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl.metadata
+  Using cached rich-15.0.0-py3-none-any.whl.metadata (18 kB)
+Collecting tomli>=2.2.1 (from pip-audit)
+  Obtaining dependency information for tomli>=2.2.1 from https://files.pythonhosted.org/packages/42/59/71461df1a885647e10b6bb7802d0b8e66480c61f3f43079e0dcd315b3954/tomli-2.4.1-cp311-cp311-win_amd64.whl.metadata
+  Downloading tomli-2.4.1-cp311-cp311-win_amd64.whl.metadata (10 kB)
+Collecting tomli-w>=1.2.0 (from pip-audit)
+  Obtaining dependency information for tomli-w>=1.2.0 from https://files.pythonhosted.org/packages/c7/18/c86eb8e0202e32dd3df50d43d7ff9854f8e0603945ff398974c1d91ac1ef/tomli_w-1.2.0-py3-none-any.whl.metadata
+  Downloading tomli_w-1.2.0-py3-none-any.whl.metadata (5.7 kB)
+Collecting platformdirs>=4.2.0 (from pip-audit)
+  Obtaining dependency information for platformdirs>=4.2.0 from https://files.pythonhosted.org/packages/39/be/3ae887e84c38c4dd1c549cd5825adc93f48069a94fe1cb8ac52a9da16f15/platformdirs-4.11.11-py3-none-any.whl.metadata
+  Downloading platformdirs-4.11.11-py3-none-any.whl.metadata (5.5 kB)
+Collecting wheel<1.0,>=0.23.0 (from astunparse>=1.6.0->tensorflow==2.18.1)
+  Obtaining dependency information for wheel<1.0,>=0.23.0 from https://files.pythonhosted.org/packages/2e/29/69cfbb602cd91690c55d38ba9fe53e6a7e76a6fa647bf38f19c138d25449/wheel-0.48.0-py3-none-any.whl.metadata
+  Downloading wheel-0.48.0-py3-none-any.whl.metadata (2.3 kB)
+Collecting msgpack<2.0.0,>=0.5.2 (from CacheControl[filecache]>=0.13.0->pip-audit)
+  Obtaining dependency information for msgpack<2.0.0,>=0.5.2 from https://files.pythonhosted.org/packages/84/13/f748f0d59f355d196e71a0b32d48d386a9bd311f94d954e666cf7e5b2572/msgpack-1.2.2-cp311-cp311-win_amd64.whl.metadata
+  Downloading msgpack-1.2.2-cp311-cp311-win_amd64.whl.metadata (8.5 kB)
+Collecting filelock>=3.8.0 (from CacheControl[filecache]>=0.13.0->pip-audit)
+  Obtaining dependency information for filelock>=3.8.0 from https://files.pythonhosted.org/packages/29/33/af0635ab07fe83b1788a1dbe370ff3e226062495a998335cb18a1cac81aa/filelock-4.0.1-py3-none-any.whl.metadata
+  Downloading filelock-4.0.1-py3-none-any.whl.metadata (2.0 kB)
+Collecting license-expression<31,>=30 (from cyclonedx-python-lib<12,>=5->pip-audit)
+  Obtaining dependency information for license-expression<31,>=30 from https://files.pythonhosted.org/packages/af/40/791891d4c0c4dab4c5e187c17261cedc26285fd41541577f900470a45a4d/license_expression-30.4.4-py3-none-any.whl.metadata
+  Downloading license_expression-30.4.4-py3-none-any.whl.metadata (11 kB)
+Collecting packageurl-python<2,>=0.11 (from cyclonedx-python-lib<12,>=5->pip-audit)
+  Obtaining dependency information for packageurl-python<2,>=0.11 from https://files.pythonhosted.org/packages/b1/2f/c7277b7615a93f51b5fbc1eacfc1b75e8103370e786fd8ce2abf6e5c04ab/packageurl_python-0.17.6-py3-none-any.whl.metadata
+  Downloading packageurl_python-0.17.6-py3-none-any.whl.metadata (5.1 kB)
+Collecting py-serializable<3.0.0,>=2.1.0 (from cyclonedx-python-lib<12,>=5->pip-audit)
+  Obtaining dependency information for py-serializable<3.0.0,>=2.1.0 from https://files.pythonhosted.org/packages/9b/bf/7595e817906a29453ba4d99394e781b6fabe55d21f3c15d240f85dd06bb1/py_serializable-2.1.0-py3-none-any.whl.metadata
+  Downloading py_serializable-2.1.0-py3-none-any.whl.metadata (4.3 kB)
+Collecting sortedcontainers<3.0.0,>=2.4.0 (from cyclonedx-python-lib<12,>=5->pip-audit)
+  Obtaining dependency information for sortedcontainers<3.0.0,>=2.4.0 from https://files.pythonhosted.org/packages/32/46/9cb0e58b2deb7f82b84065f37f3bffeb12413f947f9388e4cac22c4621ce/sortedcontainers-2.4.0-py2.py3-none-any.whl.metadata
+  Downloading sortedcontainers-2.4.0-py2.py3-none-any.whl.metadata (10 kB)
+Collecting namex (from keras>=3.5.0->tensorflow==2.18.1)
+  Obtaining dependency information for namex from https://files.pythonhosted.org/packages/b2/bc/465daf1de06409cdd4532082806770ee0d8d7df434da79c76564d0f69741/namex-0.1.0-py3-none-any.whl.metadata
+  Downloading namex-0.1.0-py3-none-any.whl.metadata (322 bytes)
+Collecting optree (from keras>=3.5.0->tensorflow==2.18.1)
+  Obtaining dependency information for optree from https://files.pythonhosted.org/packages/da/a8/d28c1fe0f0c8a4eb332f73cae896abab6d4ec40605b406c6a91f792034e0/optree-0.20.0-cp311-cp311-win_amd64.whl.metadata
+  Downloading optree-0.20.0-cp311-cp311-win_amd64.whl.metadata (33 kB)
+Requirement already satisfied: pip in c:\users\vidhy\downloads\gathisarthi\ml\.venv-export\lib\site-packages (from pip-api>=0.0.28->pip-audit) (23.2.1)
+Collecting pyparsing (from pip-requirements-parser>=32.0.0->pip-audit)
+  Obtaining dependency information for pyparsing from https://files.pythonhosted.org/packages/38/bb/d215ee7c73b61497b28a5503f9f53523f294fcc936762b7caf90e0c1c2b5/pyparsing-3.3.3-py3-none-any.whl.metadata
+  Downloading pyparsing-3.3.3-py3-none-any.whl.metadata (5.9 kB)
+Collecting charset_normalizer<4,>=2 (from requests<3,>=2.21.0->tensorflow==2.18.1)
+  Obtaining dependency information for charset_normalizer<4,>=2 from https://files.pythonhosted.org/packages/e3/57/32f0ccea59e8612057c61d6fd22ef2cb63cca93c9fe594094919696ac170/charset_normalizer-3.5.1-cp311-cp311-win_amd64.whl.metadata
+  Downloading charset_normalizer-3.5.1-cp311-cp311-win_amd64.whl.metadata (46 kB)
+     ---------------------------------------- 46.7/46.7 kB 2.3 MB/s eta 0:00:00
+Collecting idna<4,>=2.5 (from requests<3,>=2.21.0->tensorflow==2.18.1)
+  Obtaining dependency information for idna<4,>=2.5 from https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl.metadata
+  Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+Collecting urllib3<3,>=1.26 (from requests<3,>=2.21.0->tensorflow==2.18.1)
+  Obtaining dependency information for urllib3<3,>=1.26 from https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl.metadata
+  Downloading urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting certifi>=2023.5.7 (from requests<3,>=2.21.0->tensorflow==2.18.1)
+  Obtaining dependency information for certifi>=2023.5.7 from https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl.metadata
+  Downloading certifi-2026.7.22-py3-none-any.whl.metadata (2.5 kB)
+Collecting markdown-it-py>=2.2.0 (from rich>=12.4->pip-audit)
+  Obtaining dependency information for markdown-it-py>=2.2.0 from https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl.metadata
+  Downloading markdown_it_py-4.2.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting pygments<3.0.0,>=2.13.0 (from rich>=12.4->pip-audit)
+  Obtaining dependency information for pygments<3.0.0,>=2.13.0 from https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl.metadata
+  Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting markdown>=2.6.8 (from tensorboard<2.19,>=2.18->tensorflow==2.18.1)
+  Obtaining dependency information for markdown>=2.6.8 from https://files.pythonhosted.org/packages/64/69/4a5af2bc115a9a33fefe51709749de8262be3f9ba063d1753a837cdbc49c/markdown-3.10.3-py3-none-any.whl.metadata
+  Downloading markdown-3.10.3-py3-none-any.whl.metadata (5.1 kB)
+Collecting tensorboard-data-server<0.8.0,>=0.7.0 (from tensorboard<2.19,>=2.18->tensorflow==2.18.1)
+  Obtaining dependency information for tensorboard-data-server<0.8.0,>=0.7.0 from https://files.pythonhosted.org/packages/7a/13/e503968fefabd4c6b2650af21e110aa8466fe21432cd7c43a84577a89438/tensorboard_data_server-0.7.2-py3-none-any.whl.metadata
+  Downloading tensorboard_data_server-0.7.2-py3-none-any.whl.metadata (1.1 kB)
+Collecting werkzeug>=1.0.1 (from tensorboard<2.19,>=2.18->tensorflow==2.18.1)
+  Obtaining dependency information for werkzeug>=1.0.1 from https://files.pythonhosted.org/packages/93/8c/2e650f2afeb7ee576912636c23ddb621c91ac6a98e66dc8d29c3c69446e1/werkzeug-3.1.8-py3-none-any.whl.metadata
+  Downloading werkzeug-3.1.8-py3-none-any.whl.metadata (4.0 kB)
+Collecting humanfriendly>=9.1 (from coloredlogs->onnxruntime==1.20.1)
+  Obtaining dependency information for humanfriendly>=9.1 from https://files.pythonhosted.org/packages/f0/0f/310fb31e39e2d734ccaa2c0fb981ee41f7bd5056ce9bc29b2248bd569169/humanfriendly-10.0-py2.py3-none-any.whl.metadata
+  Downloading humanfriendly-10.0-py2.py3-none-any.whl.metadata (9.2 kB)
+Collecting mpmath<1.4,>=1.1.0 (from sympy->onnxruntime==1.20.1)
+  Obtaining dependency information for mpmath<1.4,>=1.1.0 from https://files.pythonhosted.org/packages/43/e3/7d92a15f894aa0c9c4b49b8ee9ac9850d6e63b03c9c32c0367a13ae62209/mpmath-1.3.0-py3-none-any.whl.metadata
+  Using cached mpmath-1.3.0-py3-none-any.whl.metadata (8.6 kB)
+Collecting pyreadline3 (from humanfriendly>=9.1->coloredlogs->onnxruntime==1.20.1)
+  Obtaining dependency information for pyreadline3 from https://files.pythonhosted.org/packages/f7/5e/35c856e186b74678c24927847ad9895a51f1bc02a0c6126477a6c6040064/pyreadline3-3.5.6-py3-none-any.whl.metadata
+  Downloading pyreadline3-3.5.6-py3-none-any.whl.metadata (4.7 kB)
+Collecting boolean.py>=4.0 (from license-expression<31,>=30->cyclonedx-python-lib<12,>=5->pip-audit)
+  Obtaining dependency information for boolean.py>=4.0 from https://files.pythonhosted.org/packages/e5/ca/78d423b324b8d77900030fa59c4aa9054261ef0925631cd2501dd015b7b7/boolean_py-5.0-py3-none-any.whl.metadata
+  Downloading boolean_py-5.0-py3-none-any.whl.metadata (2.3 kB)
+Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich>=12.4->pip-audit)
+  Obtaining dependency information for mdurl~=0.1 from https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl.metadata
+  Using cached mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+Collecting defusedxml<0.8.0,>=0.7.1 (from py-serializable<3.0.0,>=2.1.0->cyclonedx-python-lib<12,>=5->pip-audit)
+  Obtaining dependency information for defusedxml<0.8.0,>=0.7.1 from https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl.metadata
+  Downloading defusedxml-0.7.1-py2.py3-none-any.whl.metadata (32 kB)
+Collecting markupsafe>=2.1.1 (from werkzeug>=1.0.1->tensorboard<2.19,>=2.18->tensorflow==2.18.1)
+  Obtaining dependency information for markupsafe>=2.1.1 from https://files.pythonhosted.org/packages/83/8a/4414c03d3f891739326e1783338e48fb49781cc915b2e0ee052aa490d586/markupsafe-3.0.3-cp311-cp311-win_amd64.whl.metadata
+  Using cached markupsafe-3.0.3-cp311-cp311-win_amd64.whl.metadata (2.8 kB)
+Downloading tensorflow-2.18.1-cp311-cp311-win_amd64.whl (369.2 MB)
+   -------------------------------------- 369.2/369.2 MB 546.9 kB/s eta 0:00:00
+Downloading onnx-1.17.0-cp311-cp311-win_amd64.whl (14.5 MB)
+   ---------------------------------------- 14.5/14.5 MB 7.7 MB/s eta 0:00:00
+Downloading onnxruntime-1.20.1-cp311-cp311-win_amd64.whl (11.3 MB)
+   ---------------------------------------- 11.3/11.3 MB 5.1 MB/s eta 0:00:00
+Downloading pip_audit-2.10.1-py3-none-any.whl (62 kB)
+   ---------------------------------------- 62.0/62.0 kB 475.1 kB/s eta 0:00:00
+Downloading absl_py-2.5.0-py3-none-any.whl (137 kB)
+   ---------------------------------------- 137.4/137.4 kB 1.6 MB/s eta 0:00:00
+Downloading astunparse-1.6.3-py2.py3-none-any.whl (12 kB)
+Downloading cyclonedx_python_lib-11.12.0-py3-none-any.whl (529 kB)
+   ---------------------------------------- 529.5/529.5 kB 2.8 MB/s eta 0:00:00
+Downloading flatbuffers-25.12.19-py2.py3-none-any.whl (26 kB)
+Downloading gast-0.7.0-py3-none-any.whl (22 kB)
+Downloading google_pasta-0.2.0-py3-none-any.whl (57 kB)
+   ---------------------------------------- 57.5/57.5 kB 1.0 MB/s eta 0:00:00
+Downloading grpcio-1.84.0-cp311-cp311-win_amd64.whl (5.3 MB)
+   ---------------------------------------- 5.3/5.3 MB 6.6 MB/s eta 0:00:00
+Downloading h5py-3.16.0-cp311-cp311-win_amd64.whl (3.2 MB)
+   ---------------------------------------- 3.2/3.2 MB 5.4 MB/s eta 0:00:00
+Downloading keras-3.15.1-py3-none-any.whl (2.4 MB)
+   ---------------------------------------- 2.4/2.4 MB 4.9 MB/s eta 0:00:00
+Downloading libclang-18.1.1-py2.py3-none-win_amd64.whl (26.4 MB)
+   ---------------------------------------- 26.4/26.4 MB 2.7 MB/s eta 0:00:00
+Downloading ml_dtypes-0.6.0-cp311-cp311-win_amd64.whl (433 kB)
+   ---------------------------------------- 433.7/433.7 kB 6.7 MB/s eta 0:00:00
+Downloading numpy-2.0.2-cp311-cp311-win_amd64.whl (15.9 MB)
+   ---------------------------------------- 15.9/15.9 MB 7.2 MB/s eta 0:00:00
+Downloading opt_einsum-3.4.0-py3-none-any.whl (71 kB)
+   ---------------------------------------- 71.9/71.9 kB 1.3 MB/s eta 0:00:00
+Downloading packaging-26.3-py3-none-any.whl (129 kB)
+   ---------------------------------------- 130.0/130.0 kB 1.9 MB/s eta 0:00:00
+Downloading pip_api-0.0.35-py3-none-any.whl (123 kB)
+   ---------------------------------------- 123.9/123.9 kB 1.8 MB/s eta 0:00:00
+Downloading pip_requirements_parser-32.0.1-py3-none-any.whl (35 kB)
+Downloading platformdirs-4.11.11-py3-none-any.whl (24 kB)
+Using cached protobuf-5.29.6-cp310-abi3-win_amd64.whl (435 kB)
+Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+   ---------------------------------------- 73.1/73.1 kB 997.4 kB/s eta 0:00:00
+Using cached rich-15.0.0-py3-none-any.whl (310 kB)
+Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading tensorboard-2.18.0-py3-none-any.whl (5.5 MB)
+   ---------------------------------------- 5.5/5.5 MB 10.3 MB/s eta 0:00:00
+Downloading tensorflow_io_gcs_filesystem-0.31.0-cp311-cp311-win_amd64.whl (1.5 MB)
+   ---------------------------------------- 1.5/1.5 MB 11.8 MB/s eta 0:00:00
+Downloading termcolor-3.3.0-py3-none-any.whl (7.7 kB)
+Downloading tomli-2.4.1-cp311-cp311-win_amd64.whl (108 kB)
+   ---------------------------------------- 108.1/108.1 kB 3.2 MB/s eta 0:00:00
+Downloading tomli_w-1.2.0-py3-none-any.whl (6.7 kB)
+Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+   ---------------------------------------- 45.6/45.6 kB 751.7 kB/s eta 0:00:00
+Downloading wrapt-2.4.1-cp311-cp311-win_amd64.whl (98 kB)
+   ---------------------------------------- 98.7/98.7 kB 1.9 MB/s eta 0:00:00
+Downloading coloredlogs-15.0.1-py2.py3-none-any.whl (46 kB)
+   ---------------------------------------- 46.0/46.0 kB 1.1 MB/s eta 0:00:00
+Using cached sympy-1.14.0-py3-none-any.whl (6.3 MB)
+Downloading certifi-2026.7.22-py3-none-any.whl (136 kB)
+   ---------------------------------------- 137.0/137.0 kB 2.7 MB/s eta 0:00:00
+Downloading charset_normalizer-3.5.1-cp311-cp311-win_amd64.whl (206 kB)
+   ---------------------------------------- 206.7/206.7 kB 3.1 MB/s eta 0:00:00
+Downloading filelock-4.0.1-py3-none-any.whl (106 kB)
+   ---------------------------------------- 106.2/106.2 kB 1.5 MB/s eta 0:00:00
+Downloading humanfriendly-10.0-py2.py3-none-any.whl (86 kB)
+   ---------------------------------------- 86.8/86.8 kB 981.5 kB/s eta 0:00:00
+Downloading idna-3.20-py3-none-any.whl (69 kB)
+   ---------------------------------------- 69.6/69.6 kB 760.8 kB/s eta 0:00:00
+Downloading license_expression-30.4.4-py3-none-any.whl (120 kB)
+   ---------------------------------------- 120.6/120.6 kB 2.3 MB/s eta 0:00:00
+Downloading markdown-3.10.3-py3-none-any.whl (110 kB)
+   ---------------------------------------- 110.8/110.8 kB 1.6 MB/s eta 0:00:00
+Downloading markdown_it_py-4.2.0-py3-none-any.whl (91 kB)
+   ---------------------------------------- 91.7/91.7 kB 1.0 MB/s eta 0:00:00
+Using cached mpmath-1.3.0-py3-none-any.whl (536 kB)
+Downloading msgpack-1.2.2-cp311-cp311-win_amd64.whl (71 kB)
+   ---------------------------------------- 71.3/71.3 kB 649.1 kB/s eta 0:00:00
+Downloading packageurl_python-0.17.6-py3-none-any.whl (36 kB)
+Downloading py_serializable-2.1.0-py3-none-any.whl (23 kB)
+Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+   ---------------------------------------- 1.3/1.3 MB 8.8 MB/s eta 0:00:00
+Downloading sortedcontainers-2.4.0-py2.py3-none-any.whl (29 kB)
+Downloading tensorboard_data_server-0.7.2-py3-none-any.whl (2.4 kB)
+Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)
+   ---------------------------------------- 135.7/135.7 kB 1.3 MB/s eta 0:00:00
+Downloading werkzeug-3.1.8-py3-none-any.whl (226 kB)
+   ---------------------------------------- 226.5/226.5 kB 1.5 MB/s eta 0:00:00
+Downloading wheel-0.48.0-py3-none-any.whl (33 kB)
+Downloading cachecontrol-0.14.4-py3-none-any.whl (22 kB)
+Downloading namex-0.1.0-py3-none-any.whl (5.9 kB)
+Downloading optree-0.20.0-cp311-cp311-win_amd64.whl (560 kB)
+   ---------------------------------------- 560.5/560.5 kB 2.7 MB/s eta 0:00:00
+Downloading pyparsing-3.3.3-py3-none-any.whl (126 kB)
+   -------------------------------------- 126.4/126.4 kB 195.6 kB/s eta 0:00:00
+Downloading boolean_py-5.0-py3-none-any.whl (26 kB)
+Downloading defusedxml-0.7.1-py2.py3-none-any.whl (25 kB)
+Using cached markupsafe-3.0.3-cp311-cp311-win_amd64.whl (15 kB)
+Using cached mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+Downloading pyreadline3-3.5.6-py3-none-any.whl (85 kB)
+   ---------------------------------------- 85.2/85.2 kB 688.1 kB/s eta 0:00:00
+Installing collected packages: sortedcontainers, namex, mpmath, libclang, flatbuffers, boolean.py, wrapt, urllib3, typing-extensions, tomli-w, tomli, termcolor, tensorflow-io-gcs-filesystem, tensorboard-data-server, sympy, six, pyreadline3, pyparsing, pygments, protobuf, platformdirs, pip-api, packaging, packageurl-python, opt-einsum, numpy, msgpack, mdurl, markupsafe, markdown, license-expression, idna, gast, filelock, defusedxml, charset_normalizer, certifi, absl-py, wheel, werkzeug, requests, py-serializable, pip-requirements-parser, optree, onnx, ml-dtypes, markdown-it-py, humanfriendly, h5py, grpcio, google-pasta, tensorboard, rich, cyclonedx-python-lib, coloredlogs, CacheControl, astunparse, onnxruntime, keras, tensorflow, pip-audit
+Successfully installed CacheControl-0.14.4 absl-py-2.5.0 astunparse-1.6.3 boolean.py-5.0 certifi-2026.7.22 charset_normalizer-3.5.1 coloredlogs-15.0.1 cyclonedx-python-lib-11.12.0 defusedxml-0.7.1 filelock-4.0.1 flatbuffers-25.12.19 gast-0.7.0 google-pasta-0.2.0 grpcio-1.84.0 h5py-3.16.0 humanfriendly-10.0 idna-3.20 keras-3.15.1 libclang-18.1.1 license-expression-30.4.4 markdown-3.10.3 markdown-it-py-4.2.0 markupsafe-3.0.3 mdurl-0.1.2 ml-dtypes-0.6.0 mpmath-1.3.0 msgpack-1.2.2 namex-0.1.0 numpy-2.0.2 onnx-1.17.0 onnxruntime-1.20.1 opt-einsum-3.4.0 optree-0.20.0 packageurl-python-0.17.6 packaging-26.3 pip-api-0.0.35 pip-audit-2.10.1 pip-requirements-parser-32.0.1 platformdirs-4.11.11 protobuf-5.29.6 py-serializable-2.1.0 pygments-2.21.0 pyparsing-3.3.3 pyreadline3-3.5.6 requests-2.34.2 rich-15.0.0 six-1.17.0 sortedcontainers-2.4.0 sympy-1.14.0 tensorboard-2.18.0 tensorboard-data-server-0.7.2 tensorflow-2.18.1 tensorflow-io-gcs-filesystem-0.31.0 termcolor-3.3.0 tomli-2.4.1 tomli-w-1.2.0 typing-extensions-4.16.0 urllib3-2.8.0 werkzeug-3.1.8 wheel-0.48.0 wrapt-2.4.1
+
+[notice] A new release of pip is available: 23.2.1 -> 26.2.1
+[notice] To update, run: C:\Users\vidhy\Downloads\gathisarthi\ml\.venv-export\Scripts\python.exe -m pip install --upgrade pip

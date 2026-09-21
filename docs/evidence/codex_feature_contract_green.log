@@ -1,0 +1,4 @@
+00:00 +0: loading C:/Users/vidhy/Downloads/gathisarthi/frontend/test/model_feature_contract_test.dart
+00:00 +0: phone scaler matches the real IO-VNBD training scaler
+00:00 +1: causal jerk and tilt match the Python training contract
+00:00 +2: All tests passed!

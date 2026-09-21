@@ -1,10 +1,11 @@
 {
-  "model_name": "SpeedEstimatorNet_v2",
-  "avg_cpu_latency_ms": 4.39,
-  "p95_cpu_latency_ms": 6.67,
-  "p99_cpu_latency_ms": 13.04,
-  "throughput_hz": 227.9,
+  "model_name": "SpeedEstimatorNet_v3.0",
+  "avg_cpu_latency_ms": 3.77,
+  "p95_cpu_latency_ms": 5.08,
+  "p99_cpu_latency_ms": 5.94,
+  "throughput_hz": 265.3,
   "target_latency_gateway_met": true,
-  "model_size_kb": 48.04,
+  "onnx_size_kb": 257.68,
+  "onnx_export_status": "SKIPPED (ModuleNotFoundError: No module named 'onnxscript') - files below (if any) are from an earlier run",
   "parity_verification": "SKIPPED (onnxruntime not found)"
 }

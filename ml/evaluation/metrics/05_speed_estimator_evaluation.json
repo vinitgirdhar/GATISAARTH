@@ -1,13 +1,488 @@
 {
-  "speed_mae_m_s": 0.28,
-  "speed_mae_km_h": 1.01,
-  "speed_rmse_m_s": 0.366,
-  "speed_r2_score": 0.9957,
-  "median_absolute_error_m_s": 0.23,
-  "p95_error_m_s": 0.74,
-  "tier_0_30_kmh_mae_ms": 0.251,
-  "tier_30_60_kmh_mae_ms": 0.366,
-  "tier_60plus_kmh_mae_ms": 0.228,
-  "target_gateway_met": true,
-  "best_epoch": 18
+  "split": {
+    "test_trips": [
+      "M",
+      "Vtb01",
+      "Vtb02",
+      "Vtb03",
+      "Vtb05",
+      "Y1"
+    ],
+    "test_drivers_held_out": [
+      "B",
+      "D"
+    ],
+    "test_categories_held_out": [
+      "Vtb"
+    ],
+    "windows": 138885,
+    "window": "20 samples @10 Hz (2 s), stride 2, label = VBOX speed at the last sample"
+  },
+  "model": {
+    "name": "SpeedEstimatorNet v3.0",
+    "parameters": 64658,
+    "trained_on": "341,736 windows of 43 trips (19.01 h, real IO-VNBD, VBOX speed labels)",
+    "best_epoch": 15,
+    "epochs_run": 20,
+    "train_minutes": 6.9,
+    "val_mae_m_s": 4.017
+  },
+  "test": {
+    "n": 138885,
+    "mae_m_s": 3.2278618654825797,
+    "rmse_m_s": 4.627387356476854,
+    "mae_km_h": 11.620302715737287,
+    "rmse_km_h": 16.658594483316676,
+    "r2": 0.579417890214116,
+    "bias_m_s": -0.6548978243213499,
+    "median_abs_err_m_s": 2.207965850830078,
+    "p90_abs_err_m_s": 7.8391099929809585,
+    "p95_abs_err_m_s": 10.105658435821528,
+    "per_speed_band": [
+      {
+        "band_kmh": "0-10",
+        "n": 20878,
+        "mae_m_s": 0.8860073346221178,
+        "rmse_m_s": 2.2652837979524003,
+        "bias_m_s": 0.7111355287200829
+      },
+      {
+        "band_kmh": "10-30",
+        "n": 25485,
+        "mae_m_s": 2.720792184273329,
+        "rmse_m_s": 3.8241665752166742,
+        "bias_m_s": 1.4890698648339449
+      },
+      {
+        "band_kmh": "30-60",
+        "n": 63248,
+        "mae_m_s": 3.073777040385885,
+        "rmse_m_s": 4.053464777334686,
+        "bias_m_s": -0.025956032978899233
+      },
+      {
+        "band_kmh": "60-90",
+        "n": 22986,
+        "mae_m_s": 5.322228559188076,
+        "rmse_m_s": 6.483705548105575,
+        "bias_m_s": -4.293550359344997
+      },
+      {
+        "band_kmh": "90-250",
+        "n": 6288,
+        "mae_m_s": 6.9524728573915615,
+        "rmse_m_s": 8.814722594929032,
+        "bias_m_s": -6.90494619450193
+      }
+    ],
+    "per_test_trip": {
+      "M": {
+        "n": 52874,
+        "mae_m_s": 2.428645003331706,
+        "rmse_m_s": 3.4987201057118305,
+        "mae_km_h": 8.743122011994142,
+        "rmse_km_h": 12.59539238056259,
+        "r2": 0.6181647236707728,
+        "bias_m_s": -0.4938107771110939,
+        "median_abs_err_m_s": 1.656327247619629,
+        "p90_abs_err_m_s": 5.84155607223511,
+        "p95_abs_err_m_s": 7.579750585556029
+      },
+      "Vtb01": {
+        "n": 12720,
+        "mae_m_s": 4.788587360669309,
+        "rmse_m_s": 6.169035486735787,
+        "mae_km_h": 17.238914498409514,
+        "rmse_km_h": 22.208527752248834,
+        "r2": -0.11029624602984311,
+        "bias_m_s": -0.2591986801693931,
+        "median_abs_err_m_s": 3.9753923416137695,
+        "p90_abs_err_m_s": 10.381024026870728,
+        "p95_abs_err_m_s": 12.569314384460448
+      },
+      "Vtb02": {
+        "n": 2838,
+        "mae_m_s": 3.335401672821107,
+        "rmse_m_s": 4.967343828382338,
+        "mae_km_h": 12.007446022155985,
+        "rmse_km_h": 17.882437782176417,
+        "r2": 0.10558052752451774,
+        "bias_m_s": 1.5223617580276438,
+        "median_abs_err_m_s": 2.1624131202697754,
+        "p90_abs_err_m_s": 8.521075296401978,
+        "p95_abs_err_m_s": 11.078341153264045
+      },
+      "Vtb03": {
+        "n": 4102,
+        "mae_m_s": 0.7894163634087984,
+        "rmse_m_s": 1.8593692704519469,
+        "mae_km_h": 2.8418989082716744,
+        "rmse_km_h": 6.693729373627009,
+        "r2": -0.1489225555911633,
+        "bias_m_s": 0.6489904377939438,
+        "median_abs_err_m_s": 0.2751483917236328,
+        "p90_abs_err_m_s": 1.7628539817407742,
+        "p95_abs_err_m_s": 4.199746060371394
+      },
+      "Vtb05": {
+        "n": 32017,
+        "mae_m_s": 4.613694253148724,
+        "rmse_m_s": 6.197041920422047,
+        "mae_km_h": 16.609299311335405,
+        "rmse_km_h": 22.309350913519367,
+        "r2": 0.32268874440714534,
+        "bias_m_s": -2.497281829295929,
+        "median_abs_err_m_s": 3.328155517578125,
+        "p90_abs_err_m_s": 10.77360782623291,
+        "p95_abs_err_m_s": 13.15306453704833
+      },
+      "Y1": {
+        "n": 34334,
+        "mae_m_s": 2.87056222055228,
+        "rmse_m_s": 3.924565313105722,
+        "mae_km_h": 10.33402399398821,
+        "rmse_km_h": 14.1284351271806,
+        "r2": 0.43290426071872723,
+        "bias_m_s": 0.3327350379597639,
+        "median_abs_err_m_s": 2.183413505554199,
+        "p90_abs_err_m_s": 6.603056621551514,
+        "p95_abs_err_m_s": 8.178503346443176
+      }
+    }
+  },
+  "comparison_on_same_test_windows": [
+    {
+      "method": "SpeedEstimatorNet (IMU only, no GNSS)",
+      "n": 138885,
+      "mae_m_s": 3.2278618654825797,
+      "rmse_m_s": 4.627387356476854,
+      "mae_km_h": 11.620302715737287,
+      "rmse_km_h": 16.658594483316676,
+      "r2": 0.579417890214116,
+      "bias_m_s": -0.6548978243213499,
+      "median_abs_err_m_s": 2.207965850830078,
+      "p90_abs_err_m_s": 7.8391099929809585,
+      "p95_abs_err_m_s": 10.105658435821528
+    },
+    {
+      "method": "Hold-last-GPS-speed (30 s outage)",
+      "n": 138885,
+      "mae_m_s": 3.381831102999382,
+      "rmse_m_s": 4.881600162490457,
+      "mae_km_h": 12.174591970797776,
+      "rmse_km_h": 17.573760584965648,
+      "r2": 0.5319378819565168,
+      "bias_m_s": 0.07388227710550493,
+      "median_abs_err_m_s": 2.176110305786132,
+      "p90_abs_err_m_s": 8.688555297851567,
+      "p95_abs_err_m_s": 10.681944885253905
+    },
+    {
+      "method": "Classical DR + heuristic ZUPT (30 s outage, GPS-anchored)",
+      "n": 138885,
+      "mae_m_s": 3.9178732554016533,
+      "rmse_m_s": 5.513441336001208,
+      "mae_km_h": 14.104343719445952,
+      "rmse_km_h": 19.848388809604348,
+      "r2": 0.40293089430381446,
+      "bias_m_s": -0.2554233461879349,
+      "median_abs_err_m_s": 2.701944351196289,
+      "p90_abs_err_m_s": 9.396611022949223,
+      "p95_abs_err_m_s": 11.95376976885253
+    },
+    {
+      "method": "Train-mean constant",
+      "n": 138885,
+      "mae_m_s": 5.991083155295371,
+      "rmse_m_s": 7.421958226451096,
+      "mae_km_h": 21.567899359063336,
+      "rmse_km_h": 26.71904961522395,
+      "r2": -0.08197218278119833,
+      "bias_m_s": 2.042884004026936,
+      "median_abs_err_m_s": 4.945479393005371,
+      "p90_abs_err_m_s": 13.28713265135885,
+      "p95_abs_err_m_s": 13.335632650181651
+    },
+    {
+      "method": "Phone GPS as recorded (no outage, reference)",
+      "n": 138885,
+      "mae_m_s": 1.5579442834264086,
+      "rmse_m_s": 2.4806087014992575,
+      "mae_km_h": 5.608599420335071,
+      "rmse_km_h": 8.930191325397328,
+      "r2": 0.8791363766919774,
+      "bias_m_s": 0.009991288157814386,
+      "median_abs_err_m_s": 0.8499998474121107,
+      "p90_abs_err_m_s": 4.010000297546386,
+      "p95_abs_err_m_s": 5.553889297485351
+    }
+  ],
+  "per_speed_band_comparison": {
+    "SpeedEstimatorNet (IMU only, no GNSS)": [
+      {
+        "band_kmh": "0-10",
+        "n": 20878,
+        "mae_m_s": 0.8860073346221178,
+        "rmse_m_s": 2.2652837979524003,
+        "bias_m_s": 0.7111355287200829
+      },
+      {
+        "band_kmh": "10-30",
+        "n": 25485,
+        "mae_m_s": 2.720792184273329,
+        "rmse_m_s": 3.8241665752166742,
+        "bias_m_s": 1.4890698648339449
+      },
+      {
+        "band_kmh": "30-60",
+        "n": 63248,
+        "mae_m_s": 3.073777040385885,
+        "rmse_m_s": 4.053464777334686,
+        "bias_m_s": -0.025956032978899233
+      },
+      {
+        "band_kmh": "60-90",
+        "n": 22986,
+        "mae_m_s": 5.322228559188076,
+        "rmse_m_s": 6.483705548105575,
+        "bias_m_s": -4.293550359344997
+      },
+      {
+        "band_kmh": "90-250",
+        "n": 6288,
+        "mae_m_s": 6.9524728573915615,
+        "rmse_m_s": 8.814722594929032,
+        "bias_m_s": -6.90494619450193
+      }
+    ],
+    "Hold-last-GPS-speed (30 s outage)": [
+      {
+        "band_kmh": "0-10",
+        "n": 20878,
+        "mae_m_s": 4.764467275465422,
+        "rmse_m_s": 6.8760907692159385,
+        "bias_m_s": 4.514674537670773
+      },
+      {
+        "band_kmh": "10-30",
+        "n": 25485,
+        "mae_m_s": 3.550058542663592,
+        "rmse_m_s": 4.647932944560101,
+        "bias_m_s": 1.4284557917547944
+      },
+      {
+        "band_kmh": "30-60",
+        "n": 63248,
+        "mae_m_s": 3.195567509292079,
+        "rmse_m_s": 4.476212497490409,
+        "bias_m_s": -1.2222278160841409
+      },
+      {
+        "band_kmh": "60-90",
+        "n": 22986,
+        "mae_m_s": 2.890751392454451,
+        "rmse_m_s": 4.492264144517894,
+        "bias_m_s": -1.6406287315459596
+      },
+      {
+        "band_kmh": "90-250",
+        "n": 6288,
+        "mae_m_s": 1.7779512831515636,
+        "rmse_m_s": 2.5476738724843027,
+        "bias_m_s": -0.8564684891154748
+      }
+    ],
+    "Classical DR + heuristic ZUPT (30 s outage, GPS-anchored)": [
+      {
+        "band_kmh": "0-10",
+        "n": 20878,
+        "mae_m_s": 3.926810633953223,
+        "rmse_m_s": 6.233973237987362,
+        "bias_m_s": 3.5686891930452393
+      },
+      {
+        "band_kmh": "10-30",
+        "n": 25485,
+        "mae_m_s": 3.8108028154546085,
+        "rmse_m_s": 4.944463523164093,
+        "bias_m_s": 0.4761678556974081
+      },
+      {
+        "band_kmh": "30-60",
+        "n": 63248,
+        "mae_m_s": 4.132325458691786,
+        "rmse_m_s": 5.5992043806278025,
+        "bias_m_s": -1.2867689351222147
+      },
+      {
+        "band_kmh": "60-90",
+        "n": 22986,
+        "mae_m_s": 3.830358526749249,
+        "rmse_m_s": 5.547724531901112,
+        "bias_m_s": -1.623861148251308
+      },
+      {
+        "band_kmh": "90-250",
+        "n": 6288,
+        "mae_m_s": 2.484990967195634,
+        "rmse_m_s": 3.929075093803597,
+        "bias_m_s": -0.5415184872525282
+      }
+    ],
+    "Train-mean constant": [
+      {
+        "band_kmh": "0-10",
+        "n": 20878,
+        "mae_m_s": 12.809341392258025,
+        "rmse_m_s": 12.831294195409354,
+        "bias_m_s": 12.809341392258025
+      },
+      {
+        "band_kmh": "10-30",
+        "n": 25485,
+        "mae_m_s": 7.212402515980176,
+        "rmse_m_s": 7.3718118252113225,
+        "bias_m_s": 7.212402515980176
+      },
+      {
+        "band_kmh": "30-60",
+        "n": 63248,
+        "mae_m_s": 2.1549959257678566,
+        "rmse_m_s": 2.562332553098147,
+        "bias_m_s": 1.2176721982493932
+      },
+      {
+        "band_kmh": "60-90",
+        "n": 22986,
+        "mae_m_s": 6.904898412812838,
+        "rmse_m_s": 7.315949002241188,
+        "bias_m_s": -6.904898412812838
+      },
+      {
+        "band_kmh": "90-250",
+        "n": 6288,
+        "mae_m_s": 13.647407615457782,
+        "rmse_m_s": 13.714300108922709,
+        "bias_m_s": -13.647407615457782
+      }
+    ],
+    "Phone GPS as recorded (no outage, reference)": [
+      {
+        "band_kmh": "0-10",
+        "n": 20878,
+        "mae_m_s": 1.7022472885695388,
+        "rmse_m_s": 3.097023055484269,
+        "bias_m_s": 1.3398694797150301
+      },
+      {
+        "band_kmh": "10-30",
+        "n": 25485,
+        "mae_m_s": 2.331702407773298,
+        "rmse_m_s": 3.137461861928493,
+        "bias_m_s": 0.4661901452960934
+      },
+      {
+        "band_kmh": "30-60",
+        "n": 63248,
+        "mae_m_s": 1.4501383185736476,
+        "rmse_m_s": 2.2479629168159745,
+        "bias_m_s": -0.4516589443411611
+      },
+      {
+        "band_kmh": "60-90",
+        "n": 22986,
+        "mae_m_s": 1.0896739714365347,
+        "rmse_m_s": 1.8207664384986861,
+        "bias_m_s": -0.3730506405340393
+      },
+      {
+        "band_kmh": "90-250",
+        "n": 6288,
+        "mae_m_s": 0.7389540028996748,
+        "rmse_m_s": 1.1053707294512687,
+        "bias_m_s": -0.2108053211765435
+      }
+    ]
+  },
+  "uncertainty_calibration": {
+    "spearman_abs_err_vs_sigma": 0.47538349947083347,
+    "coverage_1_sigma": 0.31908413435576194,
+    "coverage_2_sigma": 0.5802570471973215,
+    "z_std": 7.067323287713157,
+    "mean_sigma_m_s": 1.3535400580084584,
+    "mean_abs_err_m_s": 3.2278618654825797,
+    "sigma_quintile_table": [
+      {
+        "sigma_range_m_s": [
+          0.009726178832352161,
+          0.9138801455497743
+        ],
+        "n": 27777,
+        "mean_sigma_m_s": 0.40650894946636673,
+        "mean_abs_err_m_s": 0.818280082719839,
+        "rmse_m_s": 1.577042266490695
+      },
+      {
+        "sigma_range_m_s": [
+          0.9138801455497743,
+          1.3738555192947388
+        ],
+        "n": 27777,
+        "mean_sigma_m_s": 1.1684373435828377,
+        "mean_abs_err_m_s": 3.1754359298050527,
+        "rmse_m_s": 4.454477821923353
+      },
+      {
+        "sigma_range_m_s": [
+          1.3738555192947388,
+          1.592388701438904
+        ],
+        "n": 27777,
+        "mean_sigma_m_s": 1.4836721964384054,
+        "mean_abs_err_m_s": 3.5386110403915345,
+        "rmse_m_s": 4.81856320153652
+      },
+      {
+        "sigma_range_m_s": [
+          1.592388701438904,
+          1.826621246337891
+        ],
+        "n": 27777,
+        "mean_sigma_m_s": 1.7055478740528986,
+        "mean_abs_err_m_s": 3.9674600452926554,
+        "rmse_m_s": 5.277247550402849
+      },
+      {
+        "sigma_range_m_s": [
+          1.826621246337891,
+          2.6489903926849365
+        ],
+        "n": 27777,
+        "mean_sigma_m_s": 2.0035339265017837,
+        "mean_abs_err_m_s": 4.639522229203817,
+        "rmse_m_s": 5.802261690295378
+      }
+    ]
+  },
+  "honest_notes": [
+    "SpeedEstimatorNet beats hold-last-GPS-speed on MAE (3.23 vs 3.38 m/s) and beats it on RMSE (4.63 vs 4.88 m/s).",
+    "SpeedEstimatorNet beats classical DR + heuristic ZUPT on MAE (3.23 vs 3.92 m/s) and beats it on RMSE (4.63 vs 5.51 m/s).",
+    "SpeedEstimatorNet beats train-mean constant on MAE (3.23 vs 5.99 m/s) and beats it on RMSE (4.63 vs 7.42 m/s).",
+    "In the speed bands ['60-90', '90-250'] km/h the model is worse than hold-last-GPS-speed (30 s blocks).",
+    "Phone GPS as recorded (MAE 1.56 m/s) is far better than the IMU-only model whenever it is available: the model is an outage aid, not a replacement for GNSS.",
+    "The model under-estimates high speeds (regression to the mean): bias 60-90 km/h: -4.3 m/s, 90-250 km/h: -6.9 m/s.",
+    "Uncertainty: Spearman(|error|, predicted sigma) = 0.48; |error| <= 1 sigma for 32 % and <= 2 sigma for 58 % of windows."
+  ],
+  "speed_mae_m_s": 3.228,
+  "speed_mae_km_h": 11.62,
+  "speed_rmse_m_s": 4.627,
+  "speed_r2_score": 0.5794,
+  "median_absolute_error_m_s": 2.208,
+  "p95_error_m_s": 10.106,
+  "tier_0_30_kmh_mae_ms": 1.895,
+  "tier_30_60_kmh_mae_ms": 3.074,
+  "tier_60plus_kmh_mae_ms": 5.672,
+  "target_gateway_met": false,
+  "target_gateway_note": "v2 internal gateway (MAE < 0.8 m/s) was set on synthetic data; not met on real held-out trips",
+  "best_epoch": 15
 }

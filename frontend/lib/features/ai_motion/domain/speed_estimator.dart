@@ -35,4 +35,23 @@ abstract class SpeedEstimator {
 
   /// Drop the temporal window (used when the estimator has been idle).
   void reset();
+
+  /// What the navigation engine's AI speed gate needs from the last **neural**
+  /// inference. None of it is meaningful before [neuralInferenceCount] is above
+  /// zero, and none of it ever comes from the heuristic fallback.
+  ///
+  /// [modelSpeed] is the model's raw speed head (m/s) *without* the stillness
+  /// gate [estimatedSpeed] applies (that gate is variance-only and reads a
+  /// smooth cruise as a stop, which is exactly what the AI measurement must not
+  /// inherit). [sigma] is its predicted standard deviation, [featureZMax] the
+  /// largest |z-score| of the input window, [windowsFed] the frames fed since
+  /// the estimator last restarted.
+  double get modelSpeed;
+  double get sigma;
+  double get featureZMax;
+  int get windowsFed;
+
+  /// Counts neural inferences (never fallback ones): a change means a new
+  /// output to hand to the engine.
+  int get neuralInferenceCount;
 }

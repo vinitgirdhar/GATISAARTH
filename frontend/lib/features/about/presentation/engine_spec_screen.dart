@@ -186,8 +186,10 @@ class _EngineSpecScreenState extends State<EngineSpecScreen> {
             'scored; the app does not claim it before that.',
           ),
           _Bullet(
-            'No road network ships with the app, so map matching is not '
-            'active and the position is not snapped to roads.',
+            'Roads come from the offline maps installed on this phone: during '
+            'a GNSS outage the position is held to the drawn road and matched '
+            'to it. Where no map covers you this is off, and it works at road '
+            'level, not lane level.',
           ),
           _Bullet(
             'Long outages drift: the longer GNSS is gone, the wider the '
@@ -219,12 +221,17 @@ class _EngineSpecScreenState extends State<EngineSpecScreen> {
         ),
         itemCount: blocks.length,
         separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-        // Blocks drop in from above in turn, top to bottom.
-        itemBuilder: (context, i) => FadeSlideIn(
-          delay: Duration(milliseconds: 60 * (i < 5 ? i : 5)),
-          offset: -0.05,
-          child: blocks[i],
-        ),
+        itemBuilder: (context, i) {
+          final block = blocks[i];
+          // Only animate initial fold blocks on page entrance.
+          // Scrolled items are rendered immediately to prevent invisible content.
+          if (i >= 3) return block;
+          return FadeSlideIn(
+            delay: Duration(milliseconds: 60 * i),
+            offset: -0.05,
+            child: block,
+          );
+        },
       ),
     );
   }
@@ -545,12 +552,17 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         borderRadius: AppRadius.cardRadius,
-        border: Border.all(color: AppColors.surfaceBorder),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.lightSurfaceBorder,
+        ),
         boxShadow: AppShadow.card,
       ),
       child: Column(
@@ -761,8 +773,9 @@ class _LinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
-      color: AppColors.surface,
+      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       borderRadius: AppRadius.controlRadius,
       child: InkWell(
         borderRadius: AppRadius.controlRadius,
@@ -771,7 +784,11 @@ class _LinkButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: AppRadius.controlRadius,
-            border: Border.all(color: AppColors.surfaceBorder),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.lightSurfaceBorder,
+            ),
           ),
           child: Row(
             children: [

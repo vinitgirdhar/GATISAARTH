@@ -21,10 +21,10 @@ class RoadAnomalyTicker extends StatelessWidget {
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.12),
+                color: AppColors.warning.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.warning.withOpacity(0.25),
+                  color: AppColors.warning.withValues(alpha: 0.25),
                   width: 1,
                 ),
               ),
@@ -62,7 +62,7 @@ class RoadAnomalyTicker extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: AppColors.warning.withOpacity(0.12),
+                          color: AppColors.warning.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Icon(
@@ -100,7 +100,7 @@ class RoadAnomalyTicker extends StatelessWidget {
                 height: 1,
                 thickness: 1,
                 color: isDark
-                    ? const Color(0xFF334155).withOpacity(0.5)
+                    ? const Color(0xFF334155).withValues(alpha: 0.5)
                     : const Color(0xFFE2E8F0),
               ),
           ],

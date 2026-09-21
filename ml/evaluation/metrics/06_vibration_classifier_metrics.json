@@ -1,10 +1,11 @@
 {
-  "vibration_f1_score": 1.0,
+  "vibration_f1_score": 0.9962,
   "target_gateway_met": true,
   "classes": [
     "LOW",
     "NORMAL",
     "HIGH"
   ],
-  "best_epoch": 2
+  "note": "proxy labels derived from |norm_a - 9.81| of the window itself (circular); evaluated on the held-out test trips",
+  "best_epoch": 5
 }

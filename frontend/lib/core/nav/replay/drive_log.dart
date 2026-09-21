@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
+import '../ai/ai_config.dart';
+import '../ai/ai_types.dart';
 import '../gnss/gnss_quality.dart';
 import '../math/nav_math.dart';
 
@@ -26,6 +28,12 @@ enum DriveRecordType {
   /// A labelled event: tunnel entry, pothole, the driver pressing a button
   /// (§42 event labels).
   marker,
+
+  /// Model outputs pushed to the engine: the neural forward speed, the
+  /// disturbance estimate, the AI fusion confidence (any subset). The engine
+  /// recomputes everything else from the IMU, so these are the only AI inputs a
+  /// replay needs — and what a Python job writes to evaluate a model offline.
+  ai,
 }
 
 /// One line of a drive log.
@@ -49,6 +57,9 @@ class DriveRecord {
     this.speedMps,
     this.label,
     this.meta,
+    this.aiSpeed,
+    this.disturbance,
+    this.fusion,
   });
 
   factory DriveRecord.imu({
@@ -106,6 +117,24 @@ class DriveRecord {
         label: label,
       );
 
+  /// Model outputs at [monotonicUs] (the IMU time of the window they describe).
+  /// All three groups are optional, but at least one must be given.
+  factory DriveRecord.ai({
+    required int monotonicUs,
+    AiSpeedObservation? speed,
+    DisturbanceEstimate? disturbance,
+    FusionConfidence? fusion,
+  }) {
+    assert(speed != null || disturbance != null || fusion != null);
+    return DriveRecord(
+      type: DriveRecordType.ai,
+      monotonicUs: monotonicUs,
+      aiSpeed: speed,
+      disturbance: disturbance,
+      fusion: fusion,
+    );
+  }
+
   final DriveRecordType type;
   final int monotonicUs;
 
@@ -124,6 +153,12 @@ class DriveRecord {
 
   final String? label;
   final Map<String, dynamic>? meta;
+
+  /// The three groups of an `ai` record; each is null when the record does not
+  /// carry it.
+  final AiSpeedObservation? aiSpeed;
+  final DisturbanceEstimate? disturbance;
+  final FusionConfidence? fusion;
 
   /// Encodes to one JSON line.
   ///
@@ -178,7 +213,43 @@ class DriveRecord {
         };
       case DriveRecordType.marker:
         return {'t': 'k', 'u': monotonicUs, 'l': label};
+      case DriveRecordType.ai:
+        return _aiJson();
     }
+  }
+
+  /// The `ai` line. Keys, all optional except `t` and `u`; a group is present
+  /// only when its required keys are:
+  ///
+  ///  * speed (needs `spd` and `sig`): `spd` m/s, `sig` m/s, `lms` inference
+  ///    latency ms, `fz` largest |z-score| of the input window, `win` windows
+  ///    fed since the estimator restarted;
+  ///  * disturbance (needs `vib` and `mq`): `vib` vibration score 0..1, `vcl`
+  ///    class 0 low / 1 normal / 2 high, `shk` shock 0 none / 1 bump /
+  ///    2 pothole / 3 jolt, `mq` motion quality 0..1;
+  ///  * fusion (needs `gt` or `it`): `gt` GNSS trust, `it` INS trust, in (0, 1].
+  Map<String, dynamic> _aiJson() {
+    final s = aiSpeed;
+    final d = disturbance;
+    final f = fusion;
+    return {
+      't': 'a',
+      'u': monotonicUs,
+      if (s != null) ...{
+        'spd': s.speedMps,
+        'sig': s.sigmaMps,
+        'lms': s.latencyMs,
+        'fz': s.featureZMax,
+        'win': s.windowsFed,
+      },
+      if (d != null) ...{
+        'vib': d.vibrationScore,
+        'vcl': d.vibrationClass.index,
+        'shk': d.shock.index,
+        'mq': d.motionQuality,
+      },
+      if (f != null) ...{'gt': f.gnssTrust, 'it': f.insTrust},
+    };
   }
 
   /// Parses one line. Returns null for anything unreadable rather than
@@ -270,9 +341,72 @@ class DriveRecord {
           monotonicUs: us,
           label: label,
         );
+      case 'a':
+        return _aiFromJson(json, us);
       default:
         return null;
     }
+  }
+
+  static DriveRecord? _aiFromJson(Map<String, dynamic> json, int us) {
+    double? num_(String key) => (json[key] as num?)?.toDouble();
+    final spd = num_('spd');
+    final sig = num_('sig');
+    final vib = num_('vib');
+    final mq = num_('mq');
+    final gt = num_('gt');
+    final it = num_('it');
+    final speed = spd == null || sig == null
+        ? null
+        : AiSpeedObservation(
+            speedMps: spd,
+            sigmaMps: sig,
+            monotonicUs: us,
+            latencyMs: num_('lms') ?? 0,
+            featureZMax: num_('fz') ?? 0,
+            windowsFed:
+                (json['win'] as num?)?.toInt() ?? const AiSpeedObservation(
+                    speedMps: 0, sigmaMps: 1, monotonicUs: 0).windowsFed,
+          );
+    final disturbance = vib == null || mq == null
+        ? null
+        : DisturbanceEstimate(
+            vibrationScore: vib,
+            vibrationClass: _enum(DisturbanceClass.values, json['vcl']) ??
+                _classOf(vib),
+            motionQuality: mq,
+            monotonicUs: us,
+            shock: _enum(ShockKind.values, json['shk']) ?? ShockKind.none,
+          );
+    final fusion = gt == null && it == null
+        ? null
+        : FusionConfidence(
+            gnssTrust: gt ?? 1.0,
+            insTrust: it ?? 1.0,
+            monotonicUs: us,
+          );
+    if (speed == null && disturbance == null && fusion == null) return null;
+    return DriveRecord(
+      type: DriveRecordType.ai,
+      monotonicUs: us,
+      aiSpeed: speed,
+      disturbance: disturbance,
+      fusion: fusion,
+    );
+  }
+
+  static T? _enum<T>(List<T> values, Object? raw) {
+    final i = (raw as num?)?.toInt();
+    return i == null || i < 0 || i >= values.length ? null : values[i];
+  }
+
+  static DisturbanceClass _classOf(double score) {
+    const c = DisturbanceConfig();
+    return score < c.lowScoreBelow
+        ? DisturbanceClass.low
+        : (score >= c.highScoreAbove
+            ? DisturbanceClass.high
+            : DisturbanceClass.normal);
   }
 
   static Vector3? _vec(Object? raw) {

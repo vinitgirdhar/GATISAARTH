@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show FlutterError;
 import 'package:flutter/services.dart';
@@ -19,7 +18,7 @@ class _DiskBundle extends CachingAssetBundle {
 void main() {
   test('the model card is built from the shipped model files', () async {
     final facts = (await ModelFacts.load(bundle: _DiskBundle()))!;
-    expect(facts.version, 'v2.0.0');
+    expect(facts.version, 'v3.1.0');
     expect(facts.windowSamples, 20);
     expect(facts.rateHz, 10);
     expect(facts.features, 13);
