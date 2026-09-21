@@ -120,10 +120,10 @@ void main() {
     await feed(60);
     speedModel.inferences = 1;
     await feed(10, from: 102);
-    final ai = logSink.lines.where((line) => line.contains('"t":"ai"')).toList();
+    final ai = logSink.lines.where((line) => line.contains('"t":"a"')).toList();
     expect(ai, hasLength(1));
     await feed(10, from: 103);
-    expect(logSink.lines.where((line) => line.contains('"t":"ai"')), hasLength(1));
+    expect(logSink.lines.where((line) => line.contains('"t":"a"')), hasLength(1));
   });
 
   test('recording is off until the driver asks for it', () async {

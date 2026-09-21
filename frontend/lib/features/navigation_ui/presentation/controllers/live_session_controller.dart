@@ -25,6 +25,7 @@ import '../../../../core/platform/maps/pack_road_source.dart'
     show RoadGraphSource;
 import '../../../../core/platform/network/telemetry_sink.dart';
 import '../../../ai_motion/domain/speed_estimator.dart';
+import '../../../ai_motion/domain/ai_engine_feed.dart';
 import '../../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../../navigation_engine/domain/uncertainty_model.dart';
 import 'road_constraint.dart';
@@ -125,6 +126,7 @@ class LiveSessionController extends ChangeNotifier {
         _haptics = haptics ?? Haptics(hardware, clock: clock),
         _road = RoadConstraint(source: roads, clock: clock) {
     _road.onRoadsChanged = _onRoadsChanged;
+    _aiFeed = AiEngineFeed(speed: speedEstimator);
   }
 
   final HardwareSensorInterface _sensors;
@@ -133,6 +135,7 @@ class LiveSessionController extends ChangeNotifier {
   final VehicleAlignmentEngine _alignment;
   final DeviceHardware _hardware;
   final SpeedEstimator _ml;
+  late final AiEngineFeed _aiFeed;
   final TelemetrySink _telemetry;
   final DateTime Function() _clock;
   final bool _autoTick;
@@ -475,6 +478,10 @@ class LiveSessionController extends ChangeNotifier {
   /// session already dead reckoning off the roads gets onto them now.
   void _onRoadsChanged() {
     if (_disposed) return;
+    // The core's map matcher works on the same roads the marker follows: the
+    // ones drawn on screen, read from the installed offline map.
+    final roads = _road.graph;
+    if (roads != null) _engine.setRoadGraph(roads);
     if ((_drActive || _simCanyon) && !_road.isLocked && _lockRoad()) {
       _dirty = true;
     }
@@ -981,6 +988,16 @@ class LiveSessionController extends ChangeNotifier {
         temperatureC: _hardware.currentTemperature,
       );
       if (snapshot != null) _navSnapshot = snapshot;
+      final ai = _aiFeed.poll(us);
+      if (ai.speed != null) _engine.onAiSpeed(ai.speed!);
+      if (ai.disturbance != null) _engine.onDisturbance(ai.disturbance!);
+      if (ai.fusion != null) _engine.onFusionConfidence(ai.fusion!);
+      _recorder?.recordAi(
+        monotonicUs: us,
+        speed: ai.speed,
+        disturbance: ai.disturbance,
+        fusion: ai.fusion,
+      );
     } catch (e) {
       // The core must never be able to take the app down with it while it
       // is still a passenger.
