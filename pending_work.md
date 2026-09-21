@@ -8,6 +8,32 @@ This is a **status and endpoint document**, not an implementation roadmap. It in
 
 ---
 
+> [!IMPORTANT]
+> ### 🚨 CRITICAL REMAINING WORK FOR SIH26168 FULL TECHNICAL ENDPOINT
+> **ATTENTION AGENTS & DEVELOPERS**:
+> The core AI/ML pipeline, EKF navigation filter, offline vector-tile road matcher, and 10 Hz mobile UI are **fully implemented, calibrated, and verified** (all 54 test suite checks passing).
+> **DO NOT** rewrite or refactor completed navigation core or UI modules.
+> 
+> The following **5 tasks are still pending or partially satisfied** against the official SIH problem statement and must be addressed one by one:
+> 
+> 1. 🔴 **Task 1: Physical Vehicle Field Validation** (`docs/field_testing_protocol.md`)
+>    - *Status*: **OPEN (`[ ]`)**
+>    - *Requirement*: Real phone + real vehicle + real route + real GNSS-denied segment (tunnel/underpass) + measured drift.
+> 2. 🟠 **Task 2: Consistent <10% DR Drift on 30s–60s Outages** (`iovnbd_outage_benchmark.json`)
+>    - *Status*: **PARTIALLY SATISFIED (`[-]`)**
+>    - *Requirement*: 10 s outage passes at 5.6% median drift; however, 30 s median is currently **10.7%** (exceeds 10% target). Must optimize EKF/AI along-track gating to consistently achieve $<10\%$ drift across 30 s and 60 s outages.
+> 3. 🟡 **Task 3: Physical FOG-Specific 200 Hz IMU Stream Validation** (`codex_edge_200hz.json`)
+>    - *Status*: **ENGINE CAPABILITY PROVEN / FOG STREAM PENDING (`[-]`)**
+>    - *Requirement*: C++ engine executes 480k updates/s (P99 < 2.5 µs), but test was run with resampled IMU data. Needs validation against an actual Fiber Optic Gyro (FOG) IMU log stream.
+> 4. 🟡 **Task 4: External IMU Hardware Interface Bench Test** (`codex_external_imu_replay.json`)
+>    - *Status*: **SOFTWARE COMPATIBILITY PROVEN / HARDWARE PENDING (`[-]`)**
+>    - *Requirement*: IO-VNBD ESP/CAN external IMU software replay passes cleanly; physical hardware bench integration (USB/CAN to edge engine) remains open.
+> 5. 🔵 **Task 5: Lane-Level Accuracy Scope Defense & Heuristics** (`docs/evidence/road_graph_and_map_matching.md`)
+>    - *Status*: **UNSATISFIED BUT EXPLICITLY SCOPED (`[ ]`)**
+>    - *Requirement*: OSM lacks lane-level geometry. Maintain defensive documentation establishing that road/carriageway constraints are the state-of-the-art achievable scope without proprietary HD lane maps.
+
+---
+
 ## 1. Current Status Summary
 
 | Requirement | Current Status | Endpoint / Completion Condition |
@@ -26,13 +52,13 @@ This is a **status and endpoint document**, not an implementation roadmap. It in
 | Real offline road graph | **DONE (v3.1)** | Delhi NCR and Maharashtra road graphs extracted from offline PMTiles packs (`docs/evidence/road_graph_coverage.json`) |
 | Live map matching | **DONE (v3.1)** | HMM matcher fed directly by `LiveSessionController` via `NavigationEngine.setRoadGraph` with junction continuation logic |
 | Carriageway/topological constraints | **DONE (v3.1)** | Demonstrated against real Delhi, Mumbai, and UK OSM networks (`docs/evidence/real_road_map_matching.json`, `docs/evidence/iovnbd_real_map_matching.json`) |
-| Lane-level accuracy | **UNSATISFIED (EXPLICITLY SCOPED)** | Literal lane-level accuracy not satisfied; explicitly scoped to road/carriageway-level constraint due to lack of lane geometry in OSM map data (`docs/evidence/road_graph_and_map_matching.md` §P8) |
+| Lane-level accuracy | ⚠️ **UNSATISFIED (EXPLICITLY SCOPED)** | Literal lane-level accuracy not satisfied; explicitly scoped to road/carriageway-level constraint due to lack of lane geometry in OSM map data (`docs/evidence/road_graph_and_map_matching.md` §P8) |
 | IO-VNBD training | **DONE (v3.1)** | 144 real IO-VNBD files fetched via `fetch_iovnbd.py` with verified SHA-256; models retrained on real data |
 | IO-VNBD testing + position plots | **DONE (v3.1)** | Held-out inference evaluated and position plots generated (`ml/evaluation/plots/11_iovnbd_position_*.png`, `11_iovnbd_position_drift.json`) |
-| Real vehicle validation | **PROTOCOL & TOOLING (v3.1)** | Operational field-testing protocol & in-app logging tooling established in `docs/field_testing_protocol.md`; physical drive pending |
-| Real quantitative drift evidence | **PARTIALLY SATISFIED** | Demonstrated on 10 s outages (5.6% median) and cruising runs; 30 s median is 10.7% (slightly exceeds 10% target); consistent <10% across 30–60 s outages remains open (`docs/evidence/iovnbd_outage_benchmark.json`) |
-| External IMU validation | **ALGORITHM COMPATIBILITY DONE / HARDWARE PENDING** | Replayed through engine using vehicle ESP/CAN IMU proxy (`docs/evidence/codex_external_imu_replay.json`); physical external IMU hardware bench pending |
-| ~200 Hz edge validation | **ENGINE CAPABILITY DONE / FOG STREAM PENDING** | Standalone C++ engine benchmarked at ~480k updates/s with P99 < 2.5 µs (`docs/evidence/codex_edge_200hz.json`); physical FOG-specific IMU stream validation remains open |
+| Real vehicle validation | ❌ **OPEN / PENDING** | Operational field-testing protocol & in-app logging tooling established in `docs/field_testing_protocol.md`; physical drive pending |
+| Real quantitative drift evidence (<10% drift) | ⚠️ **PARTIALLY SATISFIED** | Demonstrated on 10 s outages (5.6% median) and cruising runs; 30 s median is 10.7% (slightly exceeds 10% target); consistent <10% across 30–60 s outages remains open (`docs/evidence/iovnbd_outage_benchmark.json`) |
+| External IMU validation | ⚠️ **ALGORITHM COMPATIBILITY DONE / HARDWARE PENDING** | Replayed through engine using vehicle ESP/CAN IMU proxy (`docs/evidence/codex_external_imu_replay.json`); physical external IMU hardware bench pending |
+| ~200 Hz edge validation | ⚠️ **ENGINE CAPABILITY DONE / FOG STREAM PENDING** | Standalone C++ engine benchmarked at ~480k updates/s with P99 < 2.5 µs (`docs/evidence/codex_edge_200hz.json`); physical FOG-specific IMU stream validation remains open |
 | C++ edge engine architecture | **DONE (v3.1)** | Standalone C++17 engine with CMake build, ring buffers, and test suite in `cpp-core/` |
 | On-device TFLite inference infrastructure | **DONE (v3.1)** | TFLite models executed locally on Android device with fallback and diagnostics |
 
@@ -359,13 +385,60 @@ In addition, the navigation engine must have an edge-deployable form capable of 
 - [x] UI visual refinement & card blending (dark surface `#1C1C1E` blending with 8% white hairline borders across Home, Sensors, Engine Spec, and Diagnostics)
 - [x] Offscreen scroll item rendering fix (preventing ticker stalls and invisible items in `EngineSpecScreen` and `OfflineMapsScreen`)
 
-### Partially Satisfied / Scoped Deliverables (Requiring External Hardware / Physical Assets)
+### Actionable Remaining Tasks (Priority Order for Agents & Developers)
 
-- [-] <10% DR drift demonstrated on 10 s outages (5.6% median) and selected longer cruising runs; consistent <10% performance across target 30–60 s outage scenarios remains open (30 s median is currently 10.7% in `iovnbd_outage_benchmark.json`).
-- [-] External IMU algorithm compatibility demonstrated via vehicle ESP/CAN replay (`codex_external_imu_replay.json`); physical external IMU hardware bench testing remains open.
-- [-] ~200 Hz edge engine capability verified (~480,000 updates/s, P99 < 2.5 µs in `codex_edge_200hz.json`); physical FOG-specific IMU stream validation remains open.
-- [ ] Literal lane-level accuracy (UNSATISFIED BUT EXPLICITLY SCOPED: lane-level geometry is absent from OSM data; system is scoped and defended for road-level and carriageway-level constrained dead reckoning as documented in `docs/evidence/road_graph_and_map_matching.md` §P8).
-- [ ] Physical vehicle driving run according to `docs/field_testing_protocol.md` in live traffic / tunnel (real phone + real vehicle + real route + real GNSS-denied segment + measured drift).
+The following items are the only remaining tasks required to reach the full SIH26168 endpoint. When starting work, address them one by one in this order:
+
+#### 1. 🔴 Task 1: Physical Vehicle Field Validation (Highest Priority)
+- **Problem**: Software simulation and dataset replay are complete, but physical vehicle road data is required to substantiate real-world deployment.
+- **Protocol**: Follow [`docs/field_testing_protocol.md`](file:///c:/Users/vidhy/Downloads/gathisarthi/docs/field_testing_protocol.md).
+- **Execution Steps**:
+  1. Mount an Android phone (Pixel/Galaxy) running GatiSaarth in a vehicle dashboard cradle.
+  2. Start a drive in an urban or highway corridor containing a known GNSS-denied segment (tunnel, underpass, or dense urban canyon).
+  3. Press **Record Drive** in the app to capture the raw multi-sensor JSONL stream.
+  4. Use the in-app **Tunnel Test** trigger if testing in an open corridor, or drive through a physical tunnel.
+  5. Run `flutter test test/nav/score_drive_test.dart` against the exported log to calculate horizontal error and drift %.
+
+#### 2. 🟠 Task 2: Consistent <10% DR Drift Optimization across 30s–60s Outages (High Priority)
+- **Problem**: 10 s median drift is 5.6% (passes), but 30 s median drift across 21 IO-VNBD trips is **10.7%**, which slightly exceeds the 10% requirement.
+- **Target Files**:
+  - [`frontend/lib/core/nav/ai/ai_speed_gate.dart`](file:///c:/Users/vidhy/Downloads/gathisarthi/frontend/lib/core/nav/ai/ai_speed_gate.dart)
+  - [`frontend/lib/core/nav/filter/navigation_filter.dart`](file:///c:/Users/vidhy/Downloads/gathisarthi/frontend/lib/core/nav/filter/navigation_filter.dart)
+  - [`frontend/lib/core/nav/nav_config.dart`](file:///c:/Users/vidhy/Downloads/gathisarthi/frontend/lib/core/nav/nav_config.dart)
+- **Execution Steps**:
+  1. Re-evaluate `test/nav/iovnbd_outage_benchmark_test.dart` with tuned along-track innovation damping and tighter NHC lateral constraints.
+  2. Increase AI forward-speed Kalman weight during stable cruising segments while retaining physics sanity bounds.
+  3. Re-run `iovnbd_eval.py` to bring 30 s median drift consistently below 10.0%.
+
+#### 3. 🟡 Task 3: Physical FOG-Specific 200 Hz IMU Stream Validation (Medium Priority)
+- **Problem**: The C++ engine benchmark (`codex_edge_200hz.json`) achieved 480k updates/s with resampled vehicle data, but lacks validation on a genuine Fiber Optic Gyro (FOG) IMU data stream.
+- **Target Files**:
+  - [`cpp-core/tools/bench_200hz.cpp`](file:///c:/Users/vidhy/Downloads/gathisarthi/cpp-core/tools/bench_200hz.cpp)
+  - [`cpp-core/tools/replay_external_imu.cpp`](file:///c:/Users/vidhy/Downloads/gathisarthi/cpp-core/tools/replay_external_imu.cpp)
+- **Execution Steps**:
+  1. Obtain or synthesize a verified FOG noise model / high-precision optical gyro dataset.
+  2. Feed the 200 Hz FOG log stream through `replay_external_imu`.
+  3. Validate bias stability and angular random walk (ARW) performance, generating `docs/evidence/codex_fog_200hz.json`.
+
+#### 4. 🟡 Task 4: External IMU Hardware Interface Bench Test (Medium Priority)
+- **Problem**: Vehicle CAN/ESP replay proves algorithmic capability, but a physical hardware bench interface has not been connected.
+- **Target Files**:
+  - [`cpp-core/src/engine/nav_engine.cpp`](file:///c:/Users/vidhy/Downloads/gathisarthi/cpp-core/src/engine/nav_engine.cpp)
+  - Backend/Edge serial ingestion scripts.
+- **Execution Steps**:
+  1. Implement a serial/USB or CAN bus socket reader for external IMU devices.
+  2. Stream live external sensor frames into `NavEngine::addExternalImuFrame()`.
+  3. Document latency and synchronization in `docs/evidence/codex_hardware_bench.json`.
+
+#### 5. 🔵 Task 5: Lane-Level Accuracy Scope Defense & Lateral Heuristics (Medium Priority)
+- **Problem**: The SIH problem statement mentions "maintaining lane-level accuracy", which OSM data cannot provide without proprietary lane-level HD maps.
+- **Target Files**:
+  - [`docs/evidence/road_graph_and_map_matching.md`](file:///c:/Users/vidhy/Downloads/gathisarthi/docs/evidence/road_graph_and_map_matching.md) §P8
+  - [`frontend/lib/core/nav/map/road_constraint.dart`](file:///c:/Users/vidhy/Downloads/gathisarthi/frontend/lib/core/nav/map/road_constraint.dart)
+- **Execution Steps**:
+  1. Maintain defensible justification: OSM network models road centerlines; lane-level geometry is unavailable in open-source mapping.
+  2. Implement road-width / lane-count heuristic (e.g. offsetting vehicle marker based on turn lane cues or road segment width tags where OSM `lanes=*` exists).
+  3. Document bounded lateral uncertainty bounds (< 1.75 m half-lane radius).
 
 ---
 
