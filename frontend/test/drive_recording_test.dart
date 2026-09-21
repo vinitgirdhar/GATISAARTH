@@ -77,6 +77,7 @@ void main() {
   late FakeLocationGateway gateway;
   late DateTime now;
   late LiveSessionController controller;
+  late FakeSpeed speedModel;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -85,11 +86,12 @@ void main() {
     logSink = FakeLogSink();
     gateway = FakeLocationGateway();
     now = DateTime(2026, 9, 19, 12);
+    speedModel = FakeSpeed();
     controller = LiveSessionController(
       sensors: sensors,
       alignment: VehicleAlignmentEngine(),
       hardware: hardware,
-      speedEstimator: FakeSpeed(),
+      speedEstimator: speedModel,
       telemetry: FakeTelemetry(),
       location: LiveLocationService(
         gateway: gateway,
@@ -111,6 +113,18 @@ void main() {
     }
     await settle();
   }
+
+  test('fresh neural outputs reach the recorded engine input once', () async {
+    await controller.start();
+    await controller.startRecording();
+    await feed(60);
+    speedModel.inferences = 1;
+    await feed(10, from: 102);
+    final ai = logSink.lines.where((line) => line.contains('"t":"ai"')).toList();
+    expect(ai, hasLength(1));
+    await feed(10, from: 103);
+    expect(logSink.lines.where((line) => line.contains('"t":"ai"')), hasLength(1));
+  });
 
   test('recording is off until the driver asks for it', () async {
     await controller.start();
@@ -161,7 +175,7 @@ void main() {
       sensors: FakeSensors(),
       alignment: VehicleAlignmentEngine(),
       hardware: FakeHardware(),
-      speedEstimator: FakeSpeed(),
+      speedEstimator: speedModel,
       telemetry: FakeTelemetry(),
       location: LiveLocationService(
         gateway: FakeLocationGateway(),
