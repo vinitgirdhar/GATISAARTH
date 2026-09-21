@@ -26,13 +26,13 @@ This is a **status and endpoint document**, not an implementation roadmap. It in
 | Real offline road graph | **DONE (v3.1)** | Delhi NCR and Maharashtra road graphs extracted from offline PMTiles packs (`docs/evidence/road_graph_coverage.json`) |
 | Live map matching | **DONE (v3.1)** | HMM matcher fed directly by `LiveSessionController` via `NavigationEngine.setRoadGraph` with junction continuation logic |
 | Carriageway/topological constraints | **DONE (v3.1)** | Demonstrated against real Delhi, Mumbai, and UK OSM networks (`docs/evidence/real_road_map_matching.json`, `docs/evidence/iovnbd_real_map_matching.json`) |
-| Lane-level accuracy | **DOCUMENTED SCOPE (v3.1)** | Explicitly scoped to road/carriageway-level constraint; lane-level geometry not available in OSM map data (`docs/evidence/road_graph_and_map_matching.md` §P8) |
+| Lane-level accuracy | **UNSATISFIED (EXPLICITLY SCOPED)** | Literal lane-level accuracy not satisfied; explicitly scoped to road/carriageway-level constraint due to lack of lane geometry in OSM map data (`docs/evidence/road_graph_and_map_matching.md` §P8) |
 | IO-VNBD training | **DONE (v3.1)** | 144 real IO-VNBD files fetched via `fetch_iovnbd.py` with verified SHA-256; models retrained on real data |
 | IO-VNBD testing + position plots | **DONE (v3.1)** | Held-out inference evaluated and position plots generated (`ml/evaluation/plots/11_iovnbd_position_*.png`, `11_iovnbd_position_drift.json`) |
-| Real vehicle validation | **PROTOCOL & TOOLING (v3.1)** | Operational field-testing protocol & in-app logging tooling established in `docs/field_testing_protocol.md` |
-| Real quantitative drift evidence | **DONE (v3.1)** | Racelogic VBOX ground-truth benchmark evaluated across 32 drives (`docs/evidence/iovnbd_outage_benchmark.json`); <10% drift achieved on <30 s outages and cruising runs |
-| External IMU validation | **DONE (v3.1)** | Replayed through engine using vehicle ESP/CAN IMU proxy (`docs/evidence/codex_external_imu_replay.json`) |
-| ~200 Hz edge validation | **DONE (v3.1)** | Standalone C++ engine benchmarked at 200 Hz with measured throughput/latency (`docs/evidence/codex_edge_200hz.json`) |
+| Real vehicle validation | **PROTOCOL & TOOLING (v3.1)** | Operational field-testing protocol & in-app logging tooling established in `docs/field_testing_protocol.md`; physical drive pending |
+| Real quantitative drift evidence | **PARTIALLY SATISFIED** | Demonstrated on 10 s outages (5.6% median) and cruising runs; 30 s median is 10.7% (slightly exceeds 10% target); consistent <10% across 30–60 s outages remains open (`docs/evidence/iovnbd_outage_benchmark.json`) |
+| External IMU validation | **ALGORITHM COMPATIBILITY DONE / HARDWARE PENDING** | Replayed through engine using vehicle ESP/CAN IMU proxy (`docs/evidence/codex_external_imu_replay.json`); physical external IMU hardware bench pending |
+| ~200 Hz edge validation | **ENGINE CAPABILITY DONE / FOG STREAM PENDING** | Standalone C++ engine benchmarked at ~480k updates/s with P99 < 2.5 µs (`docs/evidence/codex_edge_200hz.json`); physical FOG-specific IMU stream validation remains open |
 | C++ edge engine architecture | **DONE (v3.1)** | Standalone C++17 engine with CMake build, ring buffers, and test suite in `cpp-core/` |
 | On-device TFLite inference infrastructure | **DONE (v3.1)** | TFLite models executed locally on Android device with fallback and diagnostics |
 
@@ -233,13 +233,14 @@ Positional drift must remain below **10% of total distance travelled** during GN
 
 ### Status
 
-**EVIDENCED (v3.1)**
+**PARTIALLY SATISFIED / CONDITIONALLY PASSES (v3.1)**
 
 Documented in `docs/evidence/iovnbd_outage_benchmark.json` and `docs/evidence/iovnbd_engine_and_map_evidence.md` against Racelogic VBOX ground truth across 32 drives:
-- **10 s outage**: Median drift **5.6%** (17 of 21 scored trips under 10%).
-- **30 s outage**: Median drift **10.7%** (10 of 21 scored trips under 10%).
+- **10 s outage**: Median drift **5.6%** (17 of 21 scored trips under 10% — **PASS**).
+- **30 s outage**: Median drift **10.7%** (10 of 21 scored trips under 10% — **exceeds 10% target**).
 - **60 s outage**: Best cruising trips achieve **3.7% (Vw2)**, **6.6% (Vw16a)**, and **8.0% (Vw14b)**.
 - Gated neural speed + disturbance handling significantly reduces along-track drift during extended outages (`codex_ai_ablation_*.json`).
+- *Verdict*: Conditionally passes for 10 s outages and straight cruising runs; consistent <10% performance across all target 30–60 s outage scenarios remains an open validation item.
 
 ---
 
@@ -247,9 +248,9 @@ Documented in `docs/evidence/iovnbd_outage_benchmark.json` and `docs/evidence/io
 
 ### Status
 
-**DONE (v3.1)**
+**ALGORITHM COMPATIBILITY DONE / HARDWARE PENDING (v3.1)**
 
-Demonstrated and verified using IO-VNBD vehicle ESP/CAN 10 Hz external IMU data replayed directly through the navigation engine in `docs/evidence/codex_external_imu_replay.json`.
+Demonstrated and verified using IO-VNBD vehicle ESP/CAN 10 Hz external IMU data replayed directly through the navigation engine in `docs/evidence/codex_external_imu_replay.json`. Physical bench integration with external IMU hardware remains open.
 
 ---
 
@@ -257,12 +258,13 @@ Demonstrated and verified using IO-VNBD vehicle ESP/CAN 10 Hz external IMU data 
 
 ### Status
 
-**DONE (v3.1)**
+**ENGINE CAPABILITY DONE / FOG STREAM PENDING (v3.1)**
 
 Standalone C++17 engine benchmarked with a high-rate 200 Hz stream in `docs/evidence/codex_edge_200hz.json`:
 - **Throughput**: ~480,000 updates/second.
 - **P99 Latency**: < 2.5 µs per update.
 - Zero buffer overflow or memory instability.
+- *Note*: While the engine's compute capability easily handles 200 Hz, validating a physical stream specifically from a Fiber Optic Gyro (FOG) IMU remains open.
 
 ---
 
@@ -347,23 +349,23 @@ In addition, the navigation engine must have an edge-deployable form capable of 
 - [x] Populate real Maharashtra road graphs (Mumbai, Pune, Nagpur, Nashik, Chhatrapati Sambhajinagar)
 - [x] Activate live map matching using on-device tile road graphs (`LiveSessionController` -> `setRoadGraph`)
 - [x] Demonstrate road/topological constraints on real road data (`real_road_map_matching.json`, `iovnbd_real_map_matching.json`)
-- [x] Address SIH lane-level accuracy requirement and document validated scope (`docs/evidence/road_graph_and_map_matching.md` §P8)
 - [x] Download and integrate actual IO-VNBD data (144 verified CSVs via `fetch_iovnbd.py`)
 - [x] Train/evaluate models on actual IO-VNBD data (`speed_estimator`, `motion_quality`, `vibration_classifier`)
 - [x] Produce required IO-VNBD preliminary model results and position plots (`11_iovnbd_position_*.png`, `11_iovnbd_position_drift.json`)
 - [x] Establish real ground-truth comparison (Racelogic VBOX ground truth in `iovnbd_outage_benchmark.json`)
-- [x] Demonstrate <10% drift with real/evaluation evidence (Median drift 5.6% @ 10 s, 10.7% @ 30 s, best cruising @ 60 s < 10%)
-- [x] Validate external IMU input (IO-VNBD vehicle ESP/CAN replay in `codex_external_imu_replay.json`)
-- [x] Benchmark edge processing around 200 Hz (`codex_edge_200hz.json`)
 - [x] Field-testing protocol and in-app drive logging tooling established (`docs/field_testing_protocol.md`)
 - [x] AI Speed Estimator Confidence Calibration (Gaussian Error Tolerance CDF replacing uncalibrated variance formula; calibrated to $\ge 80\%$ in operational driving and 98% in stationary ZUPT)
 - [x] Gravity leveling pre-filter in live navigation session (preventing $-17\sigma$ out-of-distribution feature errors on tilted/upright phone mounts and emulators)
 - [x] UI visual refinement & card blending (dark surface `#1C1C1E` blending with 8% white hairline borders across Home, Sensors, Engine Spec, and Diagnostics)
 - [x] Offscreen scroll item rendering fix (preventing ticker stalls and invisible items in `EngineSpecScreen` and `OfflineMapsScreen`)
 
-### Physical Field Validation (Requires Vehicle & Phone Deployment)
+### Partially Satisfied / Scoped Deliverables (Requiring External Hardware / Physical Assets)
 
-- [ ] Execute physical vehicle driving run according to `docs/field_testing_protocol.md` in live traffic / tunnel.
+- [-] <10% DR drift demonstrated on 10 s outages (5.6% median) and selected longer cruising runs; consistent <10% performance across target 30–60 s outage scenarios remains open (30 s median is currently 10.7% in `iovnbd_outage_benchmark.json`).
+- [-] External IMU algorithm compatibility demonstrated via vehicle ESP/CAN replay (`codex_external_imu_replay.json`); physical external IMU hardware bench testing remains open.
+- [-] ~200 Hz edge engine capability verified (~480,000 updates/s, P99 < 2.5 µs in `codex_edge_200hz.json`); physical FOG-specific IMU stream validation remains open.
+- [ ] Literal lane-level accuracy (UNSATISFIED BUT EXPLICITLY SCOPED: lane-level geometry is absent from OSM data; system is scoped and defended for road-level and carriageway-level constrained dead reckoning as documented in `docs/evidence/road_graph_and_map_matching.md` §P8).
+- [ ] Physical vehicle driving run according to `docs/field_testing_protocol.md` in live traffic / tunnel (real phone + real vehicle + real route + real GNSS-denied segment + measured drift).
 
 ---
 
