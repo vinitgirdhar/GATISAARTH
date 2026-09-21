@@ -57,3 +57,6 @@ IO-VNBD_DATASET/
 # APK distribution builds
 apks/
 *.apk
+
+# Legacy archive directory
+SIH_DEAD_RECKONING-main/
