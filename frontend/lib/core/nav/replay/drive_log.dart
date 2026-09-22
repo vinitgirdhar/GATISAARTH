@@ -6,6 +6,7 @@ import '../ai/ai_config.dart';
 import '../ai/ai_types.dart';
 import '../gnss/gnss_quality.dart';
 import '../math/nav_math.dart';
+import '../../platform/gnss/gnss_telemetry.dart';
 
 /// What a line of a drive log holds (§36).
 enum DriveRecordType {
@@ -20,6 +21,9 @@ enum DriveRecordType {
 
   /// GNSS became unavailable (switched off, permission lost, tunnel).
   gnssLost,
+
+  /// Receiver-level constellation and signal evidence from Android.
+  gnssReceiver,
 
   /// Ground truth, when a drive has any (simulated runs, or a survey-grade
   /// reference logged alongside).
@@ -60,6 +64,7 @@ class DriveRecord {
     this.aiSpeed,
     this.disturbance,
     this.fusion,
+    this.receiver,
   });
 
   factory DriveRecord.imu({
@@ -89,6 +94,29 @@ class DriveRecord {
   factory DriveRecord.gnssLost(int monotonicUs) => DriveRecord(
         type: DriveRecordType.gnssLost,
         monotonicUs: monotonicUs,
+      );
+
+  factory DriveRecord.gnssReceiver({
+    required int monotonicUs,
+    required GnssTelemetrySnapshot snapshot,
+  }) =>
+      DriveRecord(
+        type: DriveRecordType.gnssReceiver,
+        monotonicUs: monotonicUs,
+        receiver: {
+          'raw': snapshot.rawMeasurementsSupported,
+          'vis': snapshot.visibleCount,
+          'used': snapshot.usedInFixCount,
+          'sv': snapshot.satellites
+              .map((satellite) => [
+                    satellite.constellation.index,
+                    satellite.svid,
+                    satellite.cn0DbHz,
+                    satellite.usedInFix,
+                    satellite.carrierFrequencyHz,
+                  ])
+              .toList(growable: false),
+        },
       );
 
   factory DriveRecord.truth({
@@ -159,6 +187,7 @@ class DriveRecord {
   final AiSpeedObservation? aiSpeed;
   final DisturbanceEstimate? disturbance;
   final FusionConfidence? fusion;
+  final Map<String, dynamic>? receiver;
 
   /// Encodes to one JSON line.
   ///
@@ -202,6 +231,8 @@ class DriveRecord {
         };
       case DriveRecordType.gnssLost:
         return {'t': 'x', 'u': monotonicUs};
+      case DriveRecordType.gnssReceiver:
+        return {'t': 's', 'u': monotonicUs, ...receiver!};
       case DriveRecordType.truth:
         return {
           't': 'r',
@@ -321,6 +352,19 @@ class DriveRecord {
           type: DriveRecordType.gnssLost,
           monotonicUs: us,
         );
+      case 's':
+        final satellites = json['sv'];
+        if (satellites is! List) return null;
+        return DriveRecord(
+          type: DriveRecordType.gnssReceiver,
+          monotonicUs: us,
+          receiver: {
+            'raw': json['raw'] == true,
+            'vis': (json['vis'] as num?)?.toInt() ?? satellites.length,
+            'used': (json['used'] as num?)?.toInt() ?? 0,
+            'sv': satellites,
+          },
+        );
       case 'r':
         final lat = (json['lat'] as num?)?.toDouble();
         final lon = (json['lon'] as num?)?.toDouble();
@@ -364,16 +408,17 @@ class DriveRecord {
             monotonicUs: us,
             latencyMs: num_('lms') ?? 0,
             featureZMax: num_('fz') ?? 0,
-            windowsFed:
-                (json['win'] as num?)?.toInt() ?? const AiSpeedObservation(
-                    speedMps: 0, sigmaMps: 1, monotonicUs: 0).windowsFed,
+            windowsFed: (json['win'] as num?)?.toInt() ??
+                const AiSpeedObservation(
+                        speedMps: 0, sigmaMps: 1, monotonicUs: 0)
+                    .windowsFed,
           );
     final disturbance = vib == null || mq == null
         ? null
         : DisturbanceEstimate(
             vibrationScore: vib,
-            vibrationClass: _enum(DisturbanceClass.values, json['vcl']) ??
-                _classOf(vib),
+            vibrationClass:
+                _enum(DisturbanceClass.values, json['vcl']) ?? _classOf(vib),
             motionQuality: mq,
             monotonicUs: us,
             shock: _enum(ShockKind.values, json['shk']) ?? ShockKind.none,

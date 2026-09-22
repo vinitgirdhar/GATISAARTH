@@ -9,6 +9,21 @@ abstract interface class GnssTelemetrySource {
   Future<void> stop();
 }
 
+/// Used by non-Android hosts and unit tests that do not exercise receiver
+/// telemetry. Production Android explicitly injects the platform source.
+class NoopGnssTelemetrySource implements GnssTelemetrySource {
+  const NoopGnssTelemetrySource();
+
+  @override
+  Stream<GnssTelemetrySnapshot> get snapshots => const Stream.empty();
+
+  @override
+  Future<void> start() async {}
+
+  @override
+  Future<void> stop() async {}
+}
+
 /// Android platform-channel implementation. Other platforms return an empty
 /// stream through Flutter's normal missing-plugin behaviour.
 class PlatformGnssTelemetrySource implements GnssTelemetrySource {

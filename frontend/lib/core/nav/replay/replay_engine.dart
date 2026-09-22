@@ -266,6 +266,10 @@ class ReplayEngine {
       case DriveRecordType.gnssLost:
         engine.onGnssLost(record.monotonicUs);
         return null;
+      case DriveRecordType.gnssReceiver:
+        // Diagnostic evidence: the replayed navigation state is driven by the
+        // recorded fixes and IMU, not by receiver presentation metadata.
+        return null;
       case DriveRecordType.truth:
         _truthLat = record.latitude;
         _truthLon = record.longitude;

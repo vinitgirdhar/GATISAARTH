@@ -125,7 +125,7 @@ class LiveSessionController extends ChangeNotifier {
         _autoTick = autoTick,
         _logStore = logStore ?? DriveLogStore(),
         _haptics = haptics ?? Haptics(hardware, clock: clock),
-        _gnssTelemetrySource = gnssTelemetry ?? PlatformGnssTelemetrySource(),
+        _gnssTelemetrySource = gnssTelemetry ?? const NoopGnssTelemetrySource(),
         _road = RoadConstraint(source: roads, clock: clock) {
     _road.onRoadsChanged = _onRoadsChanged;
     _aiFeed = AiEngineFeed(speed: speedEstimator);
@@ -287,6 +287,10 @@ class LiveSessionController extends ChangeNotifier {
     _gnssTelemetrySub ??= _gnssTelemetrySource.snapshots.listen(
       (snapshot) {
         _gnssTelemetry = snapshot;
+        final us = _engineNowUs;
+        if (us != null) {
+          _recorder?.recordGnssReceiver(monotonicUs: us, snapshot: snapshot);
+        }
         _dirty = true;
       },
       onError: (_) {

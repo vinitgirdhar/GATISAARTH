@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../../core/platform/hardware/device_hardware_service.dart';
+import '../../../../core/platform/gnss/gnss_telemetry.dart';
 import '../../../../core/platform/hardware/sensor_mobile.dart';
 import '../../../../core/platform/hardware/vehicle_alignment_engine.dart';
 import '../../../../core/platform/location/geolocator_gateway.dart';
@@ -25,6 +26,7 @@ LiveSessionController createLiveSession({OfflineMapService? maps}) =>
         gateway: const GeolocatorGateway(),
         staleAfter: const Duration(seconds: 18),
       ),
+      gnssTelemetry: PlatformGnssTelemetrySource(),
       roads: maps == null ? null : PackRoadGraphSource(maps),
     );
 

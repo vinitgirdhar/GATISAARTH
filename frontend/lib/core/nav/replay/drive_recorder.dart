@@ -2,6 +2,7 @@ import '../ai/ai_types.dart';
 import '../gnss/gnss_quality.dart';
 import '../math/nav_math.dart';
 import 'drive_log.dart';
+import '../../platform/gnss/gnss_telemetry.dart';
 
 /// Records a drive as JSONL (§36).
 ///
@@ -102,6 +103,19 @@ class DriveRecorder {
   void recordGnssLost(int monotonicUs) {
     if (!_recording) return;
     _write(DriveRecord.gnssLost(monotonicUs));
+  }
+
+  /// Records receiver-level evidence used to diagnose multipath, poor sky
+  /// visibility, and NavIC availability after a field drive.
+  void recordGnssReceiver({
+    required int monotonicUs,
+    required GnssTelemetrySnapshot snapshot,
+  }) {
+    if (!_recording) return;
+    _write(DriveRecord.gnssReceiver(
+      monotonicUs: monotonicUs,
+      snapshot: snapshot,
+    ));
   }
 
   void recordTruth({
