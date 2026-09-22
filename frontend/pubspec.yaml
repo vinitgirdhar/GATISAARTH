@@ -23,6 +23,7 @@ dependencies:
   # can use its Quaternion/Matrix3 instead of hand-rolled rotation maths.
   vector_math: ^2.4.0
   share_plus: ^13.3.0
+  mobile_scanner: ^7.4.2
   # Bounded concurrent reads of the offline map archives (already a transitive
   # dependency of `pmtiles`).
   pool: ^1.5.1
