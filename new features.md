@@ -53,6 +53,12 @@ The winning direction is therefore **not “another navigation app.”** It is a
 6. Add multi-modal classification and profile-specific constraints. Android's activity-transition API supports in-vehicle, bicycle, walking, running and still transitions, making this practical and battery-aware. [Android documentation](https://developer.android.com/codelabs/activity-recognition-transition)
 7. Add offline visual re-localisation as a gated measurement update, with a hard reject threshold and no background video upload.
 
+#### Phase B status — started 22 September 2026
+
+- [x] **Trusted portal-anchor core:** a QR/AprilTag payload is an identifier only; it must resolve against a device-local registry, may be used only during an outage, and must pass a conservative residual gate.
+- [x] **EKF integration:** an accepted portal is recorded as an auditable `portal_anchor` measurement with its own fusion contribution. It never directly overwrites the estimated position and never falsely declares GNSS recovery.
+- [ ] **Next:** ship the local anchor-pack registry and camera scanner flow, then add multimodal activity transitions and gated offline visual re-localisation through the same measurement boundary.
+
 ### Phase C — scale narrative
 
 8. Build the opt-in aggregated GNSS-risk map only after the single-device story is validated. It needs explicit consent, minimum aggregation thresholds, short retention and a local-only default; do not collect raw location histories by default.
