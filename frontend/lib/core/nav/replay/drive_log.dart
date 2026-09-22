@@ -105,6 +105,8 @@ class DriveRecord {
         monotonicUs: monotonicUs,
         receiver: {
           'raw': snapshot.rawMeasurementsSupported,
+          'rm': snapshot.rawMeasurementCount,
+          'adr': snapshot.adrMeasurementCount,
           'vis': snapshot.visibleCount,
           'used': snapshot.usedInFixCount,
           'sv': snapshot.satellites
@@ -360,6 +362,8 @@ class DriveRecord {
           monotonicUs: us,
           receiver: {
             'raw': json['raw'] == true,
+            'rm': (json['rm'] as num?)?.toInt() ?? 0,
+            'adr': (json['adr'] as num?)?.toInt() ?? 0,
             'vis': (json['vis'] as num?)?.toInt() ?? satellites.length,
             'used': (json['used'] as num?)?.toInt() ?? 0,
             'sv': satellites,

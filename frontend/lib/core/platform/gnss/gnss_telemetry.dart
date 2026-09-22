@@ -132,6 +132,8 @@ class GnssTelemetrySnapshot {
     required this.statusSupported,
     required this.rawMeasurementsSupported,
     required this.satellites,
+    this.rawMeasurementCount = 0,
+    this.adrMeasurementCount = 0,
     this.recordedAt,
   });
 
@@ -151,6 +153,8 @@ class GnssTelemetrySnapshot {
       permissionGranted: map['permissionGranted'] == true,
       statusSupported: map['statusSupported'] == true,
       rawMeasurementsSupported: map['rawMeasurementsSupported'] == true,
+      rawMeasurementCount: _finiteInt(map['rawMeasurementCount']) ?? 0,
+      adrMeasurementCount: _finiteInt(map['adrMeasurementCount']) ?? 0,
       satellites: List.unmodifiable(satellites),
       recordedAt: timestampMs == null
           ? null
@@ -161,6 +165,11 @@ class GnssTelemetrySnapshot {
   final bool permissionGranted;
   final bool statusSupported;
   final bool rawMeasurementsSupported;
+  final int rawMeasurementCount;
+
+  /// Raw observations whose accumulated-delta-range state is valid. ADR is
+  /// carrier-phase-derived evidence; it is not promised as a fixed solution.
+  final int adrMeasurementCount;
   final List<GnssSatellite> satellites;
   final DateTime? recordedAt;
 

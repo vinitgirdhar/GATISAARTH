@@ -8,6 +8,9 @@ enum HapticEvent {
   /// rider is not looking at the screen; this is the one alert that is.
   outageStarted,
 
+  /// A road fork or uncertainty threshold became unsafe for turn guidance.
+  missionWarning,
+
   /// A drive recording began. Confirms a tap the user often cannot see.
   recordingStarted,
 
@@ -41,6 +44,7 @@ class Haptics {
   /// and a double-tapped Record button must not buzz twice.
   static const Map<HapticEvent, Duration> _cooldown = {
     HapticEvent.outageStarted: Duration(seconds: 45),
+    HapticEvent.missionWarning: Duration(seconds: 45),
     HapticEvent.recordingStarted: Duration(milliseconds: 1500),
     HapticEvent.recordingStopped: Duration(milliseconds: 1500),
   };
@@ -66,6 +70,12 @@ class Haptics {
         await _hardware.vibrate(durationMs: 250, amplitude: 255);
         await _pause(const Duration(milliseconds: 150));
         await _hardware.vibrate(durationMs: 350, amplitude: 255);
+      case HapticEvent.missionWarning:
+        await _hardware.vibrate(durationMs: 120, amplitude: 220);
+        await _pause(const Duration(milliseconds: 100));
+        await _hardware.vibrate(durationMs: 120, amplitude: 220);
+        await _pause(const Duration(milliseconds: 100));
+        await _hardware.vibrate(durationMs: 120, amplitude: 220);
       case HapticEvent.recordingStarted:
         await _hardware.vibrate(durationMs: 60, amplitude: 160);
       case HapticEvent.recordingStopped:

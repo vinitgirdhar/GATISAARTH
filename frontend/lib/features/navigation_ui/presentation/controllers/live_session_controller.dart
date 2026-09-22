@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/nav/gnss/gnss_quality.dart';
+import '../../../../core/nav/guidance/mission_guidance.dart';
 import '../../../../core/nav/math/nav_math.dart' show Vector3;
 import '../../../../core/nav/model/nav_snapshot.dart';
 import '../../../../core/nav/motion/motion_classifier.dart' show VehicleClass;
@@ -12,10 +13,12 @@ import '../../../../core/nav/navigation_engine.dart';
 import '../../../../core/nav/nav_config.dart';
 import '../../../../core/nav/replay/drive_log.dart';
 import '../../../../core/platform/gnss/gnss_telemetry.dart';
+import '../../../../core/platform/gnss/gnss_integrity_monitor.dart';
 import '../../../../core/nav/replay/drive_recorder.dart';
 import '../../../../core/nav/sensors/sensor_sample.dart';
 import '../../../../core/platform/storage/drive_log_store.dart';
 import '../../../../core/platform/hardware/device_hardware.dart';
+import '../../../../core/platform/guidance/voice_guidance.dart';
 import '../../../../core/platform/hardware/haptics.dart';
 import '../../../../core/platform/hardware/sensor_api.dart';
 import '../../../../core/platform/hardware/vehicle_alignment_engine.dart';
@@ -89,6 +92,7 @@ const Duration _maxCatchUp = Duration(seconds: 15);
 const String _cacheLatKey = 'last_known_lat';
 const String _vehicleKey = 'vehicle_profile';
 const String _hapticsKey = 'haptics_enabled';
+const String _voiceGuidanceKey = 'voice_guidance_enabled';
 
 /// After returning from the background the signal settles for a while; that is
 /// not an outage worth buzzing about.
@@ -116,6 +120,7 @@ class LiveSessionController extends ChangeNotifier {
     Haptics? haptics,
     RoadGraphSource? roads,
     GnssTelemetrySource? gnssTelemetry,
+    VoiceGuidance? voiceGuidance,
   })  : _sensors = sensors,
         _alignment = alignment,
         _hardware = hardware,
@@ -126,6 +131,7 @@ class LiveSessionController extends ChangeNotifier {
         _logStore = logStore ?? DriveLogStore(),
         _haptics = haptics ?? Haptics(hardware, clock: clock),
         _gnssTelemetrySource = gnssTelemetry ?? const NoopGnssTelemetrySource(),
+        _voiceGuidance = voiceGuidance ?? const NoopVoiceGuidance(),
         _road = RoadConstraint(source: roads, clock: clock) {
     _road.onRoadsChanged = _onRoadsChanged;
     _aiFeed = AiEngineFeed(speed: speedEstimator);
@@ -142,6 +148,11 @@ class LiveSessionController extends ChangeNotifier {
   final DateTime Function() _clock;
   final bool _autoTick;
   final GnssTelemetrySource _gnssTelemetrySource;
+  final VoiceGuidance _voiceGuidance;
+  final GnssIntegrityMonitor _gnssIntegrity = GnssIntegrityMonitor();
+  final MissionGuidancePolicy _missionPolicy = MissionGuidancePolicy();
+  MissionGuidanceDecision? _missionGuidance;
+  bool _voiceGuidanceEnabled = true;
 
   /// Owned by this controller (disposed with it).
   final LiveLocationService location;
@@ -283,10 +294,12 @@ class LiveSessionController extends ChangeNotifier {
     await _loadCachedPosition();
     await _loadVehicleProfile();
     await _loadHaptics();
+    await _loadVoiceGuidance();
     await location.start();
     _gnssTelemetrySub ??= _gnssTelemetrySource.snapshots.listen(
       (snapshot) {
         _gnssTelemetry = snapshot;
+        _gnssIntegrity.add(snapshot);
         final us = _engineNowUs;
         if (us != null) {
           _recorder?.recordGnssReceiver(monotonicUs: us, snapshot: snapshot);
@@ -344,6 +357,7 @@ class LiveSessionController extends ChangeNotifier {
     _tempSub?.cancel();
     _gnssTelemetrySub?.cancel();
     unawaited(_gnssTelemetrySource.stop());
+    unawaited(_voiceGuidance.stop());
     _sensors.stop();
     _hardware.stop();
     location.removeListener(_onLocationChanged);
@@ -390,6 +404,30 @@ class LiveSessionController extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_hapticsKey, on);
+    } catch (_) {}
+  }
+
+  bool get voiceGuidanceEnabled => _voiceGuidanceEnabled;
+
+  void setVoiceGuidanceEnabled(bool on) {
+    _voiceGuidanceEnabled = on;
+    if (!on) unawaited(_voiceGuidance.stop());
+    unawaited(_saveVoiceGuidance(on));
+    _touch();
+  }
+
+  Future<void> _loadVoiceGuidance() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getBool(_voiceGuidanceKey);
+      if (saved != null && !_disposed) _voiceGuidanceEnabled = saved;
+    } catch (_) {}
+  }
+
+  Future<void> _saveVoiceGuidance(bool on) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_voiceGuidanceKey, on);
     } catch (_) {}
   }
 
@@ -799,6 +837,7 @@ class LiveSessionController extends ChangeNotifier {
       accuracyMeters: _accuracy,
       alreadyElapsed: gap,
     );
+    _updateMissionGuidance();
     if (starting && _outageIsWorthAlerting(now)) {
       unawaited(
           _haptics.fire(HapticEvent.outageStarted, recording: isRecording));
@@ -820,6 +859,28 @@ class LiveSessionController extends ChangeNotifier {
     } else {
       _outage.addDistance(missed);
     }
+  }
+
+  void _updateMissionGuidance() {
+    final candidates = _navSnapshot?.mapMatchResult?.candidates ?? const [];
+    final best = candidates.isEmpty ? null : candidates.first;
+    final decision = _missionPolicy.update(MissionGuidanceContext(
+      inOutage: _drActive,
+      marginMeters: uncertainty?.marginMeters,
+      roadHypotheses: candidates.length,
+      leadingRoadProbability: best?.posterior,
+      trustedRoad: _drActive ? null : best?.roadName,
+      trustedHeadingDeg: _drActive ? null : _heading,
+    ));
+    if (decision == null) return;
+    _missionGuidance = decision;
+    if (_voiceGuidanceEnabled) unawaited(_voiceGuidance.speak(decision.speech));
+    if (decision.requestHaptic &&
+        decision.event != MissionGuidanceEvent.outageStarted) {
+      unawaited(
+          _haptics.fire(HapticEvent.missionWarning, recording: isRecording));
+    }
+    _dirty = true;
   }
 
   /// Moves the fused position [distanceMeters] forward: along the road when
@@ -1311,6 +1372,7 @@ class LiveSessionController extends ChangeNotifier {
       _simTunnel || (location.hasBeenLive && !location.isLive);
 
   bool get inOutage => _drActive;
+  MissionGuidanceDecision? get missionGuidance => _missionGuidance;
 
   /// Whether the marker is being held on a road of the installed map: true
   /// through an outage when there are roads around, false where there are none.
@@ -1331,6 +1393,8 @@ class LiveSessionController extends ChangeNotifier {
   /// Latest hardware-reported constellation status, or null until Android has
   /// produced one. Null is intentionally not replaced with demo values.
   GnssTelemetrySnapshot? get gnssTelemetry => _gnssTelemetry;
+  GnssIntegrityAssessment get gnssIntegrity => _gnssIntegrity.assessment;
+  List<double> get gnssCn0History => _gnssIntegrity.cn0History;
 
   /// True only while a real, fresh fix is arriving and we are not simulating
   /// a blackout.
@@ -1441,6 +1505,22 @@ class LiveSessionController extends ChangeNotifier {
         confidence: uncertainty?.confidence ?? 0,
         fusionMode: fusionMode,
       );
+
+  /// Up to three HMM road hypotheses while GNSS is unavailable. These are
+  /// display corridors, not turn instructions.
+  List<RoadCorridorModel> get roadCorridors {
+    if (!inOutage) return const [];
+    final candidates = _navSnapshot?.mapMatchResult?.candidates;
+    if (candidates == null || candidates.isEmpty) return const [];
+    return [
+      for (final candidate in candidates.take(3))
+        RoadCorridorModel(
+          polyline: candidate.corridorPolyline,
+          probability: candidate.posterior,
+          roadName: candidate.roadName,
+        ),
+    ];
+  }
 
   /// Latest navigation-core estimate, or null before it has one.
   ///

@@ -6,7 +6,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/nav/benchmark/benchmark_job.dart';
+import '../../../core/nav/benchmark/field_evidence.dart';
 import '../../../core/nav/benchmark/outage_report.dart';
+import '../../../core/platform/evidence/android_evidence_signer.dart';
 import '../../../core/platform/storage/drive_log_store.dart';
 
 /// A drive the benchmark can be run on.
@@ -66,6 +68,11 @@ abstract class BenchmarkBackend {
 
   /// Opens the phone's share sheet with a compressed copy of a recorded drive.
   Future<void> share(BenchmarkSource source);
+
+  /// Builds and shares a device-key-signed, machine-readable result. The raw
+  /// route stays out of the report; only reproducibility metadata and metrics
+  /// are included.
+  Future<void> shareEvidence(BenchmarkSource source, OutageReport report);
 
   /// Deletes a recorded drive from this phone. False when there was nothing to
   /// delete or it failed.
@@ -131,6 +138,37 @@ class DeviceBenchmarkBackend implements BenchmarkBackend {
       files: [XFile(copy.path, mimeType: 'application/gzip')],
       subject: 'GatiSaarth drive log',
       text: 'GatiSaarth drive log $name (gzip-compressed JSONL)',
+    ));
+  }
+
+  @override
+  Future<void> shareEvidence(
+    BenchmarkSource source,
+    OutageReport report,
+  ) async {
+    final log = source.asset != null
+        ? await rootBundle.loadString(source.asset!)
+        : await File(source.path!).readAsString();
+    final evidence = await const FieldEvidenceBuilder(
+      signer: AndroidEvidenceSigner(),
+    ).build(
+      report: report,
+      driveLog: log,
+      simulated: source.simulated,
+    );
+    final cache = await getTemporaryDirectory();
+    final safeName = (source.path == null
+            ? 'reference-drive'
+            : File(source.path!).uri.pathSegments.last)
+        .replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final file = File('${cache.path}/$safeName.evidence.json');
+    await file.writeAsString(evidence.toJson(), flush: true);
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(file.path, mimeType: 'application/json')],
+      subject: 'GatiSaarth signed field evidence',
+      text: source.simulated
+          ? 'Signed GatiSaarth simulated benchmark evidence'
+          : 'Signed GatiSaarth field-validation evidence',
     ));
   }
 

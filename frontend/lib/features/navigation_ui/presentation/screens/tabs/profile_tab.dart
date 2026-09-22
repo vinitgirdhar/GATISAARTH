@@ -137,12 +137,23 @@ class ProfileTab extends StatelessWidget {
               _ProfileMenuTile(
                 icon: Icons.vibration_rounded,
                 title: 'Haptic alerts',
-                subtitle: 'Buzz only when GNSS is lost and when a recording '
-                    'starts or stops',
+                subtitle: 'Safety patterns for GNSS loss and unsafe ambiguity',
                 trailing: Switch(
                   value: session.hapticsEnabled,
                   activeThumbColor: AppColors.primary,
                   onChanged: session.setHapticsEnabled,
+                ),
+              ),
+              const Divider(height: 1),
+              _ProfileMenuTile(
+                icon: Icons.record_voice_over_rounded,
+                title: 'Safe outage voice',
+                subtitle:
+                    'Speaks only on GNSS loss, unsafe ambiguity, and recovery',
+                trailing: Switch(
+                  value: session.voiceGuidanceEnabled,
+                  activeThumbColor: AppColors.primary,
+                  onChanged: session.setVoiceGuidanceEnabled,
                 ),
               ),
               const Divider(height: 1),

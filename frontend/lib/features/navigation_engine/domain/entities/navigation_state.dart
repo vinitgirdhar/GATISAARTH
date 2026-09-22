@@ -52,6 +52,22 @@ class NavigationStateModel {
   });
 }
 
+/// One ranked road geometry that remains plausible during an outage.
+///
+/// Multiple entries are intentionally allowed: a fork stays visibly
+/// ambiguous until sensor or GNSS evidence separates the hypotheses.
+class RoadCorridorModel {
+  const RoadCorridorModel({
+    required this.polyline,
+    required this.probability,
+    this.roadName,
+  });
+
+  final List<double> polyline;
+  final double probability;
+  final String? roadName;
+}
+
 class SensorHealthModel {
   final bool accelerometer;
   final bool gyroscope;

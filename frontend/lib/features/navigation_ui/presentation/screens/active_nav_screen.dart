@@ -6,6 +6,7 @@ import '../controllers/live_session_controller.dart';
 import '../controllers/live_session_scope.dart';
 import '../widgets/fusion_mode_badge.dart';
 import '../widgets/location_status_banner.dart';
+import '../widgets/mission_guidance_card.dart';
 import '../widgets/navigation_map.dart';
 import '../widgets/session_status_card.dart';
 import '../widgets/telemetry_card.dart';
@@ -43,6 +44,8 @@ class NavigationScreen extends StatelessWidget {
             FadeSlideIn(
               child: SessionStatusCard(session: session, showAlignment: false),
             ),
+            if (session.missionGuidance != null)
+              MissionGuidanceCard(decision: session.missionGuidance!),
             const SizedBox(height: AppSpacing.md),
             _ImuStrip(session: session),
             const SizedBox(height: AppSpacing.md),
@@ -52,6 +55,7 @@ class NavigationScreen extends StatelessWidget {
                 navigationState: session.navigationState,
                 marginMeters: estimate?.marginMeters,
                 trail: session.trail.segments,
+                roadCorridors: session.roadCorridors,
                 height: mapHeight,
                 // Inside a scrolling page a drag must scroll the page.
                 gestures: MapGestures.zoomOnly,

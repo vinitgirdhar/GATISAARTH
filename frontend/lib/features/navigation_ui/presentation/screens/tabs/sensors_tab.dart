@@ -8,6 +8,7 @@ import '../../controllers/live_session_scope.dart';
 import '../../widgets/engine_status_card.dart';
 import '../../widgets/navic_weight_indicator.dart';
 import '../../widgets/satellite_breakdown.dart';
+import '../../widgets/gnss_integrity_panel.dart';
 
 class SensorsTab extends StatelessWidget {
   const SensorsTab({Key? key}) : super(key: key);
@@ -190,6 +191,11 @@ class SensorsTab extends StatelessWidget {
         ),
         NavicWeightIndicator(
           navicWeight: _navicWeight(session),
+        ),
+        GnssIntegrityPanel(
+          telemetry: session.gnssTelemetry,
+          assessment: session.gnssIntegrity,
+          cn0History: session.gnssCn0History,
         ),
 
         const SizedBox(height: AppSpacing.lg),

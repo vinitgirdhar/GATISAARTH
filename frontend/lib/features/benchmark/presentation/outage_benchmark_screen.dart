@@ -30,6 +30,7 @@ class _OutageBenchmarkScreenState extends State<OutageBenchmarkScreen> {
   BenchmarkSource? _running;
   double _progress = 0;
   OutageReport? _report;
+  BenchmarkSource? _reportSource;
   bool _simulated = false;
   String? _error;
 
@@ -38,6 +39,7 @@ class _OutageBenchmarkScreenState extends State<OutageBenchmarkScreen> {
       _running = source;
       _progress = 0;
       _report = null;
+      _reportSource = null;
       _error = null;
     });
     try {
@@ -50,6 +52,7 @@ class _OutageBenchmarkScreenState extends State<OutageBenchmarkScreen> {
       if (!mounted) return;
       setState(() {
         _report = report;
+        _reportSource = source;
         _simulated = source.simulated;
       });
     } catch (e) {
@@ -256,6 +259,25 @@ class _OutageBenchmarkScreenState extends State<OutageBenchmarkScreen> {
               },
             ),
           ),
+          if (_reportSource != null) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.verified_user_rounded),
+                label: const Text('Share signed evidence'),
+                onPressed: () async {
+                  try {
+                    await widget.backend.shareEvidence(_reportSource!, report);
+                  } catch (e) {
+                    if (mounted) {
+                      setState(() =>
+                          _error = 'Could not create signed evidence: $e');
+                    }
+                  }
+                },
+              ),
+            ),
+          ],
         ],
       ),
     ];

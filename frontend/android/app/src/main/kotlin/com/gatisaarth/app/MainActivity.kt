@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.GnssMeasurementsEvent
+import android.location.GnssMeasurement
 import android.location.GnssStatus
 import android.location.LocationManager
 import java.io.File
@@ -17,6 +18,16 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.WindowManager
+import android.speech.tts.TextToSpeech
+import java.util.Locale
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import java.security.KeyPairGenerator
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.security.Signature
+import java.security.spec.ECGenParameterSpec
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -32,6 +43,10 @@ class MainActivity: FlutterActivity() {
     private var gnssStatusRegistered = false
     private var rawMeasurementsRegistered = false
     private var rawMeasurementsObserved = false
+    private var rawMeasurementCount = 0
+    private var adrMeasurementCount = 0
+    private var textToSpeech: TextToSpeech? = null
+    private var pendingGuidance: String? = null
 
     private val gnssStatusCallback = object : GnssStatus.Callback() {
         override fun onSatelliteStatusChanged(status: GnssStatus) {
@@ -47,10 +62,13 @@ class MainActivity: FlutterActivity() {
 
     private val rawMeasurementsCallback = object : GnssMeasurementsEvent.Callback() {
         override fun onGnssMeasurementsReceived(eventArgs: GnssMeasurementsEvent) {
-            if (!rawMeasurementsObserved) {
-                rawMeasurementsObserved = true
-                emitGnssSnapshot(gnssStatus)
+            rawMeasurementsObserved = true
+            rawMeasurementCount = eventArgs.measurements.size
+            adrMeasurementCount = eventArgs.measurements.count { measurement ->
+                measurement.accumulatedDeltaRangeState and
+                    GnssMeasurement.ADR_STATE_VALID != 0
             }
+            emitGnssSnapshot(gnssStatus)
         }
     }
 
@@ -131,6 +149,23 @@ class MainActivity: FlutterActivity() {
                     }
                     result.success(true)
                 }
+                "speakGuidance" -> {
+                    speakGuidance(call.argument<String>("message") ?: "")
+                    result.success(true)
+                }
+                "stopGuidance" -> {
+                    textToSpeech?.stop()
+                    pendingGuidance = null
+                    result.success(true)
+                }
+                "signEvidence" -> {
+                    try {
+                        val payload = call.argument<String>("payload") ?: ""
+                        result.success(signEvidence(payload))
+                    } catch (error: Exception) {
+                        result.error("EVIDENCE_SIGNING_FAILED", error.message, null)
+                    }
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -141,6 +176,65 @@ class MainActivity: FlutterActivity() {
     private fun hasFineLocationPermission(): Boolean =
         checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
+
+    private fun speakGuidance(message: String) {
+        if (message.isBlank()) return
+        val engine = textToSpeech
+        if (engine != null) {
+            engine.speak(message, TextToSpeech.QUEUE_FLUSH, null, "mission-guidance")
+            return
+        }
+        pendingGuidance = message
+        textToSpeech = TextToSpeech(applicationContext) { status ->
+            val ready = textToSpeech
+            if (status == TextToSpeech.SUCCESS && ready != null) {
+                ready.language = Locale.forLanguageTag("en-IN")
+                pendingGuidance?.let {
+                    ready.speak(it, TextToSpeech.QUEUE_FLUSH, null, "mission-guidance")
+                }
+            }
+            pendingGuidance = null
+        }
+    }
+
+    private fun signEvidence(payload: String): Map<String, String> {
+        require(payload.isNotEmpty()) { "Evidence payload must not be empty" }
+        val alias = "gatisaarth-field-evidence-v1"
+        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        if (!keyStore.containsAlias(alias)) {
+            val generator = KeyPairGenerator.getInstance(
+                KeyProperties.KEY_ALGORITHM_EC,
+                "AndroidKeyStore"
+            )
+            generator.initialize(
+                KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_SIGN)
+                    .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+                    .setDigests(KeyProperties.DIGEST_SHA256)
+                    .setUserAuthenticationRequired(false)
+                    .build()
+            )
+            generator.generateKeyPair()
+        }
+        val entry = keyStore.getEntry(alias, null) as KeyStore.PrivateKeyEntry
+        val bytes = payload.toByteArray(Charsets.UTF_8)
+        val signer = Signature.getInstance("SHA256withECDSA")
+        signer.initSign(entry.privateKey)
+        signer.update(bytes)
+        val signature = signer.sign()
+        val publicKey = entry.certificate.publicKey.encoded
+        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
+        val keyId = MessageDigest.getInstance("SHA-256")
+            .digest(publicKey)
+            .take(12)
+            .joinToString("") { "%02x".format(it) }
+        return mapOf(
+            "algorithm" to "SHA256withECDSA",
+            "keyId" to keyId,
+            "payloadSha256" to digest.joinToString("") { "%02x".format(it) },
+            "publicKeyBase64" to Base64.encodeToString(publicKey, Base64.NO_WRAP),
+            "signatureBase64" to Base64.encodeToString(signature, Base64.NO_WRAP)
+        )
+    }
 
     private fun startGnssTelemetry() {
         if (!hasFineLocationPermission()) {
@@ -215,6 +309,8 @@ class MainActivity: FlutterActivity() {
                 "statusSupported" to
                     packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS),
                 "rawMeasurementsSupported" to rawMeasurementsSupported,
+                "rawMeasurementCount" to rawMeasurementCount,
+                "adrMeasurementCount" to adrMeasurementCount,
                 "satellites" to satellites
             )
         )
@@ -222,6 +318,9 @@ class MainActivity: FlutterActivity() {
 
     override fun onDestroy() {
         stopGnssTelemetry()
+        textToSpeech?.stop()
+        textToSpeech?.shutdown()
+        textToSpeech = null
         super.onDestroy()
     }
 

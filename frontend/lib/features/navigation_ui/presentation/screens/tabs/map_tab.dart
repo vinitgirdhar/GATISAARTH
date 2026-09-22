@@ -5,6 +5,7 @@ import '../../controllers/live_session_scope.dart';
 import '../../widgets/fusion_confidence_badge.dart';
 import '../../widgets/map_controls.dart';
 import '../../widgets/navigation_map.dart';
+import '../../widgets/mission_guidance_card.dart';
 import '../../widgets/session_controls.dart';
 import '../../widgets/telemetry_card.dart';
 
@@ -74,7 +75,9 @@ class MapTab extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Exact Location',
+                            session.inOutage
+                                ? 'Estimated road corridor'
+                                : 'Exact Location',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -92,7 +95,9 @@ class MapTab extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              session.inOutage ? 'DEAD RECKONING' : 'GNSS LOCKED',
+                              session.inOutage
+                                  ? 'DEAD RECKONING'
+                                  : 'GNSS LOCKED',
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
@@ -123,6 +128,12 @@ class MapTab extends StatelessWidget {
           ),
         ),
 
+        if (session.missionGuidance != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: MissionGuidanceCard(decision: session.missionGuidance!),
+          ),
+
         // 2. Interactive Navigation Map. Fills all the space between the card
         // above and the sheet below, and runs [_sheetRadius] underneath the
         // sheet so its rounded top corners show map, not page background.
@@ -139,6 +150,7 @@ class MapTab extends StatelessWidget {
                   navigationState: session.navigationState,
                   marginMeters: margin,
                   trail: session.trail.segments,
+                  roadCorridors: session.roadCorridors,
                   expand: true,
                   gestures: MapGestures.full,
                   bottomInset: _sheetRadius + 12,
@@ -201,8 +213,8 @@ class MapTab extends StatelessWidget {
                     value: margin == null ? '—' : '±${margin.round()}',
                     unit: margin == null ? null : 'm',
                     subtitle: session.inOutage ? 'Dead reckoning' : 'GNSS fix',
-                    accentColor: FusionConfidenceBadge.colorFor(
-                        estimate?.confidence),
+                    accentColor:
+                        FusionConfidenceBadge.colorFor(estimate?.confidence),
                   ),
                 ],
               ),

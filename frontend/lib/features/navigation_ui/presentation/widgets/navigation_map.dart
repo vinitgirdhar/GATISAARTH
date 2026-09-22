@@ -44,6 +44,7 @@ class NavigationMap extends StatefulWidget {
     required this.navigationState,
     required this.marginMeters,
     this.trail = const [],
+    this.roadCorridors = const [],
     this.height = 260,
     this.gestures = MapGestures.none,
     this.expand = false,
@@ -62,6 +63,9 @@ class NavigationMap extends StatefulWidget {
 
   /// The path travelled, oldest segment first (see [TrackTrail.segments]).
   final List<TrailSegment> trail;
+
+  /// Ranked offline-map hypotheses shown only when the session supplies them.
+  final List<RoadCorridorModel> roadCorridors;
 
   final double height;
   final MapGestures gestures;
@@ -461,6 +465,8 @@ class _NavigationMapState extends State<NavigationMap>
                           rasterProvider: _raster,
                           dark: dark,
                         ),
+                        if (widget.roadCorridors.isNotEmpty)
+                          _RoadCorridorLayer(corridors: widget.roadCorridors),
                         if (widget.trail.isNotEmpty)
                           _TrackLayer(segments: widget.trail, dark: dark),
                         if (hasFix && margin >= 4)
@@ -549,6 +555,15 @@ class _NavigationMapState extends State<NavigationMap>
                 ],
               ),
             ),
+            if (widget.roadCorridors.length > 1) ...[
+              const SizedBox(height: 6),
+              _FrostedPill(
+                child: Text(
+                  '${widget.roadCorridors.length} possible roads',
+                  style: _pillStyle,
+                ),
+              ),
+            ],
             if (downloading) ...[
               const SizedBox(height: 6),
               GestureDetector(
@@ -731,6 +746,36 @@ class _NavigationMapState extends State<NavigationMap>
 
 /// The track: solid where a satellite fix backed the position, dashed and red
 /// where it was dead-reckoned, with a light casing so it reads on any map.
+class _RoadCorridorLayer extends StatelessWidget {
+  const _RoadCorridorLayer({required this.corridors});
+
+  final List<RoadCorridorModel> corridors;
+
+  @override
+  Widget build(BuildContext context) => PolylineLayer(
+        polylines: [
+          for (var index = 0; index < corridors.length; index++)
+            Polyline(
+              points: [
+                for (var i = 0;
+                    i + 1 < corridors[index].polyline.length;
+                    i += 2)
+                  LatLng(
+                    corridors[index].polyline[i],
+                    corridors[index].polyline[i + 1],
+                  ),
+              ],
+              color: AppColors.warning.withValues(
+                alpha: (0.9 - index * 0.2).clamp(0.35, 0.9),
+              ),
+              strokeWidth: (7.0 - index * 1.5).clamp(3.0, 7.0),
+              borderColor: AppColors.surface.withValues(alpha: 0.65),
+              borderStrokeWidth: 1,
+            ),
+        ],
+      );
+}
+
 class _TrackLayer extends StatelessWidget {
   const _TrackLayer({required this.segments, required this.dark});
 
