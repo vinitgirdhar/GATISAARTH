@@ -31,6 +31,7 @@ class MainActivity: FlutterActivity() {
     private var gnssStatus: GnssStatus? = null
     private var gnssStatusRegistered = false
     private var rawMeasurementsRegistered = false
+    private var rawMeasurementsObserved = false
 
     private val gnssStatusCallback = object : GnssStatus.Callback() {
         override fun onSatelliteStatusChanged(status: GnssStatus) {
@@ -44,7 +45,14 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private val rawMeasurementsCallback = object : GnssMeasurementsEvent.Callback() {}
+    private val rawMeasurementsCallback = object : GnssMeasurementsEvent.Callback() {
+        override fun onGnssMeasurementsReceived(eventArgs: GnssMeasurementsEvent) {
+            if (!rawMeasurementsObserved) {
+                rawMeasurementsObserved = true
+                emitGnssSnapshot(gnssStatus)
+            }
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -172,6 +180,15 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun emitGnssSnapshot(status: GnssStatus?) {
+        val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val rawMeasurementsSupported =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                manager.gnssCapabilities.hasMeasurements()
+            } else {
+                // Before API 31, callback registration always returns true.
+                // Only claim support after the receiver delivers measurements.
+                rawMeasurementsObserved
+            }
         val satellites = mutableListOf<Map<String, Any>>()
         if (status != null) {
             for (index in 0 until status.satelliteCount) {
@@ -197,7 +214,7 @@ class MainActivity: FlutterActivity() {
                 "permissionGranted" to hasFineLocationPermission(),
                 "statusSupported" to
                     packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS),
-                "rawMeasurementsSupported" to rawMeasurementsRegistered,
+                "rawMeasurementsSupported" to rawMeasurementsSupported,
                 "satellites" to satellites
             )
         )
