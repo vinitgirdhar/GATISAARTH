@@ -8,6 +8,6 @@ class AppConstants {
 
   /// Match `version:` in pubspec.yaml (`test/app_info_test.dart` keeps them in
   /// step).
-  static const String appVersion = '3.1.0';
-  static const String appBuild = '31';
+  static const String appVersion = '4.1.0';
+  static const String appBuild = '41';
 }

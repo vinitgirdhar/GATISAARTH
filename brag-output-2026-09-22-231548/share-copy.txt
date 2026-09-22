@@ -1,0 +1,1 @@
+GPS gives up in tunnels and urban canyons. GatiSaarth doesn't: phone sensors, a 15-state EKF, on-device AI and offline maps keep you on the real road, with an honest error margin and a trusted portal-marker fix. 100% on-device.

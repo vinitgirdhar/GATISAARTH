@@ -91,11 +91,14 @@ void main() {
     final h = _Harness();
     _phone(tester, const Size(360, 740));
     await _pumpApp(tester, h);
-    final list = tester.widget<ListView>(find.descendant(
-      of: find.byType(HomeTab),
-      matching: find.byType(ListView),
-    ).first);
-    final children = (list.childrenDelegate as SliverChildListDelegate).children;
+    final list = tester.widget<ListView>(find
+        .descendant(
+          of: find.byType(HomeTab),
+          matching: find.byType(ListView),
+        )
+        .first);
+    final children =
+        (list.childrenDelegate as SliverChildListDelegate).children;
     final heading = children.indexWhere(
       (child) => child is Text && child.data == 'Edge AI & Telemetry',
     );
@@ -111,7 +114,8 @@ void main() {
   });
 
   for (final size in const [Size(320, 568), Size(360, 740), Size(411, 915)]) {
-    testWidgets('dashboard lays out cleanly on ${size.width.toInt()}x'
+    testWidgets(
+        'dashboard lays out cleanly on ${size.width.toInt()}x'
         '${size.height.toInt()} dp, top to bottom', (tester) async {
       final h = _Harness();
       _phone(tester, size);
@@ -120,6 +124,7 @@ void main() {
 
       expect(find.text('GatiSaarth'), findsOneWidget);
       expect(find.text('Nominal GNSS lock'), findsOneWidget);
+      await _scrollTo(tester, find.text('GNSS locked'));
       expect(find.text('GNSS locked'), findsWidgets);
 
       await _scrollTo(tester, find.text('Start fullscreen navigation'));
@@ -134,6 +139,7 @@ void main() {
     await _pumpApp(tester, h);
     await _goLive(tester, h);
 
+    await _scrollTo(tester, find.text('Standalone · backend offline'));
     expect(find.text('Standalone · backend offline'), findsOneWidget);
     expect(find.textContaining('Map match'), findsNothing);
     expect(find.textContaining('MAP MATCH'), findsNothing);
@@ -163,6 +169,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('GNSS signal lost'), findsOneWidget);
+    await _scrollTo(tester, find.text('Dead reckoning · inertial'));
     expect(find.text('Dead reckoning · inertial'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -180,8 +187,7 @@ void main() {
   });
 
   testWidgets('blocked permission shows how to fix it', (tester) async {
-    final h = _Harness()
-      ..gateway.permission = LocationPermission.deniedForever;
+    final h = _Harness()..gateway.permission = LocationPermission.deniedForever;
     _phone(tester, const Size(360, 740));
     await _pumpApp(tester, h);
 
@@ -190,8 +196,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('fullscreen navigation opens, renders and exits',
-      (tester) async {
+  testWidgets('fullscreen navigation opens, renders and exits', (tester) async {
     final h = _Harness();
     _phone(tester, const Size(360, 740));
     await _pumpApp(tester, h);
@@ -253,22 +258,25 @@ void main() {
     final h = _Harness();
     _phone(tester, const Size(360, 740));
     // Straight to the dashboard: the boot sequence has its own test.
-  await tester.pumpWidget(GatiSaarthApp(
-    session: h.controller,
-    initialRoute: AppRoutes.dashboard,
-  ));
+    await tester.pumpWidget(GatiSaarthApp(
+      session: h.controller,
+      initialRoute: AppRoutes.dashboard,
+    ));
     await tester.pump();
 
     final fade = tester.widget<FadeTransition>(
-      find.ancestor(
-        of: find.text('GatiSaarth'),
-        matching: find.byType(FadeTransition),
-      ).first,
+      find
+          .ancestor(
+            of: find.text('GatiSaarth'),
+            matching: find.byType(FadeTransition),
+          )
+          .first,
     );
     expect(fade.opacity.value, 1.0);
   });
 
-  testWidgets('backgrounding the app stops sensors and GPS; foregrounding '
+  testWidgets(
+      'backgrounding the app stops sensors and GPS; foregrounding '
       'brings them back', (tester) async {
     final h = _Harness();
     _phone(tester, const Size(360, 740));

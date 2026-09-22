@@ -36,7 +36,7 @@ The winning direction is therefore **not “another navigation app.”** It is a
 
 #### Phase A completion status — 22 September 2026
 
-**Implementation status: complete.** The software gate for starting Phase B is closed. The application version intentionally remains `3.1.0`; it will be changed to `4.1` only after all planned phases are complete.
+**Implementation status: complete.** The software gate for starting Phase B is closed. The emulator preview now displays `4.1.0+41` at the user's request; this is not a final-release or field-validation claim.
 
 - [x] **Real GNSS/NavIC Integrity Lab:** native Android GNSS status and raw-measurement observation counts; constellation-aware satellite data; C/N0 history; used-in-fix ratio; ADR availability; conservative Healthy/Degraded/Anomaly/Unavailable classification; and explicit capability fallback without claiming spoofing detection.
 - [x] **Offline route corridor + real road graph:** bundled Delhi-NCR PMTiles road data, dynamic OSM road-graph extraction, HMM top-three corridor hypotheses during an outage, ranked map rendering, and ambiguity-preserving UI instead of a falsely exact location.
@@ -64,7 +64,7 @@ The winning direction is therefore **not “another navigation app.”** It is a
 - [x] **Software verification:** 1,019 Flutter tests passed (29 skipped), 86.9% overall Dart line coverage, targeted Dart analysis clean, Android Kotlin compilation successful, and a debug APK built. Repository-wide analysis still reports 10 pre-existing warnings/info in unrelated home-tab, motion-widget and calibration-test files.
 - [ ] **Field acceptance:** survey and install a real portal/landmark/RTT AP pack; run held-out image false-positive/false-negative trials and physical tunnel/parking routes on the target Pixel. Confirm that core EKF acceptance improves measured position before enabling it to lead the driver-facing map. The QR/visual/radio update currently corrects the navigation core, while the map only follows that core after the existing field-validation handover gate. Do not present simulated or unsurveyed anchors as physical proof.
 
-**Phase B handoff:** the software integration is ready for Phase C work, but the field-acceptance item is an open operational gate for the SIH demo. App version and the Pixel installation remain at `3.1`; do not switch to `4.1` or update the handset until all planned phases and release checks are complete.
+**Phase B handoff:** the software integration is ready for Phase C work, but field acceptance remains an open operational gate for the SIH demo. The Pixel emulator receives a `4.1.0+41` Phase B preview at the user's request; Phase C and real-device/vehicle validation are still pending. Do not treat this preview as a final release.
 
 ##### Field anchor-pack contract
 

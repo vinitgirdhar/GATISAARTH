@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>GatiSaarth feature tour</title>
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script src="assets/audio-data.js"></script>
+    <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("assets/fonts/Inter-Variable.ttf") format("truetype");
+        font-weight: 100 900;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #05070b; }
+      :root {
+        --bg: #05070b; --surface: #1c1c1e; --surface2: #2c2c2e; --border: #38383a;
+        --text: #ffffff; --muted: #98989f; --blue: #0a84ff; --green: #34c759;
+        --red: #ff3b30; --amber: #ff9500;
+      }
+      #root {
+        position: relative; width: 100%; height: 100%; overflow: hidden;
+        font-family: "Inter", sans-serif; color: var(--text); background: var(--bg);
+      }
+      .layer { position: absolute; inset: 0; }
+      #grid { opacity: 0.9; }
+      #grid svg { position: absolute; left: -120px; top: -80px; width: 2160px; height: 1240px; }
+      #glow {
+        position: absolute; width: 1300px; height: 1300px; left: 900px; top: -110px;
+        background: radial-gradient(circle, rgba(10,132,255,0.30) 0%, rgba(10,132,255,0.10) 38%, rgba(10,132,255,0) 68%);
+        opacity: 0.5;
+      }
+      .scene { position: absolute; inset: 0; }
+      .wrap { position: absolute; inset: 0; }
+      .col { position: absolute; left: 140px; top: 0; bottom: 0; width: 1000px; display: flex; flex-direction: column; justify-content: center; }
+      .eyebrow { font-size: 26px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--blue); margin-bottom: 26px; }
+      .h { font-size: 104px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
+      .h .ln { display: block; }
+      .sub { font-size: 38px; font-weight: 450; color: var(--muted); line-height: 1.3; margin-top: 30px; max-width: 900px; }
+      .fine { font-size: 22px; color: var(--muted); letter-spacing: 0.04em; margin-top: 26px; }
+
+      /* hook */
+      #s1 .col { width: 1600px; }
+      .hk { display: block; font-size: 112px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; color: #d9dde5; }
+      .hk.red { color: var(--red); margin-top: 18px; }
+
+      /* phone */
+      /* iPhone 15 Pro style device: titanium rim, bezel, Dynamic Island, iOS status bar */
+      .phone {
+        position: absolute; width: 442px; height: 966px; border-radius: 70px; padding: 5px;
+        background: linear-gradient(140deg, #9a9aa0 0%, #3a3a3e 18%, #6d6d72 45%, #2a2a2d 70%, #8c8c92 100%);
+        box-shadow: 0 50px 130px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08);
+      }
+      .bezel { width: 432px; height: 956px; border-radius: 65px; background: #000; padding: 6px; box-shadow: inset 0 0 0 2px #1a1a1c; }
+      .btn { position: absolute; width: 5px; border-radius: 3px; background: linear-gradient(90deg, #5a5a5f, #9a9aa0, #4a4a4e); }
+      .btn.l1 { left: -4px; top: 150px; height: 34px; }
+      .btn.l2 { left: -4px; top: 215px; height: 62px; }
+      .btn.l3 { left: -4px; top: 292px; height: 62px; }
+      .btn.r1 { right: -4px; top: 240px; height: 96px; }
+      .screen { position: relative; width: 420px; height: 944px; border-radius: 59px; overflow: hidden; background: #000; }
+      .island { position: absolute; left: 150px; top: 12px; width: 120px; height: 35px; border-radius: 18px; background: #000; z-index: 5; box-shadow: 0 0 0 1px #0b0b0c; }
+      .island i { position: absolute; right: 13px; top: 11px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 40% 40%, #2b3548, #0a0c12 70%); }
+      .sbar { position: absolute; left: 0; right: 0; top: 0; height: 52px; z-index: 4; display: flex; align-items: center; justify-content: space-between; padding: 6px 34px 0 46px; color: #fff; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; background: #000; }
+      .sbar .ic { display: flex; align-items: center; gap: 6px; }
+      .homebar { position: absolute; left: 144px; bottom: 8px; width: 132px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.92); z-index: 5; }
+      .scr { position: absolute; left: 0; top: 50px; width: 420px; height: 865px; opacity: 0; }
+      #phoneA { left: 1286px; top: 57px; }
+      #tap2 { position: absolute; left: 178px; top: 756px; width: 64px; height: 64px; border-radius: 50%; border: 4px solid #fff; opacity: 0; }
+      #tap { position: absolute; left: 52px; top: 761px; width: 64px; height: 64px; border-radius: 50%; border: 4px solid #fff; opacity: 0; }
+
+      /* scene 2 */
+      .brand { display: flex; align-items: center; gap: 30px; }
+      .tile { width: 132px; height: 132px; border-radius: 32px; overflow: hidden; background: #fff; flex: none; }
+      .tile img { width: 100%; height: 100%; display: block; }
+      #s2-word { width: 720px; height: auto; display: block; }
+      #s2-tag { font-size: 44px; font-weight: 500; color: var(--text); margin-top: 34px; letter-spacing: -0.01em; }
+      #s2-line { font-size: 38px; color: var(--muted); margin-top: 18px; }
+
+      /* scene 4 counter */
+      .meter { position: relative; height: 150px; margin-top: 40px; }
+      .mv { position: absolute; left: 0; top: 0; font-size: 136px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; opacity: 0; }
+      .mv small { font-size: 60px; font-weight: 700; margin-left: 8px; }
+      .g { color: var(--green); } .a { color: var(--amber); }
+      .cap { position: relative; height: 50px; margin-top: 6px; }
+      .cp { position: absolute; left: 0; top: 0; font-size: 34px; font-weight: 500; opacity: 0; white-space: nowrap; }
+      .badge { display: inline-flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 800; letter-spacing: 0.08em; color: var(--red); background: rgba(255,59,48,0.14); padding: 10px 18px; border-radius: 12px; margin-bottom: 26px; }
+      .badge i { width: 14px; height: 14px; border-radius: 50%; background: var(--red); display: block; }
+
+      /* urban canyon + edge AI stat tiles */
+      .tiles { display: flex; gap: 22px; margin-top: 40px; }
+      .tile2 { background: var(--surface); border: 2px solid var(--border); border-radius: 28px; padding: 24px 30px; min-width: 250px; }
+      .tile2 b { display: block; font-size: 72px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
+      .tile2 b small { font-size: 34px; font-weight: 700; margin-left: 6px; }
+      .tile2 span { display: block; font-size: 25px; color: var(--muted); margin-top: 12px; }
+      .chips { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 26px; max-width: 1060px; }
+      .chp { font-size: 27px; font-weight: 600; padding: 12px 22px; border-radius: 40px; }
+      .chp.am { color: var(--amber); background: rgba(255,149,0,0.14); }
+      .chp.gy { color: #e5e5ea; background: var(--surface2); }
+      .note { font-size: 25px; color: var(--muted); margin-top: 26px; max-width: 1000px; line-height: 1.38; border-left: 4px solid var(--blue); padding-left: 20px; }
+      #s4b .h, #s4c .h { font-size: 94px; }
+      /* scene 5 cards */
+      #s5 .top { position: absolute; left: 140px; top: 104px; }
+      #s5 .h { font-size: 92px; }
+      .card { position: absolute; background: var(--surface); border: 2px solid var(--border); border-radius: 36px; padding: 30px; }
+      .card h3 { font-size: 40px; font-weight: 750; letter-spacing: -0.02em; margin-top: 26px; }
+      .card p { font-size: 29px; color: var(--muted); margin-top: 10px; line-height: 1.3; }
+      #c1 { left: 140px; top: 470px; width: 900px; }
+      #c1 img { width: 836px; height: 279px; display: block; border-radius: 22px; }
+      #c2 { left: 1100px; top: 330px; width: 680px; }
+      #c2 img { width: 616px; height: 554px; display: block; border-radius: 22px; }
+
+      /* scene 6 scanner */
+      #phoneB { left: 1286px; top: 57px; }
+      .appbar { height: 110px; padding: 52px 22px 0; font-size: 23px; font-weight: 600; background: #1c1c1e; display: flex; align-items: center; gap: 16px; }
+      .appbar b { font-size: 26px; font-weight: 400; color: #e5e5ea; }
+      .priv { font-size: 16.5px; line-height: 1.42; color: #e5e5ea; padding: 18px 20px; background: #000; }
+      .vf { position: relative; height: 470px; overflow: hidden; background: linear-gradient(#141821, #0b0d12); }
+      .vf svg.scenebg { position: absolute; inset: 0; width: 420px; height: 470px; }
+      #marker { position: absolute; left: 135px; top: 150px; width: 150px; height: 150px; background: #f4f4f4; padding: 10px; border-radius: 6px; }
+      #marker svg { width: 130px; height: 130px; display: block; }
+      #brk { position: absolute; left: 115px; top: 130px; width: 190px; height: 190px; }
+      #scanline { position: absolute; left: 30px; top: 0; width: 354px; height: 4px; background: var(--blue); box-shadow: 0 0 22px 6px rgba(10,132,255,0.55); opacity: 0; }
+      #result { position: absolute; left: 0; right: 0; bottom: 0; height: 250px; padding-bottom: 30px; background: #0f2415; display: flex; align-items: center; justify-content: center; padding: 0 26px; text-align: center; font-size: 23px; font-weight: 700; line-height: 1.35; color: #fff; opacity: 0; }
+      .quote { font-size: 27px; color: var(--muted); border-top: 2px solid var(--border); padding-top: 22px; margin-top: 34px; max-width: 880px; line-height: 1.38; }
+
+      /* scene 7 */
+      #s7 .top { position: absolute; left: 140px; top: 110px; }
+      #s7 .h { font-size: 96px; }
+      #seg { position: absolute; left: 140px; top: 440px; width: 1050px; height: 120px; border-radius: 34px; background: var(--surface); border: 2px solid var(--border); }
+      #pill { position: absolute; left: 10px; top: 10px; width: 340px; height: 96px; border-radius: 26px; background: #13233a; border: 2px solid rgba(10,132,255,0.55); }
+      .sg { position: absolute; top: 0; width: 350px; height: 116px; display: flex; align-items: center; justify-content: center; gap: 18px; font-size: 38px; font-weight: 650; color: var(--muted); }
+      .sg svg { width: 46px; height: 46px; }
+      .sg .on { color: var(--blue); }
+      #dyn { position: absolute; left: 140px; top: 600px; width: 1050px; height: 170px; border-radius: 34px; background: var(--surface); border: 2px solid var(--border); }
+      .dt { position: absolute; left: 150px; top: 36px; right: 30px; opacity: 0; }
+      .dt h4 { font-size: 38px; font-weight: 700; letter-spacing: -0.01em; }
+      .dt p { font-size: 29px; color: var(--muted); margin-top: 10px; }
+      #dynIcon { position: absolute; left: 36px; top: 43px; width: 84px; height: 84px; border-radius: 22px; background: #13233a; display: flex; align-items: center; justify-content: center; }
+      .chip { position: absolute; left: 1290px; width: 520px; background: var(--surface); border: 2px solid var(--border); border-radius: 30px; padding: 28px 30px; }
+      .chip h5 { font-size: 34px; font-weight: 700; display: flex; align-items: center; gap: 16px; }
+      .chip p { font-size: 27px; color: var(--muted); margin-top: 10px; line-height: 1.32; }
+      #ch1 { top: 440px; } #ch2 { top: 640px; }
+
+      /* scene 8 */
+      #s8 .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+      #s8 .tile { width: 168px; height: 168px; border-radius: 40px; }
+      #s8-word { width: 980px; height: auto; display: block; margin-top: 46px; }
+      #s8-tag { font-size: 50px; font-weight: 550; margin-top: 34px; letter-spacing: -0.015em; }
+      #s8-foot { font-size: 30px; color: var(--muted); margin-top: 26px; letter-spacing: 0.01em; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="41.4" data-width="1920" data-height="1080">
+      <!-- persistent background: map streets + audio-reactive glow -->
+      <div id="grid" class="layer" data-layout-ignore>
+        <svg id="streets" viewBox="0 0 2160 1240" fill="none" stroke-linecap="round">
+          <g stroke="#1a2536" stroke-width="10">
+            <path d="M-40 760 L2200 690" /><path d="M620 -40 L560 1280" /><path d="M1500 -40 L1640 1280" />
+            <path d="M-40 250 L900 330 L2200 180" /><path d="M980 1280 L1200 620 L1660 -40" />
+          </g>
+          <g stroke="#131c29" stroke-width="5">
+            <path d="M-40 520 L2200 470" /><path d="M300 -40 L260 1280" /><path d="M1860 -40 L1900 1280" />
+            <path d="M-40 1010 L2200 960" /><path d="M1080 -40 L1040 520" /><path d="M200 1280 L760 700 L1500 820 L2200 560" />
+            <path d="M620 330 L1080 460" /><path d="M1200 620 L1860 700" />
+          </g>
+        </svg>
+      </div>
+      <div id="glow" data-layout-ignore></div>
+
+      <!-- Scene 1: hook -->
+      <section id="s1" class="scene clip" data-start="0" data-duration="3.27" data-track-index="1">
+        <div class="wrap" id="s1w"><div class="col">
+          <span class="hk" id="hk1">Tunnels.</span>
+          <span class="hk" id="hk2">Underpasses.</span>
+          <span class="hk" id="hk3">Urban canyons.</span>
+          <span class="hk red" id="hk4">Your GPS gives up.</span>
+        </div></div>
+      </section>
+
+      <!-- persistent phone for scenes 2-4 -->
+      <div id="phoneA" class="phone clip" data-start="2.97" data-duration="22.63" data-track-index="2">
+        <span class="btn l1"></span><span class="btn l2"></span><span class="btn l3"></span><span class="btn r1"></span>
+        <div class="bezel"><div class="screen" id="scrA">
+          <div class="sbar"><span>9:41</span><span class="ic"><svg width="19" height="12" viewBox="0 0 19 12" fill="#fff"><rect x="0" y="8" width="3.2" height="4" rx="1"/><rect x="5" y="5.5" width="3.2" height="6.5" rx="1"/><rect x="10" y="3" width="3.2" height="9" rx="1"/><rect x="15" y="0" width="3.2" height="12" rx="1"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><path d="M8.5 2.2c2.5 0 4.8 1 6.5 2.6l1.2-1.3C14.2 1.6 11.5.4 8.5.4S2.8 1.6.8 3.5L2 4.8c1.7-1.6 4-2.6 6.5-2.6zm0 3.6c1.5 0 2.9.6 3.9 1.5l1.3-1.3C12.3 4.8 10.5 4 8.5 4s-3.8.8-5.2 2l1.3 1.3c1-.9 2.4-1.5 3.9-1.5zm0 3.6c.6 0 1.1.2 1.5.6L8.5 11.6 7 10c.4-.4.9-.6 1.5-.6z"/></svg><svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="#fff" stroke-opacity="0.45"/><rect x="2" y="2" width="19" height="9" rx="2.2" fill="#fff"/><path d="M24.5 4.3v4.4c.9-.3 1.5-1.2 1.5-2.2s-.6-1.9-1.5-2.2z" fill="#fff" fill-opacity="0.5"/></svg></span></div>
+          <div class="island"><i></i></div>
+          <div class="homebar"></div>
+          <img class="scr" id="i-home" src="assets/shots/home2.jpg" alt="GatiSaarth Home screen, synced, 97 percent confidence" />
+          <img class="scr" id="i-sens" src="assets/shots/sens1.jpg" alt="Sensor Status, 8 of 8 online" />
+          <img class="scr" id="i-map" src="assets/shots/map1.jpg" alt="Map tab, exact location, GNSS locked" />
+          <img class="scr" id="i-t2" src="assets/shots/tun2.jpg" alt="Tunnel test started, dead reckoning" />
+          <img class="scr" id="i-t7" src="assets/shots/tun7.jpg" alt="Estimated road corridor plus or minus 13 metres" />
+          <img class="scr" id="i-t14" src="assets/shots/tun14.jpg" alt="Estimated road corridor plus or minus 19 metres" />
+          <img class="scr" id="i-t24" src="assets/shots/tun24.jpg" alt="Estimated road corridor plus or minus 25 metres" />
+          <img class="scr" id="i-rst" src="assets/shots/rst1.jpg" alt="GNSS restored, validating the returned fix" />
+          <img class="scr" id="i-uc2" src="assets/shots/uc2.jpg" alt="Simulating an urban canyon, weak multipath GNSS" />
+          <img class="scr" id="i-uc6" src="assets/shots/uc6.jpg" alt="GNSS degraded, plus or minus 75 metres" />
+          <img class="scr" id="i-uc11" src="assets/shots/uc11.jpg" alt="Marker holds the street in an urban canyon" />
+          <img class="scr" id="i-ai0" src="assets/shots/ai0.jpg" alt="Home: Urban canyon, weak GNSS, fusing IMU plus NavIC" />
+          <img class="scr" id="i-ai1" src="assets/shots/ai1.jpg" alt="Edge AI and Telemetry section" />
+          <div id="tap"></div><div id="tap2"></div>
+        </div></div>
+      </div>
+
+      <!-- Scene 2: reveal -->
+      <section id="s2" class="scene clip" data-start="2.97" data-duration="3.59" data-track-index="1">
+        <div class="wrap" id="s2w"><div class="col">
+          <div class="brand">
+            <div class="tile" id="s2-tile"><img src="assets/brand/logo_mark.png" alt="GatiSaarth logo" /></div>
+          </div>
+          <img id="s2-word" src="assets/brand/wordmark_dark.png" alt="GatiSaarth" style="margin-top:36px" />
+          <p id="s2-tag">Intelligent Navigation Beyond GNSS</p>
+          <p id="s2-line">Your phone keeps navigating.</p>
+        </div></div>
+      </section>
+
+      <!-- Scene 3: sensor fusion -->
+      <section id="s3" class="scene clip" data-start="6.26" data-duration="3.03" data-track-index="1">
+        <div class="wrap" id="s3w"><div class="col">
+          <p class="eyebrow" id="s3-e">Sensor fusion · 8/8 Online</p>
+          <h2 class="h" id="s3-h"><span class="ln">Eight sensors.</span><span class="ln">One filter.</span></h2>
+          <p class="sub" id="s3-s">A 15-state error-state EKF, running on the phone.</p>
+        </div></div>
+      </section>
+
+      <!-- Scene 4: road-locked dead reckoning -->
+      <section id="s4" class="scene clip" data-start="8.99" data-duration="5.74" data-track-index="1">
+        <div class="wrap" id="s4w"><div class="col">
+          <div><span class="badge" id="s4-b"><i></i>DEAD RECKONING</span></div>
+          <h2 class="h" id="s4-h"><span class="ln">Loses GPS.</span><span class="ln">Keeps the road.</span></h2>
+          <div class="meter" id="s4-m" data-layout-allow-overlap>
+            <span class="mv g" id="m1">±7<small>m</small></span>
+            <span class="mv g" id="m2">±13<small>m</small></span>
+            <span class="mv a" id="m3">±19<small>m</small></span>
+            <span class="mv a" id="m4">±25<small>m</small></span>
+            <span class="mv g" id="m5">±5<small>m</small></span>
+          </div>
+          <div class="cap">
+            <span class="cp" id="cp1" style="color:#e5e5ea">Estimated road corridor · error margin shown honestly</span>
+            <span class="cp g" id="cp2">GNSS restored · validating the returned fix</span>
+          </div>
+          <p class="fine" id="s4-f">Tunnel test · simulated outage · offline OpenStreetMap vector roads</p>
+        </div></div>
+      </section>
+
+      <!-- Scene 4b: urban canyon -->
+      <section id="s4b" class="scene clip" data-start="14.43" data-duration="5.77" data-track-index="1">
+        <div class="wrap" id="s4bw"><div class="col" style="width:1080px">
+          <p class="eyebrow" id="s4b-e" style="color:#ff9500">Urban canyon</p>
+          <h2 class="h" id="s4b-h"><span class="ln">Towers bounce GPS.</span><span class="ln" style="color:#98989f">It leans on the IMU.</span></h2>
+          <div class="tiles">
+            <div class="tile2" id="u1"><b class="a">±75<small>m</small></b><span>GNSS fix · degraded</span></div>
+            <div class="tile2" id="u2"><b style="color:#0a84ff">50<small>%</small></b><span>Confidence</span></div>
+            <div class="tile2" id="u3"><b>30<small>km/h</small></b><span>Holding the street</span></div>
+          </div>
+          <div class="chips">
+            <span class="chp am" id="uc-c1">GNSS degraded · IMU assisted</span>
+            <span class="chp gy" id="uc-c2">Fusing IMU + NavIC</span>
+          </div>
+          <p class="fine" id="s4b-f">Urban canyon test · simulated weak, multipath GNSS</p>
+        </div></div>
+      </section>
+
+      <!-- Scene 4c: edge AI & telemetry -->
+      <section id="s4c" class="scene clip" data-start="19.9" data-duration="5.7" data-track-index="1">
+        <div class="wrap" id="s4cw"><div class="col" style="width:1080px">
+          <p class="eyebrow" id="s4c-e">Edge AI &amp; Telemetry</p>
+          <h2 class="h" id="s4c-h"><span class="ln">Neural inference.</span><span class="ln" style="color:#98989f">On the phone.</span></h2>
+          <div class="tiles">
+            <div class="tile2" id="a1"><b>1<small>ms</small></b><span>Speed model latency</span></div>
+            <div class="tile2" id="a2"><b class="g">98<small>%</small></b><span>AI conf</span></div>
+            <div class="tile2" id="a3"><b style="font-size:60px">25.0<small>°C</small></b><span>IMU temperature · bias</span></div>
+          </div>
+          <div class="chips">
+            <span class="chp gy" id="ai-c1">Road vibration · Smooth · 0.00 g</span>
+            <span class="chp gy" id="ai-c2">Detected road anomalies: bumps &amp; potholes</span>
+          </div>
+          <p class="note" id="s4c-n">Advisory: not used for position until it beats the outage benchmark on recorded drives.</p>
+        </div></div>
+      </section>
+
+      <!-- Scene 5: voice + integrity -->
+      <section id="s5" class="scene clip" data-start="25.30" data-duration="3.59" data-track-index="1">
+        <div class="wrap" id="s5w">
+          <div class="top">
+            <h2 class="h" id="s5-h"><span class="ln">Speaks when it matters.</span><span class="ln" style="color:#98989f">Checks every fix.</span></h2>
+          </div>
+          <div class="card" id="c1">
+            <img src="assets/shots/voice_hdr.jpg" alt="Estimated road corridor header with Outage mission voice banner" />
+            <h3>Safe outage voice</h3>
+            <p>Speaks only on GNSS loss, unsafe ambiguity, and recovery</p>
+          </div>
+          <div class="card" id="c2">
+            <img src="assets/shots/integrity.jpg" alt="GNSS Integrity Lab sky plot" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 6: trusted portal anchor -->
+      <section id="s6" class="scene clip" data-start="28.59" data-duration="4.65" data-track-index="1">
+        <div class="wrap" id="s6w">
+          <div class="col">
+            <p class="eyebrow" id="s6-e">Trusted Portal Scanner</p>
+            <h2 class="h" id="s6-h"><span class="ln">Scan the</span><span class="ln">tunnel portal.</span></h2>
+            <p class="sub" id="s6-s">A trusted anchor snaps the filter back to a known point.</p>
+            <p class="quote" id="s6-q">“Camera frames are processed on this phone and are not saved or uploaded.”</p>
+          </div>
+          <div id="phoneB" class="phone">
+            <span class="btn l1"></span><span class="btn l2"></span><span class="btn l3"></span><span class="btn r1"></span>
+        <div class="bezel"><div class="screen">
+          <div class="sbar"><span>9:41</span><span class="ic"><svg width="19" height="12" viewBox="0 0 19 12" fill="#fff"><rect x="0" y="8" width="3.2" height="4" rx="1"/><rect x="5" y="5.5" width="3.2" height="6.5" rx="1"/><rect x="10" y="3" width="3.2" height="9" rx="1"/><rect x="15" y="0" width="3.2" height="12" rx="1"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><path d="M8.5 2.2c2.5 0 4.8 1 6.5 2.6l1.2-1.3C14.2 1.6 11.5.4 8.5.4S2.8 1.6.8 3.5L2 4.8c1.7-1.6 4-2.6 6.5-2.6zm0 3.6c1.5 0 2.9.6 3.9 1.5l1.3-1.3C12.3 4.8 10.5 4 8.5 4s-3.8.8-5.2 2l1.3 1.3c1-.9 2.4-1.5 3.9-1.5zm0 3.6c.6 0 1.1.2 1.5.6L8.5 11.6 7 10c.4-.4.9-.6 1.5-.6z"/></svg><svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="#fff" stroke-opacity="0.45"/><rect x="2" y="2" width="19" height="9" rx="2.2" fill="#fff"/><path d="M24.5 4.3v4.4c.9-.3 1.5-1.2 1.5-2.2s-.6-1.9-1.5-2.2z" fill="#fff" fill-opacity="0.5"/></svg></span></div>
+          <div class="island"><i></i></div>
+          <div class="homebar"></div>
+              <div class="appbar"><b>←</b>Trusted portal anchor</div>
+              <div class="priv">Camera frames are processed on this phone and are not saved or uploaded. Only markers from the installed local anchor pack can correct navigation.</div>
+              <div class="vf">
+                <svg class="scenebg" viewBox="0 0 414 470">
+                  <rect width="414" height="470" fill="#10141c" />
+                  <path d="M40 470 L40 190 Q207 20 374 190 L374 470 Z" fill="#1b2130" />
+                  <path d="M92 470 L92 230 Q207 110 322 230 L322 470 Z" fill="#07090d" />
+                  <path d="M150 470 L196 300 L218 300 L264 470 Z" fill="#141925" />
+                  <path d="M205 460 L206 420 M206 395 L207 360 M207 338 L207 312" stroke="#3a4152" stroke-width="4" />
+                </svg>
+                <div id="marker"><svg id="qr" viewBox="0 0 21 21" shape-rendering="crispEdges"></svg></div>
+                <svg id="brk" viewBox="0 0 190 190" fill="none" stroke="#0a84ff" stroke-width="6" stroke-linecap="round">
+                  <path d="M4 44 V4 H44" /><path d="M146 4 H186 V44" /><path d="M186 146 V186 H146" /><path d="M44 186 H4 V146" />
+                </svg>
+                <div id="scanline"></div>
+              </div>
+              <div id="result">SIH demo tunnel portal A accepted · EKF corrected</div>
+            </div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 7: modes + offline -->
+      <section id="s7" class="scene clip" data-start="32.94" data-duration="4.13" data-track-index="1">
+        <div class="wrap" id="s7w">
+          <div class="top">
+            <h2 class="h" id="s7-h"><span class="ln">Car, bike or on foot.</span><span class="ln" style="color:#98989f">Signal or not.</span></h2>
+          </div>
+          <div id="seg">
+            <div id="pill"></div>
+            <div class="sg" style="left:0"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"><path d="M8 30 L12 18 Q13 15 16 15 H32 Q35 15 36 18 L40 30 V37 H8 Z" /><circle cx="15" cy="31" r="2.5" fill="currentColor" /><circle cx="33" cy="31" r="2.5" fill="currentColor" /></svg><span>Car</span></div>
+            <div class="sg" style="left:350px"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="27" cy="8" r="4" fill="currentColor" /><path d="M24 16 L18 30 L24 34 L22 44" /><path d="M24 16 L30 26 L37 27" /><path d="M20 24 L12 27" /><path d="M18 30 L12 42" /></svg><span>Walk</span></div>
+            <div class="sg" style="left:700px"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="32" r="7" /><circle cx="37" cy="32" r="7" /><path d="M11 32 L20 18 H30 L37 32" /><path d="M20 18 L26 32 H11" /><path d="M28 13 H34" /></svg><span>Two-wheeler</span></div>
+          </div>
+          <div id="dyn">
+            <div id="dynIcon"><svg viewBox="0 0 48 48" width="46" height="46" fill="none" stroke="#0a84ff" stroke-width="4" stroke-linejoin="round"><path d="M6 26 L24 8 L42 26" /><path d="M12 22 V40 H36 V22" /></svg></div>
+            <div class="dt" id="d1"><h4>Car / Four-Wheeler Dynamics Active</h4><p>Non-holonomic constraint (NHC) zero-lateral slip active</p></div>
+            <div class="dt" id="d2"><h4>Pedestrian / Last-mile Active</h4><p>Vehicle-only lateral constraints disabled</p></div>
+            <div class="dt" id="d3"><h4>Two-Wheeler Dynamics Active</h4><p>Lean-angle compensation &amp; bump suppression enabled</p></div>
+          </div>
+          <div class="chip" id="ch1">
+            <h5><svg viewBox="0 0 48 48" width="40" height="40" fill="#0a84ff"><path d="M24 4 L28 18 L42 22 L28 26 L24 40 L20 26 L6 22 L20 18 Z" /></svg>Automatic activity mode</h5>
+            <p>Switches the dynamics to how you're moving</p>
+          </div>
+          <div class="chip" id="ch2">
+            <h5><svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="#0a84ff" stroke-width="4" stroke-linejoin="round"><path d="M6 10 L18 6 L30 10 L42 6 V38 L30 42 L18 38 L6 42 Z" /><path d="M18 6 V38 M30 10 V42" /></svg>Offline Maps</h5>
+            <p>Delhi NCR · Maharashtra · 171 MB on this phone</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 8: outro -->
+      <section id="s8" class="scene clip" data-start="36.77" data-duration="4.6" data-track-index="1">
+        <div class="wrap" id="s8w"><div class="center">
+          <div class="tile" id="s8-tile"><img src="assets/brand/logo_mark.png" alt="GatiSaarth logo" /></div>
+          <img id="s8-word" src="assets/brand/wordmark_dark.png" alt="GatiSaarth" />
+          <p id="s8-tag">Intelligent Navigation Beyond GNSS</p>
+          <p id="s8-foot">100% on-device pure Dart dead reckoning</p>
+        </div></div>
+      </section>
+
+      <!-- audio -->
+      <audio id="music" data-start="0" data-duration="41.4" data-track-index="10" data-volume="0.8" src="assets/music/score.wav"></audio>
+      <audio id="sx1" data-start="0.52" data-duration="0.6" data-track-index="11" data-volume="0.55" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sx2" data-start="1.05" data-duration="0.6" data-track-index="12" data-volume="0.55" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sx3" data-start="1.60" data-duration="0.6" data-track-index="13" data-volume="0.55" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sx4" data-start="2.14" data-duration="0.8" data-track-index="14" data-volume="0.75" src="assets/sfx/impact/impactSoft_medium_001.ogg"></audio>
+      <audio id="sx5" data-start="3.38" data-duration="0.6" data-track-index="11" data-volume="0.7" src="assets/sfx/interface/bong_001.ogg"></audio>
+      <audio id="sx6" data-start="6.50" data-duration="0.8" data-track-index="12" data-volume="0.6" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+      <audio id="sx7" data-start="9.25" data-duration="0.8" data-track-index="13" data-volume="0.7" src="assets/sfx/impact/impactSoft_medium_004.ogg"></audio>
+      <audio id="sx8" data-start="9.75" data-duration="0.4" data-track-index="14" data-volume="0.75" src="assets/sfx/interface/click_003.ogg"></audio>
+      <audio id="sx9" data-start="10.90" data-duration="0.8" data-track-index="11" data-volume="0.45" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+      <audio id="sx10" data-start="13.60" data-duration="0.8" data-track-index="12" data-volume="0.65" src="assets/sfx/interface/bong_001.ogg"></audio>
+      <audio id="sx11" data-start="25.83" data-duration="0.6" data-track-index="13" data-volume="0.55" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sx12" data-start="26.38" data-duration="0.6" data-track-index="14" data-volume="0.55" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sx13" data-start="29.47" data-duration="0.4" data-track-index="11" data-volume="0.6" src="assets/sfx/ui/click2.ogg"></audio>
+      <audio id="sx14" data-start="30.51" data-duration="1.2" data-track-index="12" data-volume="0.55" src="assets/sfx/impact/impactGlass_light_001.ogg"></audio>
+      <audio id="sx15" data-start="30.53" data-duration="0.8" data-track-index="13" data-volume="0.6" src="assets/sfx/interface/bong_001.ogg"></audio>
+      <audio id="sx16" data-start="34.31" data-duration="0.5" data-track-index="14" data-volume="0.6" src="assets/sfx/interface/switch_007.ogg"></audio>
+      <audio id="sx17" data-start="35.41" data-duration="0.5" data-track-index="11" data-volume="0.6" src="assets/sfx/interface/switch_007.ogg"></audio>
+      <audio id="sx18" data-start="37.05" data-duration="2.5" data-track-index="12" data-volume="0.7" src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
+      <audio id="sx19" data-start="15.0" data-duration="0.05" data-track-index="15" data-volume="0.7" src="assets/sfx/interface/click_003.ogg"></audio>
+      <audio id="sx20" data-start="18.46" data-duration="0.8" data-track-index="16" data-volume="0.45" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+      <audio id="sx21" data-start="20.16" data-duration="0.8" data-track-index="15" data-volume="0.5" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+    </div>
+
+    <script>
+      // Deterministic marker pattern (fixed LCG seed) with QR-style finder squares.
+      (function buildMarker() {
+        var svg = document.getElementById("qr");
+        var s = 20260922, cells = "";
+        function rnd() { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; }
+        function finder(x, y) {
+          return '<rect x="' + x + '" y="' + y + '" width="7" height="7" fill="#111"/>' +
+            '<rect x="' + (x + 1) + '" y="' + (y + 1) + '" width="5" height="5" fill="#f4f4f4"/>' +
+            '<rect x="' + (x + 2) + '" y="' + (y + 2) + '" width="3" height="3" fill="#111"/>';
+        }
+        for (var y = 0; y < 21; y++) for (var x = 0; x < 21; x++) {
+          var inFinder = (x < 8 && y < 8) || (x > 12 && y < 8) || (x < 8 && y > 12);
+          if (!inFinder && rnd() > 0.52) cells += '<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="#111"/>';
+        }
+        svg.innerHTML = cells + finder(0, 0) + finder(14, 0) + finder(0, 14);
+      })();
+
+      var tl = gsap.timeline({ paused: true });
+      var E = "power3.out";
+
+      // ---------- background: streets drift, dim during the hook, relight at the reveal
+      tl.fromTo("#streets", { x: 0, y: 0 }, { x: -90, y: -40, duration: 41.4, ease: "none" }, 0);
+      tl.fromTo("#grid", { opacity: 0.9 }, { opacity: 0.25, duration: 1.2, ease: "power2.in" }, 2.0);
+      tl.to("#grid", { opacity: 0.9, duration: 1.0, ease: "power2.out" }, 3.3);
+
+      // ---------- Scene 1: hook (beat-grid: 0.56, 1.09, 1.64; red line 2.19)
+      tl.fromTo("#hk1", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 0.52);
+      tl.fromTo("#hk2", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 1.05);
+      tl.fromTo("#hk3", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 1.60);
+      tl.to(["#hk1", "#hk2", "#hk3"], { opacity: 0.38, duration: 0.4, ease: "power1.out" }, 2.14);
+      tl.fromTo("#hk4", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.4, ease: "back.out(1.6)" }, 2.14);
+      tl.to("#s1w", { opacity: 0, x: -80, duration: 0.3, ease: "power2.in" }, 2.97);
+
+      // ---------- Phone A (scenes 2-4)
+      tl.fromTo("#phoneA", { opacity: 0, y: 140 }, { opacity: 1, y: 0, duration: 0.75, ease: "expo.out" }, 3.3);
+      tl.fromTo("#i-home", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 3.3);
+      tl.fromTo("#i-sens", { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 6.5);
+      tl.fromTo("#i-map", { opacity: 0, scale: 1.04 }, { opacity: 1, scale: 1, duration: 0.4, ease: E }, 9.2);
+      tl.set("#tap", { opacity: 0.95, scale: 0.4 }, 9.75);
+      tl.to("#tap", { opacity: 0, scale: 1.8, duration: 0.55, ease: "power2.out" }, 9.76);
+      tl.fromTo("#i-t2", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 9.95);
+      tl.fromTo("#i-t7", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 10.93);
+      tl.fromTo("#i-t14", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 11.92);
+      tl.fromTo("#i-t24", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 12.9);
+      tl.fromTo("#i-rst", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 13.64);
+      tl.set("#tap2", { opacity: 0.95, scale: 0.4 }, 15.0);
+      tl.to("#tap2", { opacity: 0, scale: 1.8, duration: 0.55, ease: "power2.out" }, 15.01);
+      tl.fromTo("#i-uc2", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 15.2);
+      tl.fromTo("#i-uc6", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 16.3);
+      tl.fromTo("#i-uc11", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 17.4);
+      tl.fromTo("#i-ai0", { opacity: 0, y: 70 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 18.5);
+      tl.fromTo("#i-ai1", { opacity: 0, y: 90 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 20.2);
+      tl.to("#phoneA", { opacity: 0, x: 120, duration: 0.3, ease: "power2.in" }, 25.3);
+
+      // ---------- Scene 2: reveal
+      tl.fromTo("#s2-tile", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.7)" }, 3.27);
+      tl.fromTo("#s2-word", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.55, ease: E }, 3.4);
+      tl.fromTo("#s2-tag", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 3.82);
+      tl.fromTo("#s2-line", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 4.39);
+      tl.to("#s2w", { opacity: 0, y: -40, duration: 0.3, ease: "power2.in" }, 6.26);
+
+      // ---------- Scene 3: sensor fusion
+      tl.fromTo("#s3-e", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: E }, 6.56);
+      tl.fromTo("#s3-h .ln", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out", stagger: 0.14 }, 6.62);
+      tl.fromTo("#s3-s", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 7.09);
+      tl.to("#s3w", { opacity: 0, x: -60, duration: 0.3, ease: "power2.in" }, 8.99);
+
+      // ---------- Scene 4: road-locked dead reckoning (beat-locked: 9.29s)
+      tl.fromTo("#s4-b", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, 9.29);
+      tl.fromTo("#s4-h .ln", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out", stagger: 0.16 }, 9.35);
+      tl.fromTo("#s4-f", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 9.8);
+      var steps = [["#m1", 10.2], ["#m2", 10.93], ["#m3", 11.92], ["#m4", 12.9], ["#m5", 13.64]];
+      steps.forEach(function (st, i) {
+        tl.fromTo(st[0], { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.3, ease: E }, st[1]);
+        if (i < steps.length - 1) tl.to(st[0], { opacity: 0, y: -30, duration: 0.25, ease: "power2.in" }, steps[i + 1][1] - 0.05);
+      });
+      tl.fromTo("#cp1", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 10.3);
+      tl.to("#cp1", { opacity: 0, duration: 0.2 }, 13.6);
+      tl.fromTo("#cp2", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: E }, 13.7);
+      tl.to("#s4-b", { opacity: 0.25, duration: 0.3 }, 13.64);
+      tl.to("#s4w", { opacity: 0, x: -60, duration: 0.3, ease: "power2.in" }, 14.43);
+
+      // ---------- Scene 4b: urban canyon
+      tl.fromTo("#s4b-e", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: E }, 14.73);
+      tl.fromTo("#s4b-h .ln", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out", stagger: 0.16 }, 14.8);
+      tl.fromTo(["#u1", "#u2", "#u3"], { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: "back.out(1.4)", stagger: 0.35 }, 15.5);
+      tl.fromTo(["#uc-c1", "#uc-c2"], { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: E, stagger: 0.3 }, 16.6);
+      tl.fromTo("#s4b-f", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 17.2);
+      tl.to("#s4bw", { opacity: 0, x: -60, duration: 0.3, ease: "power2.in" }, 19.9);
+
+      // ---------- Scene 4c: edge AI & telemetry
+      tl.fromTo("#s4c-e", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: E }, 20.2);
+      tl.fromTo("#s4c-h .ln", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out", stagger: 0.16 }, 20.27);
+      tl.fromTo(["#a1", "#a2", "#a3"], { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: "back.out(1.4)", stagger: 0.4 }, 20.9);
+      tl.fromTo(["#ai-c1", "#ai-c2"], { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: E, stagger: 0.3 }, 22.2);
+      tl.fromTo("#s4c-n", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 22.9);
+      tl.to("#s4cw", { opacity: 0, x: -60, duration: 0.3, ease: "power2.in" }, 25.3);
+
+      // ---------- Scene 5: voice + integrity
+      tl.fromTo("#s5-h .ln", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out", stagger: 0.18 }, 25.60);
+      tl.fromTo("#c1", { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: 0.55, ease: E }, 25.87);
+      tl.fromTo("#c2", { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: 0.55, ease: E }, 26.42);
+      tl.to("#s5w", { opacity: 0, y: -40, duration: 0.3, ease: "power2.in" }, 28.59);
+
+      // ---------- Scene 6: trusted portal anchor (accept at 30.53s, score accent)
+      tl.fromTo("#s6-e", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: E }, 28.89);
+      tl.fromTo("#s6-h .ln", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out", stagger: 0.14 }, 28.95);
+      tl.fromTo("#phoneB", { opacity: 0, y: 140 }, { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" }, 28.89);
+      tl.fromTo("#s6-s", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 29.42);
+      tl.fromTo("#scanline", { opacity: 0, y: 40 }, { opacity: 1, y: 40, duration: 0.15 }, 29.47);
+      tl.to("#scanline", { y: 430, duration: 0.8, ease: "sine.inOut" }, 29.63);
+      tl.to("#scanline", { opacity: 0, duration: 0.15 }, 30.42);
+      tl.fromTo("#brk", { scale: 1.25, opacity: 0.5 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2)" }, 30.27);
+      tl.to("#brk", { stroke: "#34c759", duration: 0.2 }, 30.53); // accent: portal accept
+      tl.fromTo("#result", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.35, ease: E }, 30.53);
+      tl.fromTo("#s6-q", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 30.87);
+      tl.to("#s6w", { opacity: 0, x: -60, duration: 0.3, ease: "power2.in" }, 32.94);
+
+      // ---------- Scene 7: modes + offline
+      tl.fromTo("#s7-h .ln", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out", stagger: 0.18 }, 33.24);
+      tl.fromTo("#seg", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 33.47);
+      tl.fromTo("#dyn", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 33.59);
+      tl.fromTo("#d1", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 33.67);
+      tl.fromTo("#pill", { x: 0 }, { x: 350, duration: 0.4, ease: "power3.inOut" }, 34.31);
+      tl.to("#d1", { opacity: 0, duration: 0.2 }, 34.31);
+      tl.fromTo("#d2", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 34.47);
+      tl.to("#pill", { x: 700, duration: 0.4, ease: "power3.inOut" }, 35.41);
+      tl.to("#d2", { opacity: 0, duration: 0.2 }, 35.41);
+      tl.fromTo("#d3", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 35.57);
+      tl.fromTo("#ch1", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.5, ease: E }, 33.87);
+      tl.fromTo("#ch2", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.5, ease: E }, 34.42);
+      tl.to("#s7w", { opacity: 0, duration: 0.3, ease: "power1.in" }, 36.77);
+
+      // ---------- Scene 8: outro (score hit 37.08s)
+      tl.fromTo("#s8-tile", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.6)" }, 36.87);
+      tl.fromTo("#s8-word", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "expo.out" }, 37.07);
+      tl.fromTo("#s8-tag", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 37.62);
+      tl.fromTo("#s8-foot", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 38.17);
+      tl.fromTo("#glow", { x: 0 }, { x: -380, duration: 0.8, ease: "power2.inOut" }, 36.77);
+
+      // ---------- audio-reactive glow (per-frame, pre-extracted RMS/bass)
+      var AD = window.AUDIO_DATA, glow = document.getElementById("glow");
+      for (var f = 0; f < AD.frames.length && f / AD.fps < 41.4; f++) {
+        tl.call((function (fr) {
+          return function () {
+            glow.style.opacity = (0.32 + 0.5 * fr.r).toFixed(3);
+            glow.style.scale = (1 + 0.07 * fr.b).toFixed(3);
+          };
+        })(AD.frames[f]), [], f / AD.fps);
+      }
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

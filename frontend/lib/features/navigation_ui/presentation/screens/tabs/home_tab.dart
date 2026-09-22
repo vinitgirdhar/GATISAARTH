@@ -55,8 +55,6 @@ class HomeTab extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         SessionStatusCard(session: session),
         const SizedBox(height: AppSpacing.md),
-        _SystemStatusCard(session: session),
-        const SizedBox(height: AppSpacing.md),
         _BoardProgressAndRings(
           confidenceValue: confidenceText,
           confidenceSubtitle: marginText,
@@ -111,6 +109,8 @@ class HomeTab extends StatelessWidget {
           vibrationRms: session.vibrationRms,
         ),
         RoadAnomalyTicker(anomalyEvents: session.anomalies),
+        const SizedBox(height: AppSpacing.md),
+        _SystemStatusCard(session: session),
 
         // Test compatibility hooks: only rendered under `flutter test`.
         // On a real phone/emulator, zero space is consumed.
@@ -123,15 +123,14 @@ class HomeTab extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/session'),
+                      onPressed: () => Navigator.pushNamed(context, '/session'),
                       child: const Text('Start fullscreen navigation'),
                     ),
                   ),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => session
-                          .setVehicleProfile(VehicleProfile.twoWheeler),
+                      onPressed: () =>
+                          session.setVehicleProfile(VehicleProfile.twoWheeler),
                       child: const Text('Two-wheeler'),
                     ),
                   ),
