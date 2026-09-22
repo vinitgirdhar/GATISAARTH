@@ -1,4 +1,55 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+
+abstract interface class GnssTelemetrySource {
+  Stream<GnssTelemetrySnapshot> get snapshots;
+
+  Future<void> start();
+
+  Future<void> stop();
+}
+
+/// Android platform-channel implementation. Other platforms return an empty
+/// stream through Flutter's normal missing-plugin behaviour.
+class PlatformGnssTelemetrySource implements GnssTelemetrySource {
+  PlatformGnssTelemetrySource({
+    MethodChannel? controlChannel,
+    EventChannel? eventChannel,
+  })  : _controlChannel = controlChannel ??
+            const MethodChannel('com.gatisaarth.app/gnss_control'),
+        _eventChannel = eventChannel ??
+            const EventChannel('com.gatisaarth.app/gnss_telemetry');
+
+  final MethodChannel _controlChannel;
+  final EventChannel _eventChannel;
+  Stream<GnssTelemetrySnapshot>? _snapshots;
+
+  @override
+  Stream<GnssTelemetrySnapshot> get snapshots => _snapshots ??=
+      _eventChannel.receiveBroadcastStream().where((event) => event is Map).map(
+            (event) => GnssTelemetrySnapshot.fromPlatformMap(
+              (event as Map).cast<Object?, Object?>(),
+            ),
+          );
+
+  @override
+  Future<void> start() async {
+    try {
+      await _controlChannel.invokeMethod<void>('start');
+    } on MissingPluginException {
+      // Expected on web, desktop, and tests without an Android host.
+    }
+  }
+
+  @override
+  Future<void> stop() async {
+    try {
+      await _controlChannel.invokeMethod<void>('stop');
+    } on MissingPluginException {
+      // Expected on web, desktop, and tests without an Android host.
+    }
+  }
+}
 
 /// Satellite systems reported by Android's `GnssStatus` API.
 enum GnssConstellation {

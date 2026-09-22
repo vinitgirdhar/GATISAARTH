@@ -11,6 +11,7 @@ import '../../../../core/nav/motion/motion_classifier.dart' show VehicleClass;
 import '../../../../core/nav/navigation_engine.dart';
 import '../../../../core/nav/nav_config.dart';
 import '../../../../core/nav/replay/drive_log.dart';
+import '../../../../core/platform/gnss/gnss_telemetry.dart';
 import '../../../../core/nav/replay/drive_recorder.dart';
 import '../../../../core/nav/sensors/sensor_sample.dart';
 import '../../../../core/platform/storage/drive_log_store.dart';
@@ -114,6 +115,7 @@ class LiveSessionController extends ChangeNotifier {
     DriveLogSink? logStore,
     Haptics? haptics,
     RoadGraphSource? roads,
+    GnssTelemetrySource? gnssTelemetry,
   })  : _sensors = sensors,
         _alignment = alignment,
         _hardware = hardware,
@@ -123,6 +125,7 @@ class LiveSessionController extends ChangeNotifier {
         _autoTick = autoTick,
         _logStore = logStore ?? DriveLogStore(),
         _haptics = haptics ?? Haptics(hardware, clock: clock),
+        _gnssTelemetrySource = gnssTelemetry ?? PlatformGnssTelemetrySource(),
         _road = RoadConstraint(source: roads, clock: clock) {
     _road.onRoadsChanged = _onRoadsChanged;
     _aiFeed = AiEngineFeed(speed: speedEstimator);
@@ -138,6 +141,7 @@ class LiveSessionController extends ChangeNotifier {
   final TelemetrySink _telemetry;
   final DateTime Function() _clock;
   final bool _autoTick;
+  final GnssTelemetrySource _gnssTelemetrySource;
 
   /// Owned by this controller (disposed with it).
   final LiveLocationService location;
@@ -148,6 +152,7 @@ class LiveSessionController extends ChangeNotifier {
 
   StreamSubscription<List<double>>? _imuSub;
   StreamSubscription<double>? _tempSub;
+  StreamSubscription<GnssTelemetrySnapshot>? _gnssTelemetrySub;
   Timer? _uiTimer;
   Timer? _telemetryTimer;
 
@@ -177,6 +182,7 @@ class LiveSessionController extends ChangeNotifier {
   double? _lastFixLat;
   double? _lastFixLon;
   DateTime? _lastFixAt;
+  GnssTelemetrySnapshot? _gnssTelemetry;
 
   // IMU snapshot.
   int _sampleCount = 0;
@@ -278,6 +284,17 @@ class LiveSessionController extends ChangeNotifier {
     await _loadVehicleProfile();
     await _loadHaptics();
     await location.start();
+    _gnssTelemetrySub ??= _gnssTelemetrySource.snapshots.listen(
+      (snapshot) {
+        _gnssTelemetry = snapshot;
+        _dirty = true;
+      },
+      onError: (_) {
+        // Position remains available through geolocator when raw receiver
+        // diagnostics are unsupported. Never substitute demo telemetry.
+      },
+    );
+    await _gnssTelemetrySource.start();
   }
 
   /// App went to the background: stop every radio and sensor.
@@ -295,6 +312,7 @@ class LiveSessionController extends ChangeNotifier {
     if (_positionSeeded && location.hasBeenLive) {
       unawaited(_writeCache(_targetLat, _targetLon));
     }
+    await _gnssTelemetrySource.stop();
     await location.pause();
   }
 
@@ -307,6 +325,7 @@ class LiveSessionController extends ChangeNotifier {
       _hardware.start();
       if (_autoTick) _startTimers();
       await location.resume();
+      await _gnssTelemetrySource.start();
     }
     await location.recheck();
   }
@@ -319,6 +338,8 @@ class LiveSessionController extends ChangeNotifier {
     _stopTimers();
     _imuSub?.cancel();
     _tempSub?.cancel();
+    _gnssTelemetrySub?.cancel();
+    unawaited(_gnssTelemetrySource.stop());
     _sensors.stop();
     _hardware.stop();
     location.removeListener(_onLocationChanged);
@@ -1302,6 +1323,10 @@ class LiveSessionController extends ChangeNotifier {
   double get accuracy => _accuracy;
 
   LocationStatus get gnssStatus => location.status;
+
+  /// Latest hardware-reported constellation status, or null until Android has
+  /// produced one. Null is intentionally not replaced with demo values.
+  GnssTelemetrySnapshot? get gnssTelemetry => _gnssTelemetry;
 
   /// True only while a real, fresh fix is arriving and we are not simulating
   /// a blackout.

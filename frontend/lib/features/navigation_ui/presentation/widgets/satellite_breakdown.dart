@@ -5,9 +5,15 @@ import '../../../navigation_engine/domain/entities/navigation_state.dart';
 
 class SatelliteBreakdown extends StatelessWidget {
   final SatelliteBreakdownModel satelliteBreakdown;
+  final bool isHardwareBacked;
+  final bool rawMeasurementsSupported;
 
-  const SatelliteBreakdown({Key? key, required this.satelliteBreakdown})
-      : super(key: key);
+  const SatelliteBreakdown({
+    Key? key,
+    required this.satelliteBreakdown,
+    this.isHardwareBacked = false,
+    this.rawMeasurementsSupported = false,
+  }) : super(key: key);
 
   Widget _buildConstellationRow({
     required String name,
@@ -127,6 +133,21 @@ class SatelliteBreakdown extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            isHardwareBacked
+                ? rawMeasurementsSupported
+                    ? 'Receiver-backed · raw measurements available'
+                    : 'Receiver-backed · status measurements only'
+                : 'Waiting for Android GNSS status',
+            style: TextStyle(
+              color: isHardwareBacked
+                  ? AppColors.success
+                  : AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
           _buildConstellationRow(
             name: 'NavIC (IRNSS)',
             info: satelliteBreakdown.navIC,

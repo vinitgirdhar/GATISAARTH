@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/platform/gnss/gnss_telemetry.dart';
 import '../../../../../core/widgets/motion.dart';
 import '../../../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../controllers/live_session_controller.dart';
@@ -100,10 +101,10 @@ class SensorsTab extends StatelessWidget {
               _SensorStatusTile(
                 icon: Icons.gps_fixed_rounded,
                 name: 'GPS / GNSS',
-                statusText: session.hasLiveGnss ? 'Excellent' : 'Simulated Outage',
-                statusColor: session.hasLiveGnss
-                    ? AppColors.success
-                    : AppColors.warning,
+                statusText:
+                    session.hasLiveGnss ? 'Excellent' : 'Simulated Outage',
+                statusColor:
+                    session.hasLiveGnss ? AppColors.success : AppColors.warning,
                 detail: session.hasLiveGnss
                     ? 'Fix active · ±${(session.uncertainty?.marginMeters ?? 5.0).toStringAsFixed(1)} m'
                     : 'Searching for satellites',
@@ -157,7 +158,8 @@ class SensorsTab extends StatelessWidget {
                 name: 'Thermal State',
                 statusText: 'Normal',
                 statusColor: AppColors.success,
-                detail: '${session.temperature.toStringAsFixed(1)}°C · Bias compensated',
+                detail:
+                    '${session.temperature.toStringAsFixed(1)}°C · Bias compensated',
               ),
               const Divider(height: 1),
               _SensorStatusTile(
@@ -182,6 +184,9 @@ class SensorsTab extends StatelessWidget {
         ),
         SatelliteBreakdown(
           satelliteBreakdown: _satellites(session),
+          isHardwareBacked: session.gnssTelemetry?.hasRealStatus ?? false,
+          rawMeasurementsSupported:
+              session.gnssTelemetry?.rawMeasurementsSupported ?? false,
         ),
         NavicWeightIndicator(
           navicWeight: _navicWeight(session),
@@ -244,40 +249,30 @@ class SensorsTab extends StatelessWidget {
             );
           },
         ),
-
-
       ],
     );
   }
 
   static SatelliteBreakdownModel _satellites(LiveSessionController s) {
-    if (!s.hasLiveGnss) {
-      return const SatelliteBreakdownModel(
-        navIC: SatelliteInfoModel(count: 4, signalStrength: 38.5),
-        gps: SatelliteInfoModel(count: 0, signalStrength: 0.0),
-        galileo: SatelliteInfoModel(count: 0, signalStrength: 0.0),
-        glonass: SatelliteInfoModel(count: 0, signalStrength: 0.0),
-      );
-    }
-    if (s.isSimulatingCanyon) {
-      return const SatelliteBreakdownModel(
-        navIC: SatelliteInfoModel(count: 4, signalStrength: 28.0),
-        gps: SatelliteInfoModel(count: 2, signalStrength: 18.5),
-        galileo: SatelliteInfoModel(count: 0, signalStrength: 0.0),
-        glonass: SatelliteInfoModel(count: 0, signalStrength: 0.0),
-      );
-    }
-    return const SatelliteBreakdownModel(
-      navIC: SatelliteInfoModel(count: 7, signalStrength: 44.0),
-      gps: SatelliteInfoModel(count: 9, signalStrength: 41.5),
-      galileo: SatelliteInfoModel(count: 4, signalStrength: 32.0),
-      glonass: SatelliteInfoModel(count: 5, signalStrength: 35.0),
+    final telemetry = s.gnssTelemetry;
+    SatelliteInfoModel info(GnssConstellation constellation) =>
+        SatelliteInfoModel(
+          count: telemetry?.countFor(constellation) ?? 0,
+          signalStrength: telemetry?.meanCn0For(constellation) ?? 0,
+        );
+    return SatelliteBreakdownModel(
+      navIC: info(GnssConstellation.navic),
+      gps: info(GnssConstellation.gps),
+      galileo: info(GnssConstellation.galileo),
+      glonass: info(GnssConstellation.glonass),
     );
   }
 
   static double _navicWeight(LiveSessionController s) {
-    if (!s.hasLiveGnss) return 0.55;
-    return s.isSimulatingCanyon ? 0.35 : 0.65;
+    final telemetry = s.gnssTelemetry;
+    if (telemetry == null || telemetry.usedInFixCount == 0) return 0;
+    return telemetry.usedCountFor(GnssConstellation.navic) /
+        telemetry.usedInFixCount;
   }
 }
 

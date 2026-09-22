@@ -1,11 +1,18 @@
 package com.gatisaarth.app
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.location.GnssMeasurementsEvent
+import android.location.GnssStatus
+import android.location.LocationManager
 import java.io.File
 import android.os.BatteryManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -13,13 +20,65 @@ import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.EventChannel
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.gatisaarth.app/device_sensors"
     private val MAP_PACKS_CHANNEL = "com.gatisaarth.app/map_packs"
+    private val GNSS_CONTROL_CHANNEL = "com.gatisaarth.app/gnss_control"
+    private val GNSS_TELEMETRY_CHANNEL = "com.gatisaarth.app/gnss_telemetry"
+    private var gnssEventSink: EventChannel.EventSink? = null
+    private var gnssStatus: GnssStatus? = null
+    private var gnssStatusRegistered = false
+    private var rawMeasurementsRegistered = false
+
+    private val gnssStatusCallback = object : GnssStatus.Callback() {
+        override fun onSatelliteStatusChanged(status: GnssStatus) {
+            gnssStatus = status
+            emitGnssSnapshot(status)
+        }
+
+        override fun onStopped() {
+            gnssStatus = null
+            emitGnssSnapshot(null)
+        }
+    }
+
+    private val rawMeasurementsCallback = object : GnssMeasurementsEvent.Callback() {}
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            GNSS_TELEMETRY_CHANNEL
+        ).setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                gnssEventSink = events
+                emitGnssSnapshot(gnssStatus)
+            }
+
+            override fun onCancel(arguments: Any?) {
+                gnssEventSink = null
+            }
+        })
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            GNSS_CONTROL_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> {
+                    startGnssTelemetry()
+                    result.success(null)
+                }
+                "stop" -> {
+                    stopGnssTelemetry()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, MAP_PACKS_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
@@ -69,6 +128,84 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
+    }
+
+    private fun hasFineLocationPermission(): Boolean =
+        checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun startGnssTelemetry() {
+        if (!hasFineLocationPermission()) {
+            emitGnssSnapshot(null)
+            return
+        }
+        val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val handler = Handler(Looper.getMainLooper())
+        if (!gnssStatusRegistered) {
+            gnssStatusRegistered = try {
+                @Suppress("DEPRECATION")
+                manager.registerGnssStatusCallback(gnssStatusCallback, handler)
+            } catch (_: SecurityException) {
+                false
+            }
+        }
+        if (!rawMeasurementsRegistered) {
+            rawMeasurementsRegistered = try {
+                @Suppress("DEPRECATION")
+                manager.registerGnssMeasurementsCallback(rawMeasurementsCallback, handler)
+            } catch (_: SecurityException) {
+                false
+            }
+        }
+        emitGnssSnapshot(gnssStatus)
+    }
+
+    private fun stopGnssTelemetry() {
+        val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (gnssStatusRegistered) manager.unregisterGnssStatusCallback(gnssStatusCallback)
+        if (rawMeasurementsRegistered) {
+            manager.unregisterGnssMeasurementsCallback(rawMeasurementsCallback)
+        }
+        gnssStatusRegistered = false
+        rawMeasurementsRegistered = false
+        gnssStatus = null
+    }
+
+    private fun emitGnssSnapshot(status: GnssStatus?) {
+        val satellites = mutableListOf<Map<String, Any>>()
+        if (status != null) {
+            for (index in 0 until status.satelliteCount) {
+                val item = mutableMapOf<String, Any>(
+                    "svid" to status.getSvid(index),
+                    "constellation" to status.getConstellationType(index),
+                    "cn0DbHz" to status.getCn0DbHz(index).toDouble(),
+                    "usedInFix" to status.usedInFix(index),
+                    "elevationDegrees" to status.getElevationDegrees(index).toDouble(),
+                    "azimuthDegrees" to status.getAzimuthDegrees(index).toDouble()
+                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                    status.hasCarrierFrequencyHz(index)) {
+                    item["carrierFrequencyHz"] =
+                        status.getCarrierFrequencyHz(index).toDouble()
+                }
+                satellites.add(item)
+            }
+        }
+        gnssEventSink?.success(
+            mapOf(
+                "timestampMs" to System.currentTimeMillis(),
+                "permissionGranted" to hasFineLocationPermission(),
+                "statusSupported" to
+                    packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS),
+                "rawMeasurementsSupported" to rawMeasurementsRegistered,
+                "satellites" to satellites
+            )
+        )
+    }
+
+    override fun onDestroy() {
+        stopGnssTelemetry()
+        super.onDestroy()
     }
 
     /**
