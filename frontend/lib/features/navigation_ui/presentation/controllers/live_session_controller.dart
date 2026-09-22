@@ -11,6 +11,7 @@ import '../../../../core/nav/gnss/gnss_quality.dart';
 import '../../../../core/nav/guidance/mission_guidance.dart';
 import '../../../../core/nav/math/nav_math.dart' show Vector3;
 import '../../../../core/nav/model/nav_snapshot.dart';
+import '../../../../core/nav/motion/activity_mode.dart';
 import '../../../../core/nav/motion/motion_classifier.dart' show VehicleClass;
 import '../../../../core/nav/navigation_engine.dart';
 import '../../../../core/nav/nav_config.dart';
@@ -18,6 +19,7 @@ import '../../../../core/nav/replay/drive_log.dart';
 import '../../../../core/platform/gnss/gnss_telemetry.dart';
 import '../../../../core/platform/gnss/gnss_integrity_monitor.dart';
 import '../../../../core/platform/anchors/anchor_pack_source.dart';
+import '../../../../core/platform/activity/activity_mode_source.dart';
 import '../../../../core/nav/replay/drive_recorder.dart';
 import '../../../../core/nav/sensors/sensor_sample.dart';
 import '../../../../core/platform/storage/drive_log_store.dart';
@@ -133,6 +135,7 @@ class LiveSessionController extends ChangeNotifier {
     GnssTelemetrySource? gnssTelemetry,
     VoiceGuidance? voiceGuidance,
     AnchorPackSource? anchorPacks,
+    ActivityModeSource? activityModes,
   })  : _sensors = sensors,
         _alignment = alignment,
         _hardware = hardware,
@@ -145,6 +148,7 @@ class LiveSessionController extends ChangeNotifier {
         _gnssTelemetrySource = gnssTelemetry ?? const NoopGnssTelemetrySource(),
         _voiceGuidance = voiceGuidance ?? const NoopVoiceGuidance(),
         _anchorPacks = anchorPacks ?? const EmptyAnchorPackSource(),
+        _activityModes = activityModes ?? const NoopActivityModeSource(),
         _road = RoadConstraint(source: roads, clock: clock) {
     _road.onRoadsChanged = _onRoadsChanged;
     _aiFeed = AiEngineFeed(speed: speedEstimator);
@@ -163,6 +167,9 @@ class LiveSessionController extends ChangeNotifier {
   final GnssTelemetrySource _gnssTelemetrySource;
   final VoiceGuidance _voiceGuidance;
   final AnchorPackSource _anchorPacks;
+  final ActivityModeSource _activityModes;
+  final ActivityModeClassifier _activityClassifier = ActivityModeClassifier();
+  ActivityMode _activityMode = ActivityMode.unknown;
   AnchorPack? _anchorPack;
   PortalAnchorPolicy? _portalAnchorPolicy;
   final GnssIntegrityMonitor _gnssIntegrity = GnssIntegrityMonitor();
@@ -180,6 +187,7 @@ class LiveSessionController extends ChangeNotifier {
   StreamSubscription<List<double>>? _imuSub;
   StreamSubscription<double>? _tempSub;
   StreamSubscription<GnssTelemetrySnapshot>? _gnssTelemetrySub;
+  StreamSubscription<ActivityObservation>? _activitySub;
   Timer? _uiTimer;
   Timer? _telemetryTimer;
 
@@ -312,6 +320,8 @@ class LiveSessionController extends ChangeNotifier {
     await _loadHaptics();
     await _loadVoiceGuidance();
     await _loadAnchorPack();
+    _activitySub ??= _activityModes.observations.listen(_onActivityObservation);
+    await _activityModes.start();
     await location.start();
     _gnssTelemetrySub ??= _gnssTelemetrySource.snapshots.listen(
       (snapshot) {
@@ -415,6 +425,7 @@ class LiveSessionController extends ChangeNotifier {
       unawaited(_writeCache(_targetLat, _targetLon));
     }
     await _gnssTelemetrySource.stop();
+    await _activityModes.stop();
     await location.pause();
   }
 
@@ -428,6 +439,7 @@ class LiveSessionController extends ChangeNotifier {
       if (_autoTick) _startTimers();
       await location.resume();
       await _gnssTelemetrySource.start();
+      await _activityModes.start();
     }
     await location.recheck();
   }
@@ -441,7 +453,9 @@ class LiveSessionController extends ChangeNotifier {
     _imuSub?.cancel();
     _tempSub?.cancel();
     _gnssTelemetrySub?.cancel();
+    _activitySub?.cancel();
     unawaited(_gnssTelemetrySource.stop());
+    unawaited(_activityModes.stop());
     unawaited(_voiceGuidance.stop());
     _sensors.stop();
     _hardware.stop();
@@ -542,10 +556,30 @@ class LiveSessionController extends ChangeNotifier {
   void _applyVehicleProfile(VehicleProfile profile) {
     _vehicleProfile = profile;
     _alignment.vehicleProfile = profile;
-    _engine.vehicleClass = profile == VehicleProfile.twoWheeler
-        ? VehicleClass.twoWheeler
-        : VehicleClass.car;
+    _engine.vehicleClass = switch (profile) {
+      VehicleProfile.car => VehicleClass.car,
+      VehicleProfile.twoWheeler => VehicleClass.twoWheeler,
+      VehicleProfile.pedestrian => VehicleClass.pedestrian,
+    };
     _touch();
+  }
+
+  void _onActivityObservation(ActivityObservation observation) {
+    final next = _activityClassifier.add(observation);
+    if (next == _activityMode) return;
+    _activityMode = next;
+    switch (next) {
+      case ActivityMode.car:
+        _applyVehicleProfile(VehicleProfile.car);
+      case ActivityMode.bicycle:
+        _applyVehicleProfile(VehicleProfile.twoWheeler);
+      case ActivityMode.pedestrian:
+      case ActivityMode.running:
+        _applyVehicleProfile(VehicleProfile.pedestrian);
+      case ActivityMode.still:
+      case ActivityMode.unknown:
+        _touch();
+    }
   }
 
   void startTunnelTest() {
@@ -1470,6 +1504,7 @@ class LiveSessionController extends ChangeNotifier {
   bool get isSimulatingTunnel => _simTunnel;
   bool get isSimulatingCanyon => _simCanyon;
   VehicleProfile get vehicleProfile => _vehicleProfile;
+  ActivityMode get activityMode => _activityMode;
   String? get anchorPackId => _anchorPack?.packId;
 
   double get speed => _speed;

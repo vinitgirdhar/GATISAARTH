@@ -42,6 +42,14 @@ class VehicleProfileSelector extends StatelessWidget {
           ),
           Expanded(
             child: _Option(
+              label: 'Walk',
+              icon: Icons.directions_walk_rounded,
+              selected: selected == VehicleProfile.pedestrian,
+              onTap: () => onChanged(VehicleProfile.pedestrian),
+            ),
+          ),
+          Expanded(
+            child: _Option(
               label: 'Two-wheeler',
               icon: Icons.two_wheeler_rounded,
               selected: selected == VehicleProfile.twoWheeler,

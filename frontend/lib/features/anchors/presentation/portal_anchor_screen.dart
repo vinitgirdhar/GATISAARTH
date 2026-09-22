@@ -49,6 +49,16 @@ class PortalAnchorScreen extends StatefulWidget {
 class _PortalAnchorScreenState extends State<PortalAnchorScreen> {
   bool _busy = false;
   PortalAnchorUiResult? _result;
+  late final MobileScannerController _scannerController = MobileScannerController(
+    formats: const [BarcodeFormat.qrCode, BarcodeFormat.dataMatrix],
+    detectionSpeed: DetectionSpeed.noDuplicates,
+  );
+
+  @override
+  void dispose() {
+    _scannerController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handle(String payload) async {
     if (_busy || payload.trim().isEmpty) return;
@@ -65,10 +75,7 @@ class _PortalAnchorScreenState extends State<PortalAnchorScreen> {
   Widget build(BuildContext context) {
     final scanner = widget.scannerBuilder?.call(_handle) ??
         MobileScanner(
-          controller: MobileScannerController(
-            formats: const [BarcodeFormat.qrCode, BarcodeFormat.dataMatrix],
-            detectionSpeed: DetectionSpeed.noDuplicates,
-          ),
+          controller: _scannerController,
           onDetect: (capture) {
             final payload = capture.barcodes.firstOrNull?.rawValue;
             if (payload != null) unawaited(_handle(payload));

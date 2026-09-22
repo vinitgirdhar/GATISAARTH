@@ -4,7 +4,7 @@ import 'dart:math';
 /// sideways (hard NHC), but a two-wheeler leans into turns, so the phone's
 /// lateral/vertical axes carry real cornering/bump signal that a car-style
 /// hard-zero clamp would wrongly discard.
-enum VehicleProfile { car, twoWheeler }
+enum VehicleProfile { car, twoWheeler, pedestrian }
 
 /// In-Vehicle Alignment & Kinematic Constraints Engine (NHC)
 /// Converts raw smartphone accelerometer & gyroscope readings into vehicle coordinates
@@ -98,6 +98,10 @@ class VehicleAlignmentEngine {
         final aLat = vehicleAccel[1] * 0.35;
         final aVert = vehicleAccel[2] * 0.5;
         return [aLong, aLat, aVert];
+      case VehicleProfile.pedestrian:
+        // Walking is not non-holonomic: side steps and vertical motion are
+        // genuine, so no car/bike constraint may be injected.
+        return vehicleAccel;
     }
   }
 }

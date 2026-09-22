@@ -15,7 +15,9 @@ extension ActivityModeSafety on ActivityMode {
 }
 
 class ActivityModeClassifier {
-  ActivityModeClassifier({this.requiredObservations = 3})
+  // Android Activity Transition events are already debounced by Play Services.
+  // Callers feeding raw, noisy samples can request extra hysteresis.
+  ActivityModeClassifier({this.requiredObservations = 1})
       : assert(requiredObservations > 0);
 
   final int requiredObservations;

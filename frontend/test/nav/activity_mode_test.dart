@@ -2,6 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gatisaarth/core/nav/motion/activity_mode.dart';
 
 void main() {
+  test('one trusted platform transition changes mode immediately', () {
+    final classifier = ActivityModeClassifier();
+    expect(classifier.add(ActivityObservation.walking), ActivityMode.pedestrian);
+  });
+
   test('requires repeated activity evidence before changing mode', () {
     final classifier = ActivityModeClassifier(requiredObservations: 2);
 

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.app.PendingIntent
 import android.content.pm.PackageManager
 import android.location.GnssMeasurementsEvent
 import android.location.GnssMeasurement
@@ -32,12 +33,28 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.EventChannel
+import com.google.android.gms.location.ActivityRecognition
+import com.google.android.gms.location.ActivityTransition
+import com.google.android.gms.location.ActivityTransitionRequest
+import com.google.android.gms.location.DetectedActivity
 
 class MainActivity: FlutterActivity() {
+    companion object {
+        private var activityEventSink: EventChannel.EventSink? = null
+
+        fun emitActivity(mode: String) {
+            Handler(Looper.getMainLooper()).post { activityEventSink?.success(mode) }
+        }
+    }
+
     private val CHANNEL = "com.gatisaarth.app/device_sensors"
     private val MAP_PACKS_CHANNEL = "com.gatisaarth.app/map_packs"
     private val GNSS_CONTROL_CHANNEL = "com.gatisaarth.app/gnss_control"
     private val GNSS_TELEMETRY_CHANNEL = "com.gatisaarth.app/gnss_telemetry"
+    private val ACTIVITY_CONTROL_CHANNEL = "com.gatisaarth.app/activity_control"
+    private val ACTIVITY_UPDATES_CHANNEL = "com.gatisaarth.app/activity_updates"
+    private val ACTIVITY_PERMISSION_REQUEST = 7412
+    private var pendingActivityResult: MethodChannel.Result? = null
     private var gnssEventSink: EventChannel.EventSink? = null
     private var gnssStatus: GnssStatus? = null
     private var gnssStatusRegistered = false
@@ -88,6 +105,33 @@ class MainActivity: FlutterActivity() {
                 gnssEventSink = null
             }
         })
+
+        EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            ACTIVITY_UPDATES_CHANNEL
+        ).setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                activityEventSink = events
+            }
+
+            override fun onCancel(arguments: Any?) {
+                activityEventSink = null
+            }
+        })
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            ACTIVITY_CONTROL_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> startActivityTransitions(result)
+                "stop" -> {
+                    stopActivityTransitions()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -176,6 +220,83 @@ class MainActivity: FlutterActivity() {
     private fun hasFineLocationPermission(): Boolean =
         checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
+
+    private fun hasActivityPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun activityPendingIntent(): PendingIntent = PendingIntent.getBroadcast(
+        this,
+        0,
+        Intent(this, ActivityTransitionReceiver::class.java),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+    )
+
+    private fun startActivityTransitions(result: MethodChannel.Result) {
+        if (!hasActivityPermission()) {
+            pendingActivityResult = result
+            requestPermissions(
+                arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
+                ACTIVITY_PERMISSION_REQUEST
+            )
+            return
+        }
+        registerActivityTransitions(result)
+    }
+
+    private fun registerActivityTransitions(result: MethodChannel.Result?) {
+        val activities = listOf(
+            DetectedActivity.IN_VEHICLE,
+            DetectedActivity.ON_BICYCLE,
+            DetectedActivity.WALKING,
+            DetectedActivity.RUNNING,
+            DetectedActivity.STILL
+        )
+        val transitions = activities.map { activity ->
+            ActivityTransition.Builder()
+                .setActivityType(activity)
+                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
+                .build()
+        }
+        try {
+            ActivityRecognition.getClient(this)
+                .requestActivityTransitionUpdates(
+                    ActivityTransitionRequest(transitions),
+                    activityPendingIntent()
+                )
+                .addOnSuccessListener { result?.success(null) }
+                .addOnFailureListener { error ->
+                    result?.error("ACTIVITY_TRANSITIONS_FAILED", error.message, null)
+                }
+        } catch (error: SecurityException) {
+            result?.error("ACTIVITY_PERMISSION_DENIED", error.message, null)
+        }
+    }
+
+    private fun stopActivityTransitions() {
+        try {
+            ActivityRecognition.getClient(this)
+                .removeActivityTransitionUpdates(activityPendingIntent())
+        } catch (_: SecurityException) {
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != ACTIVITY_PERMISSION_REQUEST) return
+        val result = pendingActivityResult
+        pendingActivityResult = null
+        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+            registerActivityTransitions(result)
+        } else {
+            result?.error("ACTIVITY_PERMISSION_DENIED", "Activity recognition denied", null)
+        }
+    }
 
     private fun speakGuidance(message: String) {
         if (message.isBlank()) return
@@ -317,6 +438,8 @@ class MainActivity: FlutterActivity() {
     }
 
     override fun onDestroy() {
+        stopActivityTransitions()
+        activityEventSink = null
         stopGnssTelemetry()
         textToSpeech?.stop()
         textToSpeech?.shutdown()

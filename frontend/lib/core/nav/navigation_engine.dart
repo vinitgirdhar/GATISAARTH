@@ -114,9 +114,9 @@ class NavigationEngine {
         _matcher = MapMatcher(
           graph: roadGraph ?? RoadGraph.empty(),
           config: config,
-          vehicle: vehicleClass == VehicleClass.twoWheeler
-              ? VehicleAccess.twoWheelers
-              : VehicleAccess.cars,
+          vehicle: vehicleClass == VehicleClass.car
+              ? VehicleAccess.cars
+              : VehicleAccess.twoWheelers,
         ),
         _calibration = calibration ?? SensorCalibration.none,
         _filter = NavigationFilter(config: config),
@@ -210,9 +210,12 @@ class NavigationEngine {
 
   set vehicleClass(VehicleClass value) {
     _motion.vehicleClass = value;
-    _matcher.vehicle = value == VehicleClass.twoWheeler
-        ? VehicleAccess.twoWheelers
-        : VehicleAccess.cars;
+    // The bundled road graph has driving access only. Never imply a safe
+    // walking route by snapping a pedestrian to a car or motorcycle edge.
+    if (value == VehicleClass.pedestrian) _matcher.reset();
+    _matcher.vehicle = value == VehicleClass.car
+        ? VehicleAccess.cars
+        : VehicleAccess.twoWheelers;
   }
 
   VehicleClass get vehicleClass => _motion.vehicleClass;
@@ -730,6 +733,7 @@ class NavigationEngine {
   /// disagreement, which is exactly what §58 forbids. The snapped position
   /// is published for drawing, alongside the raw one.
   void _runMapMatch(int monotonicUs) {
+    if (_motion.vehicleClass == VehicleClass.pedestrian) return;
     if (!_matcher.isAvailable) return;
     final feedHeading = _config.features.mapHeading;
     // Matching costs a spatial query and a bounded Dijkstra; twice a second

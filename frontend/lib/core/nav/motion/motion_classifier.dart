@@ -61,7 +61,7 @@ extension VehicleStateLabel on VehicleState {
 
 /// Vehicle class the phone is riding in. Mirrors the app's existing
 /// `VehicleProfile` but lives in the core so the core stays UI-free.
-enum VehicleClass { car, twoWheeler }
+enum VehicleClass { car, twoWheeler, pedestrian }
 
 @immutable
 class MotionSnapshot {
@@ -171,6 +171,7 @@ class MotionClassifier {
   /// motion in its body frame, so clamping it like a car would inject error.
   double get nhcLateralSigma {
     if (vehicleClass == VehicleClass.car) return _ekf.nhcSigmaCar;
+    if (vehicleClass == VehicleClass.pedestrian) return double.infinity;
     final lean = _snapshot.leanAngleRad?.abs() ?? 0;
     // Widen with lean: upright bike is nearly car-like, a 30 deg lean is not.
     return _ekf.nhcSigmaTwoWheeler * (1 + 2 * math.sin(lean));
@@ -254,7 +255,8 @@ class MotionClassifier {
         : null;
 
     final state = _classify(stats, stationary, lean);
-    final nhcApplicable = !stationary &&
+    final nhcApplicable = vehicleClass != VehicleClass.pedestrian &&
+        !stationary &&
         state != VehicleState.sensorAnomaly &&
         stats.absYawRate < _config.nhcMaxYawRate;
 

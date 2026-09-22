@@ -19,6 +19,7 @@ class ProfileTab extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final isDark = AppColors.isDark;
     final isTwoWheeler = session.vehicleProfile == VehicleProfile.twoWheeler;
+    final isPedestrian = session.vehicleProfile == VehicleProfile.pedestrian;
     final maps = OfflineMapsScope.maybeOf(context);
     final downloads = MapDownloadsScope.maybeOf(context);
 
@@ -63,7 +64,9 @@ class ProfileTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  isTwoWheeler
+                  isPedestrian
+                      ? Icons.directions_walk_rounded
+                      : isTwoWheeler
                       ? Icons.two_wheeler_rounded
                       : Icons.directions_car_rounded,
                   color: AppColors.primary,
@@ -76,7 +79,9 @@ class ProfileTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isTwoWheeler
+                      isPedestrian
+                          ? 'Pedestrian / Last-mile Active'
+                          : isTwoWheeler
                           ? 'Two-Wheeler Dynamics Active'
                           : 'Car / Four-Wheeler Dynamics Active',
                       style: TextStyle(
@@ -87,7 +92,9 @@ class ProfileTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isTwoWheeler
+                      isPedestrian
+                          ? 'Vehicle-only lateral constraints disabled'
+                          : isTwoWheeler
                           ? 'Lean-angle compensation & bump suppression enabled'
                           : 'Non-holonomic constraint (NHC) zero-lateral slip active',
                       style: TextStyle(
@@ -132,6 +139,13 @@ class ProfileTab extends StatelessWidget {
                   activeThumbColor: AppColors.primary,
                   onChanged: (val) => theme.toggle(),
                 ),
+              ),
+              const Divider(height: 1),
+              _ProfileMenuTile(
+                icon: Icons.directions_run_rounded,
+                title: 'Automatic activity mode',
+                subtitle: 'Detected · ${session.activityMode.name}',
+                trailing: const Icon(Icons.auto_awesome_rounded, size: 20),
               ),
               const Divider(height: 1),
               _ProfileMenuTile(
@@ -216,11 +230,15 @@ class ProfileTab extends StatelessWidget {
           child: Column(
             children: [
               _ProfileMenuTile(
-                icon: isTwoWheeler
+                icon: isPedestrian
+                    ? Icons.directions_walk_rounded
+                    : isTwoWheeler
                     ? Icons.two_wheeler_rounded
                     : Icons.directions_car_rounded,
                 title: 'Vehicle Preference',
-                subtitle: isTwoWheeler
+                subtitle: isPedestrian
+                    ? 'Pedestrian / last-mile'
+                    : isTwoWheeler
                     ? 'Two-wheeler (Motorcycle / Scooter)'
                     : 'Car / Four-wheeler',
                 trailing: Container(
@@ -231,7 +249,9 @@ class ProfileTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    isTwoWheeler ? '2-WHEELER' : 'CAR',
+                    isPedestrian
+                        ? 'WALK'
+                        : (isTwoWheeler ? '2-WHEELER' : 'CAR'),
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,

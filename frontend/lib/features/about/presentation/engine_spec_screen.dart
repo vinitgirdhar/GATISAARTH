@@ -419,9 +419,11 @@ class _LiveCard extends StatelessWidget {
         ),
         _Row(
           'Vehicle profile',
-          session.vehicleProfile == VehicleProfile.twoWheeler
-              ? 'Two-wheeler'
-              : 'Car',
+          switch (session.vehicleProfile) {
+            VehicleProfile.car => 'Car',
+            VehicleProfile.twoWheeler => 'Two-wheeler',
+            VehicleProfile.pedestrian => 'Pedestrian / last-mile',
+          },
         ),
       ],
     );
