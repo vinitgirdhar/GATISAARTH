@@ -46,5 +46,7 @@ void main() {
     final result = session.applyPortalPayload('GSARTH-ANCHOR:1:portal-a');
     expect(result.accepted, isFalse);
     expect(result.message, contains('outage'));
+    final visual = session.applyVisualDescriptor('f0f0');
+    expect(visual.accepted, isFalse);
   });
 }

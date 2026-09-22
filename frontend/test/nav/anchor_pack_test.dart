@@ -30,4 +30,22 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('rejects malformed visual descriptors and duplicate radio IDs', () {
+    expect(
+      () => AnchorPack.parse('''
+{"schemaVersion":1,"packId":"x","anchors":[
+ {"id":"a","label":"A","kind":"approvedLandmark","lat":28,"lon":77,"sigmaM":5,"visualDescriptor":"f0f0"}
+]}'''),
+      throwsFormatException,
+    );
+    expect(
+      () => AnchorPack.parse('''
+{"schemaVersion":1,"packId":"x","anchors":[
+ {"id":"a","label":"A","kind":"tunnelPortal","lat":28,"lon":77,"sigmaM":5,"radioId":"aa:bb:cc:dd:ee:ff"},
+ {"id":"b","label":"B","kind":"tunnelPortal","lat":28,"lon":77,"sigmaM":5,"radioId":"aa:bb:cc:dd:ee:ff"}
+]}'''),
+      throwsFormatException,
+    );
+  });
 }
