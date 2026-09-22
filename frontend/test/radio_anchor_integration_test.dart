@@ -1,28 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gatisaarth/core/nav/anchors/anchor_pack.dart';
-import 'package:gatisaarth/core/platform/anchors/anchor_pack_source.dart';
+import 'package:gatisaarth/core/nav/anchors/radio_anchor.dart';
+import 'package:gatisaarth/core/platform/radio/wifi_rtt_anchor_source.dart';
 import 'package:gatisaarth/core/platform/hardware/haptics.dart';
 import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart';
 import 'package:gatisaarth/core/platform/location/live_location_service.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/controllers/live_session_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'portal_anchor_integration_test.dart' show TestAnchorPackSource;
 import 'support/fake_location_gateway.dart';
 import 'support/session_fakes.dart';
 
-class TestAnchorPackSource implements AnchorPackSource {
+class _RadioSource implements WifiRttAnchorSource {
   @override
-  Future<AnchorPack> load() async => AnchorPack.parse('''
-{"schemaVersion":1,"packId":"test-pack","anchors":[
- {"id":"portal-a","label":"Portal A","kind":"tunnelPortal","lat":28.639,"lon":77.0661,"sigmaM":4,"visualDescriptor":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","radioId":"aa:bb:cc:dd:ee:ff"}
-]}''');
+  Future<RadioAnchorObservation?> range(String radioId) async =>
+      RadioAnchorObservation(
+        radioId: radioId,
+        rangeM: 4,
+        rangeSigmaM: 2,
+        age: const Duration(milliseconds: 100),
+      );
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('session loads the local pack and safely rejects a scan outside outage',
-      () async {
+  test('radio measurement cannot bypass the outage safety gate', () async {
     SharedPreferences.setMockInitialValues({});
     final hardware = FakeHardware();
     final session = LiveSessionController(
@@ -36,18 +39,14 @@ void main() {
         errorRetryDelay: Duration.zero,
       ),
       anchorPacks: TestAnchorPackSource(),
+      radioAnchors: _RadioSource(),
       autoTick: false,
       haptics: Haptics(hardware, pause: (_) async {}),
     );
     addTearDown(session.dispose);
     await session.start();
-
-    expect(session.anchorPackId, 'test-pack');
-    final result = session.applyPortalPayload('GSARTH-ANCHOR:1:portal-a');
+    final result = await session.rangeRadioAnchor();
     expect(result.accepted, isFalse);
     expect(result.message, contains('outage'));
-    final visual = session.applyVisualDescriptor(
-        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
-    expect(visual.accepted, isFalse);
   });
 }
