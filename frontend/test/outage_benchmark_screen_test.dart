@@ -72,6 +72,7 @@ class _FakeBackend implements BenchmarkBackend {
   BenchmarkSource? ran;
   BenchmarkSource? shared;
   BenchmarkSource? deleted;
+  BenchmarkSource? evidenceSource;
 
   @override
   Future<List<BenchmarkSource>> sources() async =>
@@ -84,6 +85,14 @@ class _FakeBackend implements BenchmarkBackend {
   Future<bool> delete(BenchmarkSource source) async {
     deleted = source;
     return true;
+  }
+
+  @override
+  Future<void> shareEvidence(
+    BenchmarkSource source,
+    OutageReport report,
+  ) async {
+    evidenceSource = source;
   }
 
   @override
@@ -206,6 +215,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('not a field measurement'), findsNothing);
+    expect(find.text('Share signed evidence'), findsOneWidget);
+  });
+
+  testWidgets('shares a signed result rather than only copying prose',
+      (tester) async {
+    _size(tester, 360, 2400);
+    final backend = _FakeBackend();
+    await tester.pumpWidget(_screen(backend));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('morning-commute.jsonl'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Share signed evidence'));
+    await tester.pumpAndSettle();
+
+    expect(backend.evidenceSource, _recorded);
   });
 
   testWidgets('a log that cannot be read is reported, not shown as a result',
