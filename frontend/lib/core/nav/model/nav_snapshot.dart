@@ -90,8 +90,7 @@ extension NavModeLabel on NavMode {
 
   /// True when position is coming from inertial propagation rather than GNSS.
   bool get isDeadReckoning =>
-      this == NavMode.deadReckoning ||
-      this == NavMode.mapAssistedDeadReckoning;
+      this == NavMode.deadReckoning || this == NavMode.mapAssistedDeadReckoning;
 }
 
 /// Is the estimate *safe to use*, as opposed to how precise it claims to be
@@ -128,6 +127,7 @@ class FusionContribution {
     this.inertial = 0,
     this.ai = 0,
     this.map = 0,
+    this.anchor = 0,
   });
 
   static const FusionContribution none = FusionContribution();
@@ -136,14 +136,16 @@ class FusionContribution {
   final double inertial;
   final double ai;
   final double map;
+  final double anchor;
 
-  bool get isEmpty => gnss + inertial + ai + map <= 0;
+  bool get isEmpty => gnss + inertial + ai + map + anchor <= 0;
 
   Map<String, double> get asMap => {
         'GNSS': gnss,
         'IMU': inertial,
         'AI velocity': ai,
         'Map': map,
+        'Portal anchor': anchor,
       };
 }
 

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'ai/ai_fusion.dart';
 import 'ai/ai_types.dart';
 import 'alignment/mount_alignment.dart';
+import 'anchors/portal_anchor.dart';
 import 'calibration/sensor_calibration.dart';
 import 'ekf/navigation_filter.dart';
 import 'gnss/gnss_quality.dart';
@@ -32,6 +33,7 @@ class _ContributionTracker {
   double _inertial = 0;
   double _ai = 0;
   double _map = 0;
+  double _anchor = 0;
   int? _lastUs;
 
   void decayTo(int monotonicUs) {
@@ -45,6 +47,7 @@ class _ContributionTracker {
     _inertial *= factor;
     _ai *= factor;
     _map *= factor;
+    _anchor *= factor;
   }
 
   /// Adds the position variance (m²) a source just removed.
@@ -64,17 +67,21 @@ class _ContributionTracker {
       case 'map':
         _map += information;
         break;
+      case 'anchor':
+        _anchor += information;
+        break;
     }
   }
 
   FusionContribution get snapshot {
-    final total = _gnss + _inertial + _ai + _map;
+    final total = _gnss + _inertial + _ai + _map + _anchor;
     if (total <= 0) return FusionContribution.none;
     return FusionContribution(
       gnss: _gnss / total,
       inertial: _inertial / total,
       ai: _ai / total,
       map: _map / total,
+      anchor: _anchor / total,
     );
   }
 
@@ -83,6 +90,7 @@ class _ContributionTracker {
     _inertial = 0;
     _ai = 0;
     _map = 0;
+    _anchor = 0;
     _lastUs = null;
   }
 }
@@ -178,8 +186,7 @@ class NavigationEngine {
   MapMatchResult? get mapMatch => _matcher.last;
 
   /// Per-sensor fault diagnoses (§29).
-  Map<SensorType, SensorDiagnosis> get sensorDiagnoses =>
-      _faults.diagnoses;
+  Map<SensorType, SensorDiagnosis> get sensorDiagnoses => _faults.diagnoses;
 
   /// Latest barometric estimate, or null without a barometer (§18).
   BarometerEstimate? get barometer => _barometer.last;
@@ -207,6 +214,7 @@ class NavigationEngine {
         ? VehicleAccess.twoWheelers
         : VehicleAccess.cars;
   }
+
   VehicleClass get vehicleClass => _motion.vehicleClass;
 
   void setCalibration(SensorCalibration calibration) {
@@ -287,8 +295,8 @@ class NavigationEngine {
 
     final accel = _calibration.correctAccel(accelPhone);
     final gyro = _calibration.correctGyro(gyroPhone);
-    final magUsable = magPhone != null &&
-        _faults.isUsable(SensorType.magnetometer);
+    final magUsable =
+        magPhone != null && _faults.isUsable(SensorType.magnetometer);
     final mag = magUsable ? _calibration.correctMag(magPhone) : null;
 
     // The AI path (P2/P3): what is shaking the phone right now, and what the
@@ -400,9 +408,8 @@ class NavigationEngine {
         gravityBody: _levelledGravity(),
         positionSigma: assessment.horizontalSigmaM,
         initialVelocityNed: _velocityFrom(fix),
-        headingSigma: (fix.bearingDeg == null || (fix.speedMps ?? 0) < 3)
-            ? null
-            : 0.35,
+        headingSigma:
+            (fix.bearingDeg == null || (fix.speedMps ?? 0) < 3) ? null : 0.35,
         timestampUs: fix.monotonicUs,
       );
       _contribution.decayTo(fix.monotonicUs);
@@ -475,6 +482,36 @@ class NavigationEngine {
     _lastGnssSpeed = null;
     _startOutage(monotonicUs);
     _updateMode(monotonicUs);
+  }
+
+  /// Folds one locally registered physical portal into the filter.
+  ///
+  /// The caller must already have passed the QR/AprilTag through
+  /// [PortalAnchorPolicy]. This second gate prevents accidental use outside a
+  /// GNSS outage. The coordinate is applied through the EKF's normal
+  /// innovation gate; it is never assigned directly to the state.
+  MeasurementResult? onPortalAnchor(
+    PortalAnchorMeasurement measurement, {
+    required int monotonicUs,
+  }) {
+    if (_outageStartedUs == null || !_filter.isInitialised) return null;
+
+    final anchor = measurement.anchor;
+    final result = _filter.updatePosition(
+      latitudeDeg: anchor.latitudeDeg,
+      longitudeDeg: anchor.longitudeDeg,
+      horizontalSigma: measurement.horizontalSigmaM,
+      name: 'portal_anchor',
+    );
+    _record(result);
+    if (result.accepted) {
+      _contribution.decayTo(monotonicUs);
+      _contribution.add('anchor', result.positionVarianceReduction);
+      _runMapMatch(monotonicUs);
+    }
+    _updateMode(monotonicUs);
+    _maybeSnapshot(monotonicUs, force: true);
+    return result;
   }
 
   // ----------------------------------------------------------- AI inputs (P1-P3)
@@ -575,7 +612,8 @@ class NavigationEngine {
     return _lastGnssSpeed;
   }
 
-  double? _liveGnssSpeed(int monotonicUs) => _gnssSpeedForAlignment(monotonicUs);
+  double? _liveGnssSpeed(int monotonicUs) =>
+      _gnssSpeedForAlignment(monotonicUs);
 
   double? _stepSeconds(int monotonicUs) {
     final last = _lastImuUs;
@@ -624,8 +662,8 @@ class NavigationEngine {
     final features = _config.features;
     if (snapshot.isStationary) {
       if (features.zeroVelocityUpdate) {
-        _recordInertial(
-            _filter.updateZeroVelocity(sigma: ekf.zuptVelocitySigma * sigmaScale));
+        _recordInertial(_filter.updateZeroVelocity(
+            sigma: ekf.zuptVelocitySigma * sigmaScale));
       }
       if (features.zeroAngularRateUpdate && !ai.holdUpdates) {
         _recordInertial(_filter.updateZeroAngularRate(
@@ -633,8 +671,7 @@ class NavigationEngine {
           sigma: ekf.zaruSigma * sigmaScale,
         ));
       }
-    } else if (snapshot.nhcApplicable &&
-        features.nonHolonomicConstraint) {
+    } else if (snapshot.nhcApplicable && features.nonHolonomicConstraint) {
       _recordInertial(_filter.updateNonHolonomic(
         lateralSigma: _motion.nhcLateralSigma * sigmaScale,
       ));
@@ -768,13 +805,13 @@ class NavigationEngine {
     if (sawAccelerometer &&
         (!availability.hasMinimumViableSet ||
             !_faults.hasMinimumViableSensors)) {
-      _setMode(NavMode.sensorFailure, 'minimum sensor set unavailable',
-          monotonicUs);
+      _setMode(
+          NavMode.sensorFailure, 'minimum sensor set unavailable', monotonicUs);
       return;
     }
     if (_filter.hasFailed) {
-      _setMode(NavMode.sensorFailure,
-          _filter.failureReason ?? 'filter failed', monotonicUs);
+      _setMode(NavMode.sensorFailure, _filter.failureReason ?? 'filter failed',
+          monotonicUs);
       return;
     }
     if (_alignmentEstimator.alignment == null) {
@@ -789,8 +826,8 @@ class NavigationEngine {
 
     final reacquiringUntil = _reacquiringUntilUs;
     if (reacquiringUntil != null && monotonicUs < reacquiringUntil) {
-      _setMode(NavMode.reacquiring, 'settling after a fix returned',
-          monotonicUs);
+      _setMode(
+          NavMode.reacquiring, 'settling after a fix returned', monotonicUs);
       return;
     }
     _reacquiringUntilUs = null;
@@ -817,14 +854,13 @@ class NavigationEngine {
 
     if (assessment.integrity == GnssIntegrity.anomaly ||
         assessment.integrity == GnssIntegrity.unreliable) {
-      _setMode(NavMode.gnssUnreliable, assessment.integrity.label,
-          monotonicUs);
+      _setMode(NavMode.gnssUnreliable, assessment.integrity.label, monotonicUs);
       return;
     }
     if (assessment.quality == GnssQualityClass.degraded ||
         assessment.quality == GnssQualityClass.poor) {
-      _setMode(NavMode.gnssDegraded,
-          'fix quality ${assessment.quality.name}', monotonicUs);
+      _setMode(NavMode.gnssDegraded, 'fix quality ${assessment.quality.name}',
+          monotonicUs);
       return;
     }
     // A faulted non-critical sensor degrades a feature, not the position, but
@@ -865,8 +901,7 @@ class NavigationEngine {
     if (_motion.snapshot.state == VehicleState.sensorAnomaly) {
       return NavIntegrity.low;
     }
-    final gnssAnomaly =
-        _lastAssessment?.integrity == GnssIntegrity.anomaly;
+    final gnssAnomaly = _lastAssessment?.integrity == GnssIntegrity.anomaly;
     if (gnssAnomaly) return NavIntegrity.low;
 
     // A mount that has not converged means the body frame — and therefore the
@@ -941,12 +976,8 @@ class NavigationEngine {
           : Duration(microseconds: monotonicUs - _outageStartedUs!),
       outageDistanceM: _outageDistanceM,
       positionSource: state == null
-          ? (unaligned == null
-              ? DataSource.unavailable
-              : DataSource.real)
-          : (_mode.isDeadReckoning
-              ? DataSource.estimated
-              : DataSource.real),
+          ? (unaligned == null ? DataSource.unavailable : DataSource.real)
+          : (_mode.isDeadReckoning ? DataSource.estimated : DataSource.real),
       notes: notes,
     );
     return _snapshot;
