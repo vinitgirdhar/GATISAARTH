@@ -9,7 +9,8 @@ void main() {
     expect(classifier.add(ActivityObservation.inVehicle), ActivityMode.unknown);
     expect(classifier.add(ActivityObservation.inVehicle), ActivityMode.car);
     expect(classifier.add(ActivityObservation.walking), ActivityMode.car);
-    expect(classifier.add(ActivityObservation.walking), ActivityMode.pedestrian);
+    expect(
+        classifier.add(ActivityObservation.walking), ActivityMode.pedestrian);
   });
 
   test('maps bicycle separately and disables vehicle constraints on foot', () {

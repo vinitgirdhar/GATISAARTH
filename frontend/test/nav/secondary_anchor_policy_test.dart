@@ -37,32 +37,37 @@ void main() {
     expect(accepted.measurement!.anchor.id, 'portal-a');
 
     expect(
-      policy.evaluate(
-        observation: const VisualMatchObservation(
-          anchorId: 'portal-a',
-          confidence: 0.94,
-          secondBestConfidence: 0.90,
-          processedOnDevice: true,
-        ),
-        context: context,
-      ).reason,
+      policy
+          .evaluate(
+            observation: const VisualMatchObservation(
+              anchorId: 'portal-a',
+              confidence: 0.94,
+              secondBestConfidence: 0.90,
+              processedOnDevice: true,
+            ),
+            context: context,
+          )
+          .reason,
       VisualRelocalizationRejection.ambiguous,
     );
     expect(
-      policy.evaluate(
-        observation: const VisualMatchObservation(
-          anchorId: 'portal-a',
-          confidence: 0.99,
-          secondBestConfidence: 0.1,
-          processedOnDevice: false,
-        ),
-        context: context,
-      ).reason,
+      policy
+          .evaluate(
+            observation: const VisualMatchObservation(
+              anchorId: 'portal-a',
+              confidence: 0.99,
+              secondBestConfidence: 0.1,
+              processedOnDevice: false,
+            ),
+            context: context,
+          )
+          .reason,
       VisualRelocalizationRejection.notOnDevice,
     );
   });
 
-  test('optional radio ranging is fresh, registered, and conservatively noisy', () {
+  test('optional radio ranging is fresh, registered, and conservatively noisy',
+      () {
     final policy = RadioAnchorPolicy(registry: registry);
     final accepted = policy.evaluate(
       observation: const RadioAnchorObservation(
@@ -77,15 +82,17 @@ void main() {
     expect(accepted.measurement!.horizontalSigmaM, greaterThanOrEqualTo(6));
 
     expect(
-      policy.evaluate(
-        observation: const RadioAnchorObservation(
-          radioId: 'GS-DEMO-A',
-          rangeM: 7,
-          rangeSigmaM: 2,
-          age: Duration(seconds: 8),
-        ),
-        context: context,
-      ).reason,
+      policy
+          .evaluate(
+            observation: const RadioAnchorObservation(
+              radioId: 'GS-DEMO-A',
+              rangeM: 7,
+              rangeSigmaM: 2,
+              age: Duration(seconds: 8),
+            ),
+            context: context,
+          )
+          .reason,
       RadioAnchorRejection.stale,
     );
   });

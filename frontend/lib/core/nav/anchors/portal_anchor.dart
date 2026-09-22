@@ -17,6 +17,8 @@ class PortalAnchor {
     required this.longitudeDeg,
     required this.horizontalSigmaM,
     required this.kind,
+    this.visualDescriptor,
+    this.radioId,
   })  : assert(id != ''),
         assert(label != ''),
         assert(horizontalSigmaM > 0);
@@ -29,6 +31,8 @@ class PortalAnchor {
   /// Surveyed/declared uncertainty for the fixed physical marker.
   final double horizontalSigmaM;
   final PortalAnchorKind kind;
+  final String? visualDescriptor;
+  final String? radioId;
 }
 
 class PortalAnchorRegistry {
@@ -39,6 +43,7 @@ class PortalAnchorRegistry {
   final Map<String, PortalAnchor> _byId;
 
   PortalAnchor? operator [](String id) => _byId[id];
+  Iterable<PortalAnchor> get values => _byId.values;
 }
 
 class PortalAnchorContext {
