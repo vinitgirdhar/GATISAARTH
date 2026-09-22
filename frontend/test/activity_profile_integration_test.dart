@@ -54,11 +54,20 @@ void main() {
     await session.start();
 
     activity.controller.add(ActivityObservation.walking);
-    activity.controller.add(ActivityObservation.walking);
+    await Future<void>.delayed(Duration.zero);
+    expect(session.vehicleProfile, VehicleProfile.car);
+
+    await session.setAutomaticActivityEnabled(true);
     activity.controller.add(ActivityObservation.walking);
     await Future<void>.delayed(Duration.zero);
 
     expect(session.activityMode, ActivityMode.pedestrian);
     expect(session.vehicleProfile, VehicleProfile.pedestrian);
+
+    session.setVehicleProfile(VehicleProfile.car);
+    expect(session.automaticActivityEnabled, isFalse);
+    activity.controller.add(ActivityObservation.bicycle);
+    await Future<void>.delayed(Duration.zero);
+    expect(session.vehicleProfile, VehicleProfile.car);
   });
 }
