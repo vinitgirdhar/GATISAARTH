@@ -1,0 +1,312 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body,
+      #root {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+        font-family: Arial, sans-serif;
+        color: #fff;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+      .map {
+        background:
+          radial-gradient(circle at 65% 42%, #153252, transparent 18%),
+          linear-gradient(120deg, #02060d, #071523 46%, #02060d);
+      }
+      .road,
+      .route {
+        position: absolute;
+        border: 18px solid #31485d;
+        border-left: 0;
+        border-bottom: 0;
+        border-radius: 0 300px 0 0;
+        width: 1360px;
+        height: 650px;
+        top: 270px;
+        left: 310px;
+        transform: rotate(-9deg);
+      }
+      .route {
+        border: 10px solid #0a84ff;
+        top: 285px;
+        left: 335px;
+        box-shadow: 0 0 22px #0a84ff;
+      }
+      .dr {
+        border-color: #ff3b30;
+        border-style: dashed;
+        box-shadow: 0 0 22px #ff3b30;
+      }
+      .puck {
+        position: absolute;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #fff;
+        border: 10px solid #0a84ff;
+        left: 980px;
+        top: 627px;
+        box-shadow: 0 0 40px #0a84ff;
+      }
+      .red {
+        border-color: #ff3b30;
+        box-shadow: 0 0 40px #ff3b30;
+      }
+      .green {
+        border-color: #34c759;
+        box-shadow: 0 0 40px #34c759;
+      }
+      .ring {
+        position: absolute;
+        left: 880px;
+        top: 527px;
+        width: 240px;
+        height: 240px;
+        border: 3px solid #ff3b30;
+        border-radius: 50%;
+        box-shadow: 0 0 50px #ff3b30;
+      }
+      .top {
+        position: absolute;
+        top: 76px;
+        left: 96px;
+        right: 96px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .brand {
+        font-size: 31px;
+        font-weight: 700;
+      }
+      .status {
+        padding: 16px 23px;
+        border-radius: 999px;
+        background: #1c1c1eee;
+        border: 1px solid #38383a;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .blue {
+        color: #0a84ff;
+      }
+      .redtxt {
+        color: #ff6b63;
+      }
+      .green {
+        color: #5ee178;
+      }
+      .satellites {
+        position: absolute;
+        top: 159px;
+        right: 105px;
+        display: flex;
+        gap: 12px;
+      }
+      .sat {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: #0a84ff;
+        box-shadow: 0 0 12px #0a84ff;
+      }
+      .copy {
+        position: absolute;
+        left: 96px;
+        bottom: 100px;
+      }
+      .eyebrow {
+        font-size: 22px;
+        letter-spacing: 4px;
+        font-weight: bold;
+        color: #9fb6c8;
+        margin-bottom: 22px;
+      }
+      h1 {
+        font-size: 95px;
+        line-height: 0.95;
+        letter-spacing: -5px;
+        margin: 0;
+      }
+      .sub {
+        font-size: 30px;
+        margin-top: 28px;
+        color: #cbd5e1;
+      }
+      .tunnel {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at 52% 57%,
+          transparent 0 26%,
+          #000e 46%,
+          #000 75%
+        );
+      }
+      .end {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 50% 60%, #08274a, #000 46%);
+        text-align: center;
+      }
+      .end h2 {
+        margin: 0;
+        font-size: 118px;
+        letter-spacing: -6px;
+      }
+      .end p {
+        font-size: 28px;
+        letter-spacing: 7px;
+        color: #b9c4d0;
+      }
+      .line {
+        width: 620px;
+        height: 8px;
+        border-radius: 10px;
+        margin-top: 50px;
+        background: linear-gradient(90deg, transparent, #0a84ff, transparent);
+        box-shadow: 0 0 32px #0a84ff;
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1920"
+      data-height="1080"
+    >
+      <section id="s1" class="clip map" data-start="0" data-duration="3">
+        <div class="road"></div>
+        <div class="route"></div>
+        <div class="puck"></div>
+        <div class="top">
+          <b class="brand">GatiSaarth</b><b class="status blue">GNSS LOCKED</b>
+        </div>
+        <div class="satellites">
+          <i class="sat"></i><i class="sat"></i><i class="sat"></i>
+        </div>
+        <div class="copy">
+          <div class="eyebrow">NAVIGATION, WITHOUT COMPROMISE</div>
+          <h1>WHEN GNSS<br />GOES DARK.</h1>
+        </div>
+      </section>
+      <section id="s2" class="clip map" data-start="3" data-duration="5">
+        <div class="road"></div>
+        <div class="route dr"></div>
+        <div class="puck red"></div>
+        <div class="tunnel"></div>
+        <div class="top">
+          <b class="brand">GatiSaarth</b
+          ><b class="status redtxt">Dead Reckoning Active · GNSS Outage</b>
+        </div>
+        <div class="copy">
+          <div class="eyebrow">THE SIGNAL STOPS</div>
+          <h1>THE JOURNEY<br />DOESN'T.</h1>
+        </div>
+      </section>
+      <section id="s3" class="clip map" data-start="8" data-duration="5">
+        <div class="road"></div>
+        <div class="route dr"></div>
+        <div class="ring"></div>
+        <div class="puck red"></div>
+        <div class="top">
+          <b class="brand">GatiSaarth</b
+          ><b class="status redtxt">On-device inertial navigation</b>
+        </div>
+        <div class="copy">
+          <div class="eyebrow">HONEST POSITIONING</div>
+          <h1>STILL ON<br />THE ROAD.</h1>
+          <div class="sub">An uncertainty ring that tells the truth.</div>
+        </div>
+      </section>
+      <section id="s4" class="clip map" data-start="13" data-duration="4">
+        <div class="road"></div>
+        <div class="route"></div>
+        <div class="puck green"></div>
+        <div class="top">
+          <b class="brand">GatiSaarth</b
+          ><b class="status green">GNSS REACQUIRED</b>
+        </div>
+        <div class="copy">
+          <div class="eyebrow">A SMOOTH RETURN</div>
+          <h1>NO FREEZE.<br />NO TELEPORT.</h1>
+        </div>
+      </section>
+      <section id="s5" class="clip end" data-start="17" data-duration="3">
+        <h2>GatiSaarth</h2>
+        <p>INTELLIGENT NAVIGATION BEYOND GNSS</p>
+        <div class="line"></div>
+      </section>
+      <audio id="music"
+        data-start="0"
+        data-duration="20"
+        data-track-index="10"
+        data-volume=".32"
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+      ></audio
+      ><audio id="outage-sfx"
+        data-start="3"
+        data-duration="1"
+        data-track-index="11"
+        data-volume=".55"
+        src="assets/sfx/interface/bong_001.ogg"
+      ></audio
+      ><audio id="logo-sfx"
+        data-start="17"
+        data-duration="1"
+        data-track-index="12"
+        data-volume=".6"
+        src="assets/sfx/impact/impactSoft_medium_001.ogg"
+      ></audio>
+    </main>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo(
+        "#s1 .copy",
+        { opacity: 0, y: 34 },
+        { opacity: 1, y: 0, duration: 0.7 },
+        0.2,
+      )
+        .to("#s1 .sat", { opacity: 0.1, stagger: 0.3, duration: 0.18 }, 1.3)
+        .fromTo(
+          "#s2 .copy,#s3 .copy,#s4 .copy",
+          { opacity: 0, y: 35 },
+          { opacity: 1, y: 0, duration: 0.65, stagger: 5 },
+          3.25,
+        )
+        .fromTo(
+          "#s3 .ring",
+          { scale: 0.38, opacity: 0.25 },
+          { scale: 1.2, opacity: 1, duration: 2.8 },
+          8.35,
+        )
+        .fromTo(
+          "#s5 h2,#s5 p,#s5 .line",
+          { opacity: 0, y: 28 },
+          { opacity: 1, y: 0, duration: 0.7, stagger: 0.15 },
+          17.25,
+        );
+      window.__timelines.main = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

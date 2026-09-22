@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920,height=1080">
+    <title>GatiSaarth</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: Gati;
+        src: url("assets/fonts/Inter-Variable.ttf");
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #00040a;
+        color: #fff;
+        font-family: Gati, sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #00040a;
+      }
+      .clip,
+      .inner {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.1;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E");
+        mix-blend-mode: soft-light;
+      }
+      .glow {
+        position: absolute;
+        width: 820px;
+        height: 820px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(10, 132, 255, 0.3),
+          rgba(10, 132, 255, 0) 70%
+        );
+      }
+      .eyebrow {
+        position: absolute;
+        left: 92px;
+        top: 70px;
+        color: #a9b8c9;
+        font-size: 21px;
+        letter-spacing: 0.17em;
+        text-transform: uppercase;
+      }
+      .eyebrow:before {
+        content: "";
+        display: inline-block;
+        width: 44px;
+        height: 3px;
+        background: #0a84ff;
+        margin: 0 16px 6px 0;
+      }
+      .headline {
+        margin: 0;
+        font-size: 116px;
+        line-height: 0.95;
+        letter-spacing: -0.065em;
+      }
+      .sub {
+        color: #bdcada;
+        font-size: 30px;
+        line-height: 1.4;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 20px;
+        border: 2px solid #304259;
+        border-radius: 999px;
+        background: #101a27;
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #34c759;
+        box-shadow: 0 0 18px #34c759;
+      }
+      /* Hook */
+      #s1 .glow {
+        right: -170px;
+        top: -220px;
+      }
+      .hook {
+        position: absolute;
+        left: 94px;
+        top: 270px;
+      }
+      .hook .second {
+        color: #d8e8fa;
+        margin-top: 18px;
+      }
+      .world {
+        position: absolute;
+        right: 70px;
+        bottom: 55px;
+        width: 820px;
+        height: 730px;
+      }
+      .tunnel {
+        position: absolute;
+        right: 90px;
+        bottom: 35px;
+        width: 560px;
+        height: 600px;
+        border: 5px solid #273950;
+        border-bottom: 0;
+        border-radius: 280px 280px 0 0;
+        background: radial-gradient(ellipse at 50% 78%, #09121e, #010306 75%);
+        box-shadow: inset 0 0 100px rgba(10, 132, 255, 0.1);
+      }
+      svg.route {
+        position: absolute;
+        left: 40px;
+        bottom: 0;
+        width: 730px;
+        height: 360px;
+        overflow: visible;
+      }
+      .road {
+        fill: none;
+        stroke: #28394d;
+        stroke-width: 24;
+        stroke-linecap: round;
+      }
+      .blue,
+      .red {
+        fill: none;
+        stroke-width: 11;
+        stroke-linecap: round;
+      }
+      .blue {
+        stroke: #0a84ff;
+        filter: drop-shadow(0 0 10px #0a84ff);
+      }
+      .red {
+        stroke: #ff453a;
+        stroke-dasharray: 20 22;
+        filter: drop-shadow(0 0 10px #ff453a);
+      }
+      /* Phone */
+      #s2 .glow {
+        left: 390px;
+        top: 100px;
+      }
+      .copy2 {
+        position: absolute;
+        left: 90px;
+        top: 190px;
+        width: 680px;
+      }
+      .copy2 h2 {
+        font-size: 80px;
+        line-height: 1.02;
+        letter-spacing: -0.05em;
+        margin: 34px 0 28px;
+      }
+      .phone {
+        position: absolute;
+        right: 110px;
+        top: 72px;
+        width: 630px;
+        height: 930px;
+        border: 8px solid #2b3745;
+        border-radius: 72px;
+        background: #09111a;
+        box-shadow:
+          0 50px 120px #000,
+          0 0 70px rgba(10, 132, 255, 0.18);
+        overflow: hidden;
+      }
+      .phone:before {
+        content: "";
+        position: absolute;
+        z-index: 5;
+        top: 18px;
+        left: 216px;
+        width: 190px;
+        height: 38px;
+        border-radius: 24px;
+        background: #000;
+      }
+      .map {
+        position: absolute;
+        inset: 0;
+        background-color: #0b121c;
+        background-image:
+          linear-gradient(
+            30deg,
+            transparent 47%,
+            rgba(89, 116, 145, 0.2) 48%,
+            rgba(89, 116, 145, 0.2) 51%,
+            transparent 52%
+          ),
+          linear-gradient(
+            150deg,
+            transparent 47%,
+            rgba(89, 116, 145, 0.15) 48%,
+            rgba(89, 116, 145, 0.15) 51%,
+            transparent 52%
+          );
+        background-size:
+          170px 140px,
+          220px 180px;
+      }
+      .status {
+        position: absolute;
+        z-index: 4;
+        top: 78px;
+        left: 70px;
+        right: 70px;
+        height: 66px;
+        border: 2px solid #34485e;
+        border-radius: 36px;
+        background: rgba(17, 28, 42, 0.96);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        font-size: 22px;
+        font-weight: 700;
+      }
+      #dr {
+        border-color: #9d3936;
+        background: rgba(65, 20, 22, 0.96);
+      }
+      #dr .dot {
+        background: #ff3b30;
+        box-shadow: 0 0 18px #ff3b30;
+      }
+      .proute {
+        position: absolute;
+        inset: 180px 32px 150px;
+      }
+      .proute svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .accuracy {
+        position: absolute;
+        left: 255px;
+        top: 475px;
+        width: 170px;
+        height: 170px;
+        border-radius: 50%;
+        background: rgba(255, 59, 48, 0.12);
+        border: 3px solid rgba(255, 59, 48, 0.5);
+      }
+      .puck {
+        position: absolute;
+        left: 319px;
+        top: 539px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #fff;
+        border: 10px solid #0a84ff;
+        box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.2);
+      }
+      .bottom {
+        position: absolute;
+        left: 34px;
+        right: 34px;
+        bottom: 34px;
+        height: 112px;
+        border: 2px solid #3b3b3e;
+        border-radius: 28px;
+        background: rgba(28, 28, 30, 0.97);
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+      }
+      .mini {
+        text-align: center;
+        color: #9dabbc;
+        font-size: 18px;
+      }
+      .mini b {
+        display: block;
+        color: #fff;
+        font-size: 30px;
+        margin-bottom: 4px;
+      }
+      /* Metrics */
+      #s3 .glow {
+        left: -220px;
+        bottom: -260px;
+        background: radial-gradient(
+          circle,
+          rgba(255, 59, 48, 0.22),
+          transparent 70%
+        );
+      }
+      .mtitle {
+        position: absolute;
+        left: 92px;
+        top: 115px;
+        font-size: 68px;
+        letter-spacing: -0.045em;
+      }
+    .mnote {
+        position: absolute;
+        left: 96px;
+      top: 238px;
+        color: #a7b5c5;
+        font-size: 24px;
+      }
+      .metrics {
+        position: absolute;
+        left: 92px;
+        right: 92px;
+        top: 322px;
+        display: flex;
+        gap: 34px;
+      }
+      .metric {
+        flex: 1;
+        height: 440px;
+        padding: 48px;
+        border: 2px solid #2b3d52;
+        border-radius: 36px;
+        background: #101924;
+        position: relative;
+      }
+      .num {
+        font-size: 98px;
+        font-weight: 800;
+        letter-spacing: -0.07em;
+      }
+      .label {
+        margin-top: 22px;
+        color: #c6d1de;
+        font-size: 27px;
+        line-height: 1.32;
+      }
+      .bar {
+        position: absolute;
+        left: 48px;
+        right: 48px;
+        bottom: 48px;
+        height: 14px;
+        border-radius: 10px;
+        background: #25354a;
+        overflow: hidden;
+      }
+      .fill {
+        height: 100%;
+        background: #0a84ff;
+        transform-origin: left center;
+      }
+      .good {
+        border-color: #2f8750;
+      }
+      .good .num {
+        color: #58d478;
+      }
+      .good .fill {
+        background: #34c759;
+      }
+      .result {
+        background: #0a84ff;
+        border-color: #56adff;
+      }
+      .result .label {
+        color: #fff;
+      }
+      .result .bar {
+        background: rgba(0, 0, 0, 0.2);
+      }
+      .result .fill {
+        background: #fff;
+      }
+      /* Privacy */
+      #s4 .glow {
+        right: -140px;
+        bottom: -260px;
+      }
+      .pcopy {
+        position: absolute;
+        left: 92px;
+        top: 145px;
+        width: 700px;
+      }
+      .pcopy h2 {
+        font-size: 78px;
+        line-height: 1;
+        letter-spacing: -0.05em;
+        margin: 26px 0;
+      }
+      .pill {
+        margin-top: 44px;
+        display: inline-flex;
+        padding: 17px 24px;
+        border: 2px solid #28643a;
+        border-radius: 999px;
+        background: #12251a;
+        color: #76dd8e;
+        font-size: 23px;
+        font-weight: 700;
+      }
+      .pipe {
+        position: absolute;
+        right: 85px;
+        top: 140px;
+        width: 880px;
+        height: 760px;
+      }
+      .core {
+        position: absolute;
+        left: 270px;
+        top: 240px;
+        width: 365px;
+        height: 255px;
+        border: 3px solid #0a84ff;
+        border-radius: 42px;
+        background: #0d1e32;
+        box-shadow: 0 0 65px rgba(10, 132, 255, 0.32);
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+      .core b {
+        font-size: 34px;
+      }
+      .core span {
+        font-size: 21px;
+        color: #b7c8da;
+      }
+      .sensor {
+        position: absolute;
+        width: 190px;
+        height: 90px;
+        border: 2px solid #34485e;
+        border-radius: 24px;
+        background: #101925;
+        display: grid;
+        place-items: center;
+        font-size: 21px;
+        font-weight: 700;
+      }
+      .a {
+        left: 0;
+        top: 90px;
+      }
+      .b {
+        left: 0;
+        top: 335px;
+      }
+      .c {
+        left: 0;
+        top: 580px;
+      }
+      .d {
+        right: 0;
+        top: 170px;
+      }
+      .e {
+        right: 0;
+        top: 505px;
+      }
+      .conn {
+        position: absolute;
+        height: 3px;
+        background: #315472;
+        transform-origin: left center;
+      }
+      .c1 {
+        left: 180px;
+        top: 138px;
+        width: 230px;
+        transform: rotate(27deg);
+      }
+      .c2 {
+        left: 180px;
+        top: 380px;
+        width: 100px;
+      }
+      .c3 {
+        left: 180px;
+        top: 625px;
+        width: 230px;
+        transform: rotate(-27deg);
+      }
+      .c4 {
+        left: 625px;
+        top: 325px;
+        width: 140px;
+        transform: rotate(-22deg);
+      }
+      .c5 {
+        left: 625px;
+        top: 438px;
+        width: 140px;
+        transform: rotate(22deg);
+      }
+      /* Outro */
+      #s5 .glow {
+        left: 550px;
+        top: 120px;
+      }
+      .brand {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .brand img {
+        width: 590px;
+      }
+      .rule {
+        width: 170px;
+        height: 4px;
+        border-radius: 4px;
+        background: #0a84ff;
+        margin: 44px 0 34px;
+      }
+      .tag {
+        font-size: 52px;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+      }
+      .bsub {
+        margin-top: 20px;
+        color: #aebdcd;
+        font-size: 25px;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-enpg" id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080" data-fps="30">
+      <section data-hf-id="hf-gmjh" id="s1" class="clip" data-start="0" data-duration="3">
+        <div data-hf-id="hf-lm34" class="inner">
+          <div data-hf-id="hf-nozt" class="glow ag"></div>
+          <div data-hf-id="hf-h60x" class="grain"></div>
+          <div data-hf-id="hf-lt42" class="eyebrow">GatiSaarth / Tunnel Test</div>
+          <div data-hf-id="hf-7sj9" class="hook">
+            <h1 data-hf-id="hf-3m2n" id="h1" class="headline">GPS disappears.</h1>
+            <h1 data-hf-id="hf-m4fx" id="h2" class="headline second">You don’t.</h1>
+          </div>
+          <div data-hf-id="hf-n1vw" class="world">
+            <div data-hf-id="hf-k2tq" class="tunnel"></div>
+            <svg data-hf-id="hf-7zra" class="route" viewBox="0 0 730 360">
+              <path data-hf-id="hf-288o" class="road" d="M25 330 C170 285 215 235 315 216 C430 194 445 115 680 30" />
+              <path data-hf-id="hf-iokr" id="rb" class="blue" d="M25 330 C170 285 215 235 315 216" />
+              <path data-hf-id="hf-guc0" id="rr" class="red" d="M315 216 C430 194 445 115 680 30" />
+            </svg>
+          </div>
+        </div>
+      </section>
+      <section data-hf-id="hf-jt2v" id="s2" class="clip" data-start="3" data-duration="5.75">
+        <div data-hf-id="hf-bug8" class="inner">
+          <div data-hf-id="hf-grwd" class="glow ag"></div>
+          <div data-hf-id="hf-3l5h" class="grain"></div>
+          <div data-hf-id="hf-jbny" class="eyebrow">Live navigation state</div>
+          <div data-hf-id="hf-0en3" class="copy2">
+            <div data-hf-id="hf-r5l8" class="chip"><span data-hf-id="hf-9gry" class="dot"></span>Tunnel test</div>
+            <h2 data-hf-id="hf-17v7">Position that keeps moving.</h2>
+            <p data-hf-id="hf-o36n" class="sub">
+              No external hardware. The uncertainty stays visible while phone
+              sensors carry the route.
+            </p>
+          </div>
+          <div data-hf-id="hf-kda4" class="phone">
+            <div data-hf-id="hf-znxm" class="map"></div>
+            <div data-hf-id="hf-5its" id="gnss" class="status">
+              <span data-hf-id="hf-zcc2" class="dot"></span>GNSS locked
+            </div>
+            <div data-hf-id="hf-q7mk" id="dr" class="status">
+              <span data-hf-id="hf-zqn3" class="dot"></span>Dead Reckoning Active
+            </div>
+            <div data-hf-id="hf-6mm7" class="proute">
+              <svg data-hf-id="hf-g09k" viewBox="0 0 560 600">
+                <path data-hf-id="hf-e6gx" class="road" d="M50 560 C90 450 230 470 250 340 C275 205 420 238 500 80" />
+                <path data-hf-id="hf-sgpn" id="pb" class="blue" d="M50 560 C90 450 230 470 250 340" />
+                <path data-hf-id="hf-0gt1" id="pr" class="red" d="M250 340 C275 205 420 238 500 80" />
+              </svg>
+            </div>
+            <div data-hf-id="hf-mzof" class="accuracy"></div>
+            <div data-hf-id="hf-ql2f" class="puck"></div>
+            <div data-hf-id="hf-9z1d" class="bottom">
+              <div data-hf-id="hf-k6z6" class="mini"><b data-hf-id="hf-ig4j">42</b>km/h</div>
+              <div data-hf-id="hf-98mz" class="mini"><b data-hf-id="hf-pdu6">8.4 m</b>uncertainty</div>
+              <div data-hf-id="hf-9snq" class="mini"><b data-hf-id="hf-2s02">00:23</b>outage</div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section data-hf-id="hf-urn9" id="s3" class="clip" data-start="8.75" data-duration="4.25">
+        <div data-hf-id="hf-anj5" class="inner">
+          <div data-hf-id="hf-5mei" class="glow" data-layout-allow-overflow=""></div>
+          <div data-hf-id="hf-4s2k" class="grain"></div>
+          <div data-hf-id="hf-cejo" class="eyebrow">Measured, not magical</div>
+          <h2 data-hf-id="hf-4t9f" class="mtitle" data-layout-allow-overlap="">When the satellites go quiet.</h2>
+          <div data-hf-id="hf-iuml" class="mnote" data-layout-allow-overlap="">
+            60s simulated outage benchmark · repository evaluation
+          </div>
+          <div data-hf-id="hf-7i9z" class="metrics">
+            <article data-hf-id="hf-13mt" id="m1" class="metric">
+              <div data-hf-id="hf-vgan" class="num">15.4%</div>
+              <div data-hf-id="hf-j6wx" class="label">Baseline drift<br data-hf-id="hf-x5px">without NHC</div>
+              <div data-hf-id="hf-ufsv" class="bar"><div data-hf-id="hf-4qej" class="fill"></div></div>
+            </article>
+            <article data-hf-id="hf-tahn" id="m2" class="metric good">
+              <div data-hf-id="hf-w2ld" class="num">1.36%</div>
+              <div data-hf-id="hf-lvmx" class="label">Drift with<br data-hf-id="hf-rsrt">non-holonomic constraints</div>
+              <div data-hf-id="hf-c51b" class="bar"><div data-hf-id="hf-lwnf" class="fill"></div></div>
+            </article>
+            <article data-hf-id="hf-nzau" id="m3" class="metric result">
+              <div data-hf-id="hf-i1vn" class="num">11×</div>
+              <div data-hf-id="hf-zg8l" class="label">Improvement<br data-hf-id="hf-szow">in the ablation study</div>
+              <div data-hf-id="hf-bqqa" class="bar"><div data-hf-id="hf-lice" class="fill"></div></div>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section data-hf-id="hf-d36m" id="s4" class="clip" data-start="13" data-duration="4.5">
+        <div data-hf-id="hf-b1u6" class="inner">
+          <div data-hf-id="hf-hyek" class="glow ag" data-layout-allow-overflow=""></div>
+          <div data-hf-id="hf-4drj" class="grain"></div>
+          <div data-hf-id="hf-x3v9" class="eyebrow">Private by design</div>
+          <div data-hf-id="hf-hm73" class="pcopy">
+            <h2 data-hf-id="hf-v8m7">Everything happens on your phone.</h2>
+            <p data-hf-id="hf-vwig" class="sub">
+              Sensors, a 15-state ES-EKF, edge AI, and offline vector maps. No
+              account. No subscription. No location telemetry.
+            </p>
+            <div data-hf-id="hf-ercy" class="pill">✓ &#160; Zero cloud reliance</div>
+          </div>
+          <div data-hf-id="hf-a338" class="pipe">
+            <div data-hf-id="hf-z4du" class="conn c1"></div>
+            <div data-hf-id="hf-v69t" class="conn c2"></div>
+            <div data-hf-id="hf-uem0" class="conn c3"></div>
+            <div data-hf-id="hf-qghz" class="conn c4"></div>
+            <div data-hf-id="hf-midy" class="conn c5"></div>
+            <div data-hf-id="hf-uyxc" class="sensor a">Accelerometer</div>
+            <div data-hf-id="hf-hhjp" class="sensor b">Gyroscope</div>
+            <div data-hf-id="hf-44qq" class="sensor c">GNSS / NavIC</div>
+            <div data-hf-id="hf-d5bp" class="core">
+              <div data-hf-id="hf-yeow">
+                <b data-hf-id="hf-x46a">15-state ES-EKF</b><br data-hf-id="hf-sldv"><span data-hf-id="hf-sxws">On-device navigation core</span>
+              </div>
+            </div>
+            <div data-hf-id="hf-n92o" class="sensor d">Offline maps</div>
+            <div data-hf-id="hf-9x98" class="sensor e">Live position</div>
+          </div>
+        </div>
+      </section>
+      <section data-hf-id="hf-hl0q" id="s5" class="clip" data-start="17.5" data-duration="2.5">
+        <div data-hf-id="hf-9ux3" class="inner">
+          <div data-hf-id="hf-hytg" class="glow ag"></div>
+          <div data-hf-id="hf-5kom" class="grain"></div>
+          <div data-hf-id="hf-oojr" class="brand">
+            <img data-hf-id="hf-y2hl" id="wm" src="assets/brand/wordmark_dark.png" alt="GatiSaarth">
+            <div data-hf-id="hf-a46i" class="rule"></div>
+            <div data-hf-id="hf-2gyl" class="tag">Navigation beyond satellites.</div>
+            <div data-hf-id="hf-vmwt" class="bsub">100% on-device · zero cloud reliance.</div>
+          </div>
+        </div>
+      </section>
+      <audio data-hf-id="hf-jgbb" id="music" data-start="0" data-duration="20" data-track-index="10" data-volume="0.30" src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"></audio><audio data-hf-id="hf-8kmj" id="sw" data-start="5.25" data-duration="0.61" data-track-index="11" data-volume="0.56" src="assets/sfx/switch_002.ogg"></audio><audio data-hf-id="hf-1c0a" id="mx1" data-start="9.29" data-duration="0.11" data-track-index="12" data-volume="0.42" src="assets/sfx/drop_001.ogg"></audio><audio data-hf-id="hf-gd2y" id="mx2" data-start="9.83" data-duration="0.11" data-track-index="13" data-volume="0.40" src="assets/sfx/drop_001.ogg"></audio><audio data-hf-id="hf-ivax" id="mx3" data-start="10.37" data-duration="0.11" data-track-index="14" data-volume="0.42" src="assets/sfx/drop_001.ogg"></audio><audio data-hf-id="hf-afoz" id="logo" data-start="17.47" data-duration="0.12" data-track-index="15" data-volume="0.48" src="assets/sfx/bong_001.ogg"></audio>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const E = (s, f, t, p) =>
+        tl.fromTo(s, f, { ...t, immediateRender: false }, p);
+      const D = (s, p, d) =>
+        tl.fromTo(
+          s,
+          { strokeDasharray: 1000, strokeDashoffset: 1000 },
+          { strokeDashoffset: 0, duration: d, ease: "power2.inOut" },
+          p,
+        );
+      E(
+        "#s1 .eyebrow",
+        { opacity: 0, x: -45 },
+        { opacity: 1, x: 0, duration: 0.55, ease: "power3.out" },
+        0.18,
+      );
+      E(
+        "#h1",
+        { opacity: 0, y: 70 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" },
+        0.35,
+      );
+      E(
+        "#h2",
+        { opacity: 0, x: -60 },
+        { opacity: 1, x: 0, duration: 0.6, ease: "power4.out" },
+        1.05,
+      );
+      E(
+        ".world",
+        { opacity: 0, scale: 0.92, x: 70 },
+        { opacity: 1, scale: 1, x: 0, duration: 1.05, ease: "power2.out" },
+        0.25,
+      );
+      D("#rb", 0.4, 0.9);
+      D("#rr", 1.34, 1.2);
+      E(
+        "#s2 .inner",
+        { opacity: 0, x: 180 },
+        { opacity: 1, x: 0, duration: 0.62, ease: "power3.out" },
+        3,
+      );
+      E(
+        ".copy2",
+        { opacity: 0, y: 55 },
+        { opacity: 1, y: 0, duration: 0.72, ease: "expo.out" },
+        3.22,
+      );
+      E(
+        ".phone",
+        { opacity: 0, scale: 0.86, rotation: 2 },
+        {
+          opacity: 1,
+          scale: 1,
+          rotation: 0,
+          duration: 0.9,
+          ease: "back.out(1.2)",
+        },
+        3.1,
+      );
+      tl.set("#dr", { opacity: 0 }, 3);
+      tl.set("#pr", { opacity: 0 }, 3);
+      tl.to(
+        "#gnss",
+        { opacity: 0, y: -12, duration: 0.24, ease: "power2.in" },
+        5.2,
+      );
+      E(
+        "#dr",
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.38, ease: "power3.out" },
+        5.3,
+      );
+      tl.to("#pb", { opacity: 0.22, duration: 0.3 }, 5.3);
+      E(
+        "#pr",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.2, ease: "none" },
+        5.35,
+      );
+      D("#pr", 5.35, 2.7);
+      tl.to(
+        ".accuracy",
+        { scale: 1.42, opacity: 0.72, duration: 2.6, ease: "sine.inOut" },
+        5.4,
+      );
+      tl.to(
+        ".puck",
+        { x: 128, y: -185, rotation: 22, duration: 3.2, ease: "power1.inOut" },
+        5.45,
+      );
+      /* beat-locked 8.74s */ tl.to(
+        ".phone",
+        {
+          boxShadow: "0 50px 120px #000,0 0 90px rgba(255,59,48,.25)",
+          duration: 0.24,
+          yoyo: true,
+          repeat: 1,
+        },
+        8.5,
+      );
+      E(
+        "#s3 .inner",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.18, ease: "none" },
+        8.75,
+      );
+      E(
+        ".mtitle",
+        { opacity: 0, x: -70 },
+        { opacity: 1, x: 0, duration: 0.62, ease: "expo.out" },
+        8.88,
+      );
+      E(
+        ".mnote",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.5, ease: "sine.out" },
+        9.05,
+      );
+      /* beat-grid 9.29,9.83,10.37 */ E(
+        "#m1",
+        { opacity: 0, y: 80, rotation: -1.5 },
+        { opacity: 1, y: 0, rotation: 0, duration: 0.5, ease: "power3.out" },
+        9.29,
+      );
+      E(
+        "#m2",
+        { opacity: 0, y: 80, scale: 0.94 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.58, ease: "back.out(1.25)" },
+        9.83,
+      );
+      E(
+        "#m3",
+        { opacity: 0, x: 80 },
+        { opacity: 1, x: 0, duration: 0.48, ease: "power4.out" },
+        10.37,
+      );
+      tl.fromTo(
+        ".fill",
+        { scaleX: 0 },
+        { scaleX: 1, duration: 1, ease: "power2.out", stagger: 0.16 },
+        10.5,
+      );
+      E(
+        "#s4 .inner",
+        { opacity: 0, y: 90 },
+        { opacity: 1, y: 0, duration: 0.58, ease: "power3.out" },
+        13,
+      );
+      E(
+        ".pcopy",
+        { opacity: 0, x: -65 },
+        { opacity: 1, x: 0, duration: 0.75, ease: "expo.out" },
+        13.18,
+      );
+      E(
+        ".core",
+        { opacity: 0, scale: 0.84 },
+        { opacity: 1, scale: 1, duration: 0.65, ease: "back.out(1.3)" },
+        13.42,
+      );
+      E(
+        ".sensor",
+        { opacity: 0, scale: 0.88 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.38,
+          ease: "power2.out",
+          stagger: 0.13,
+        },
+        13.72,
+      );
+      E(
+        ".conn",
+        { opacity: 0, scaleX: 0 },
+        {
+          opacity: 1,
+          scaleX: 1,
+          duration: 0.48,
+          ease: "power1.inOut",
+          stagger: 0.1,
+        },
+        13.9,
+      );
+      E(
+        ".pill",
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power4.out" },
+        14.25,
+      );
+      E(
+        "#s5 .inner",
+        { opacity: 0, scale: 1.08 },
+        { opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" },
+        17.5,
+      );
+      /* beat-locked 17.47s */ E(
+        "#wm",
+        { opacity: 0, y: 24, scale: 0.92 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.72, ease: "expo.out" },
+        17.5,
+      );
+      E(
+        ".rule",
+        { opacity: 0, scaleX: 0 },
+        { opacity: 1, scaleX: 1, duration: 0.48, ease: "power2.out" },
+        17.92,
+      );
+      E(
+        ".tag",
+        { opacity: 0, y: 28 },
+        { opacity: 1, y: 0, duration: 0.58, ease: "power3.out" },
+        18.04,
+      );
+      E(
+        ".bsub",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.6, ease: "sine.out" },
+        18.38,
+      );
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
