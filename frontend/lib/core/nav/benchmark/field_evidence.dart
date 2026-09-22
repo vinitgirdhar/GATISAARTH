@@ -112,8 +112,7 @@ class FieldEvidenceBuilder {
               'holdP95M': _finite(result.hold.p95M),
               'coreMedianM': _finite(result.engine.medianM),
               'coreP95M': _finite(result.engine.p95M),
-              'coreMedianDriftPercent':
-                  _finite(result.engine.medianDriftPct),
+              'coreMedianDriftPercent': _finite(result.engine.medianDriftPct),
               'coreCloser': result.engineWins,
               'threeSigmaCovered': result.engineCovered,
             },
@@ -138,6 +137,8 @@ class _ReceiverEvidence {
     required this.rawMeasurementsObserved,
     required this.navicObserved,
     required this.maxVisibleSatellites,
+    required this.maxRawMeasurements,
+    required this.maxAdrMeasurements,
     required this.meanCn0DbHz,
     required this.markers,
   });
@@ -151,6 +152,8 @@ class _ReceiverEvidence {
     var raw = false;
     var navic = false;
     var maxVisible = 0;
+    var maxRaw = 0;
+    var maxAdr = 0;
     final cn0 = <double>[];
     final markers = <String>[];
     for (final line in const LineSplitter().convert(log)) {
@@ -170,6 +173,8 @@ class _ReceiverEvidence {
               maxVisible,
               (value['vis'] as num?)?.toInt() ?? 0,
             );
+            maxRaw = math.max(maxRaw, (value['rm'] as num?)?.toInt() ?? 0);
+            maxAdr = math.max(maxAdr, (value['adr'] as num?)?.toInt() ?? 0);
             final satellites = value['sv'];
             if (satellites is List) {
               for (final satellite in satellites.whereType<List>()) {
@@ -197,6 +202,8 @@ class _ReceiverEvidence {
       rawMeasurementsObserved: raw,
       navicObserved: navic,
       maxVisibleSatellites: maxVisible,
+      maxRawMeasurements: maxRaw,
+      maxAdrMeasurements: maxAdr,
       meanCn0DbHz:
           cn0.isEmpty ? null : cn0.reduce((a, b) => a + b) / cn0.length,
       markers: List.unmodifiable(markers),
@@ -211,6 +218,8 @@ class _ReceiverEvidence {
   final bool rawMeasurementsObserved;
   final bool navicObserved;
   final int maxVisibleSatellites;
+  final int maxRawMeasurements;
+  final int maxAdrMeasurements;
   final double? meanCn0DbHz;
   final List<String> markers;
 
@@ -219,6 +228,8 @@ class _ReceiverEvidence {
         'rawMeasurementsObserved': rawMeasurementsObserved,
         'navicObserved': navicObserved,
         'maxVisibleSatellites': maxVisibleSatellites,
+        'maxRawMeasurements': maxRawMeasurements,
+        'maxAdrMeasurements': maxAdrMeasurements,
         'meanCn0DbHz': meanCn0DbHz,
         'markers': markers,
       };

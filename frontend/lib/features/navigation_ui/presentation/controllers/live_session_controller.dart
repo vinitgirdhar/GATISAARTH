@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/constants/dr_constants.dart';
 import '../../../../core/nav/gnss/gnss_quality.dart';
 import '../../../../core/nav/guidance/mission_guidance.dart';
 import '../../../../core/nav/math/nav_math.dart' show Vector3;
@@ -1040,8 +1041,13 @@ class LiveSessionController extends ChangeNotifier {
       startedAtMs: startedAt.millisecondsSinceEpoch,
       deviceModel: device?.model,
       osVersion: device?.os,
+      appVersion: AppConstants.appVersion,
       vehicle: _vehicleProfile.name,
-      mountDescription: mountDescription,
+      mountDescription: mountDescription ??
+          (_alignment.isCalibrated
+              ? 'calibrated mount · pitch ${pitchDegrees.toStringAsFixed(1)}° '
+                  'roll ${rollDegrees.toStringAsFixed(1)}°'
+              : 'unverified mount'),
       roadType: roadType,
       notes: notes,
       configVersion: _engine.config.version,
