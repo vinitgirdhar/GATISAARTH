@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../navigation_ui/presentation/controllers/live_session_scope.dart';
+
 typedef PortalScannerBuilder = Widget Function(ValueChanged<String> onPayload);
 
 class PortalAnchorUiResult {
@@ -10,6 +12,24 @@ class PortalAnchorUiResult {
 
   final bool accepted;
   final String message;
+}
+
+class LivePortalAnchorScreen extends StatelessWidget {
+  const LivePortalAnchorScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final session = LiveSessionScope.of(context);
+    return PortalAnchorScreen(
+      onPayload: (payload) async {
+        final result = session.applyPortalPayload(payload);
+        return PortalAnchorUiResult(
+          accepted: result.accepted,
+          message: result.message,
+        );
+      },
+    );
+  }
 }
 
 class PortalAnchorScreen extends StatefulWidget {

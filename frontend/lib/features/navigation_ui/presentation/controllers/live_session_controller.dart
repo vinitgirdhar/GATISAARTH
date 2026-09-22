@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/dr_constants.dart';
+import '../../../../core/nav/anchors/anchor_pack.dart';
+import '../../../../core/nav/anchors/portal_anchor.dart';
 import '../../../../core/nav/gnss/gnss_quality.dart';
 import '../../../../core/nav/guidance/mission_guidance.dart';
 import '../../../../core/nav/math/nav_math.dart' show Vector3;
@@ -15,6 +17,7 @@ import '../../../../core/nav/nav_config.dart';
 import '../../../../core/nav/replay/drive_log.dart';
 import '../../../../core/platform/gnss/gnss_telemetry.dart';
 import '../../../../core/platform/gnss/gnss_integrity_monitor.dart';
+import '../../../../core/platform/anchors/anchor_pack_source.dart';
 import '../../../../core/nav/replay/drive_recorder.dart';
 import '../../../../core/nav/sensors/sensor_sample.dart';
 import '../../../../core/platform/storage/drive_log_store.dart';
@@ -95,6 +98,13 @@ const String _vehicleKey = 'vehicle_profile';
 const String _hapticsKey = 'haptics_enabled';
 const String _voiceGuidanceKey = 'voice_guidance_enabled';
 
+class AnchorApplicationResult {
+  const AnchorApplicationResult(this.accepted, this.message);
+
+  final bool accepted;
+  final String message;
+}
+
 /// After returning from the background the signal settles for a while; that is
 /// not an outage worth buzzing about.
 const Duration _afterResumeQuiet = Duration(seconds: 20);
@@ -122,6 +132,7 @@ class LiveSessionController extends ChangeNotifier {
     RoadGraphSource? roads,
     GnssTelemetrySource? gnssTelemetry,
     VoiceGuidance? voiceGuidance,
+    AnchorPackSource? anchorPacks,
   })  : _sensors = sensors,
         _alignment = alignment,
         _hardware = hardware,
@@ -133,6 +144,7 @@ class LiveSessionController extends ChangeNotifier {
         _haptics = haptics ?? Haptics(hardware, clock: clock),
         _gnssTelemetrySource = gnssTelemetry ?? const NoopGnssTelemetrySource(),
         _voiceGuidance = voiceGuidance ?? const NoopVoiceGuidance(),
+        _anchorPacks = anchorPacks ?? const EmptyAnchorPackSource(),
         _road = RoadConstraint(source: roads, clock: clock) {
     _road.onRoadsChanged = _onRoadsChanged;
     _aiFeed = AiEngineFeed(speed: speedEstimator);
@@ -150,6 +162,9 @@ class LiveSessionController extends ChangeNotifier {
   final bool _autoTick;
   final GnssTelemetrySource _gnssTelemetrySource;
   final VoiceGuidance _voiceGuidance;
+  final AnchorPackSource _anchorPacks;
+  AnchorPack? _anchorPack;
+  PortalAnchorPolicy? _portalAnchorPolicy;
   final GnssIntegrityMonitor _gnssIntegrity = GnssIntegrityMonitor();
   final MissionGuidancePolicy _missionPolicy = MissionGuidancePolicy();
   MissionGuidanceDecision? _missionGuidance;
@@ -296,6 +311,7 @@ class LiveSessionController extends ChangeNotifier {
     await _loadVehicleProfile();
     await _loadHaptics();
     await _loadVoiceGuidance();
+    await _loadAnchorPack();
     await location.start();
     _gnssTelemetrySub ??= _gnssTelemetrySource.snapshots.listen(
       (snapshot) {
@@ -313,6 +329,74 @@ class LiveSessionController extends ChangeNotifier {
       },
     );
     await _gnssTelemetrySource.start();
+  }
+
+  Future<void> _loadAnchorPack() async {
+    try {
+      final pack = await _anchorPacks.load();
+      if (_disposed) return;
+      _anchorPack = pack;
+      _portalAnchorPolicy = PortalAnchorPolicy(
+        registry: PortalAnchorRegistry(pack.anchors),
+      );
+    } catch (error) {
+      debugPrint('[AnchorPack] unavailable: $error');
+    }
+  }
+
+  AnchorApplicationResult applyPortalPayload(String payload) {
+    final policy = _portalAnchorPolicy;
+    if (policy == null || _anchorPack == null) {
+      return const AnchorApplicationResult(
+          false, 'No local anchor pack installed');
+    }
+    final decision = policy.evaluate(
+      payload: payload,
+      context: PortalAnchorContext(
+        inOutage: inOutage,
+        estimatedLatitudeDeg: _navSnapshot?.latitude ?? _lat,
+        estimatedLongitudeDeg: _navSnapshot?.longitude ?? _lon,
+        horizontalSigmaM:
+            _navSnapshot?.horizontalSigmaM ?? uncertainty?.marginMeters ?? 25,
+      ),
+    );
+    if (!decision.accepted) {
+      return AnchorApplicationResult(
+          false, _portalRejectionMessage(decision.reason));
+    }
+    final us = _engineNowUs;
+    if (us == null) {
+      return const AnchorApplicationResult(
+          false, 'Navigation sensors are not ready');
+    }
+    final update =
+        _engine.onPortalAnchor(decision.measurement!, monotonicUs: us);
+    if (update == null || !update.accepted) {
+      return const AnchorApplicationResult(
+          false, 'Anchor rejected by the navigation filter');
+    }
+    _navSnapshot = _engine.snapshot;
+    _touch();
+    return AnchorApplicationResult(
+      true,
+      '${decision.measurement!.anchor.label} accepted · EKF corrected',
+    );
+  }
+
+  static String _portalRejectionMessage(PortalAnchorRejection? reason) {
+    switch (reason) {
+      case PortalAnchorRejection.notInOutage:
+        return 'Portal anchors are available only during a GNSS outage';
+      case PortalAnchorRejection.unknownAnchor:
+        return 'Marker is not in the installed local anchor pack';
+      case PortalAnchorRejection.implausibleResidual:
+        return 'Marker conflicts with the current uncertainty corridor';
+      case PortalAnchorRejection.invalidEstimate:
+        return 'Navigation estimate is not ready';
+      case PortalAnchorRejection.malformedPayload:
+      case null:
+        return 'Unknown or unsafe marker';
+    }
   }
 
   /// App went to the background: stop every radio and sensor.
@@ -1386,6 +1470,7 @@ class LiveSessionController extends ChangeNotifier {
   bool get isSimulatingTunnel => _simTunnel;
   bool get isSimulatingCanyon => _simCanyon;
   VehicleProfile get vehicleProfile => _vehicleProfile;
+  String? get anchorPackId => _anchorPack?.packId;
 
   double get speed => _speed;
   double get heading => _heading;

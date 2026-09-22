@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../../core/platform/hardware/device_hardware_service.dart';
 import '../../../../core/platform/guidance/voice_guidance.dart';
+import '../../../../core/platform/anchors/anchor_pack_source.dart';
 import '../../../../core/platform/gnss/gnss_telemetry.dart';
 import '../../../../core/platform/hardware/sensor_mobile.dart';
 import '../../../../core/platform/hardware/vehicle_alignment_engine.dart';
@@ -29,6 +30,7 @@ LiveSessionController createLiveSession({OfflineMapService? maps}) =>
       ),
       gnssTelemetry: PlatformGnssTelemetrySource(),
       voiceGuidance: const PlatformVoiceGuidance(),
+      anchorPacks: const BundledAnchorPackSource(),
       roads: maps == null ? null : PackRoadGraphSource(maps),
     );
 

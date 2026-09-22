@@ -158,6 +158,16 @@ class ProfileTab extends StatelessWidget {
               ),
               const Divider(height: 1),
               _ProfileMenuTile(
+                icon: Icons.qr_code_scanner_rounded,
+                title: 'Trusted Portal Scanner',
+                subtitle: session.anchorPackId == null
+                    ? 'Loading local anchor pack'
+                    : 'Offline pack · ${session.anchorPackId}',
+                trailing: const Icon(Icons.chevron_right_rounded, size: 22),
+                onTap: () => Navigator.pushNamed(context, '/portal-anchor'),
+              ),
+              const Divider(height: 1),
+              _ProfileMenuTile(
                 icon: Icons.map_rounded,
                 title: 'Offline Maps',
                 subtitle: _offlineMapsSubtitle(maps, downloads),

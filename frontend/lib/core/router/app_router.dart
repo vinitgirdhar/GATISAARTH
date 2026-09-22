@@ -6,6 +6,7 @@ import '../../features/navigation_engine/presentation/screens/diagnostics_screen
 import '../../features/about/presentation/engine_spec_screen.dart';
 import '../../features/benchmark/presentation/outage_benchmark_screen.dart';
 import '../../features/offline_maps/presentation/offline_maps_screen.dart';
+import '../../features/anchors/presentation/portal_anchor_screen.dart';
 
 class AppRoutes {
   static const String boot = '/';
@@ -15,6 +16,7 @@ class AppRoutes {
   static const String benchmark = '/benchmark';
   static const String offlineMaps = '/offline-maps';
   static const String engine = '/engine';
+  static const String portalAnchor = '/portal-anchor';
 
   static Map<String, WidgetBuilder> get routes {
     return {
@@ -25,6 +27,7 @@ class AppRoutes {
       benchmark: (context) => const OutageBenchmarkScreen(),
       offlineMaps: (context) => const OfflineMapsScreen(),
       engine: (context) => const EngineSpecScreen(),
+      portalAnchor: (context) => const LivePortalAnchorScreen(),
     };
   }
 }
