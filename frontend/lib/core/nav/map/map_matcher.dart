@@ -17,6 +17,7 @@ class MapMatchCandidate {
     required this.perpendicularM,
     required this.alongM,
     required this.posterior,
+    required this.corridorPolyline,
     this.roadName,
     this.tunnel = false,
   });
@@ -36,6 +37,11 @@ class MapMatchCandidate {
   /// likelihood among the roads considered, not a probability that the
   /// vehicle is on a road at all.
   final double posterior;
+
+  /// Full geometry of this candidate road, as flat latitude/longitude pairs.
+  /// The UI draws the leading candidates as separate uncertainty corridors
+  /// instead of collapsing an ambiguous fork into one authoritative line.
+  final List<double> corridorPolyline;
 
   final String? roadName;
   final bool tunnel;
@@ -272,6 +278,7 @@ class MapMatcher {
         perpendicularM: p.perpendicularM,
         alongM: p.alongM,
         posterior: posteriors[i],
+        corridorPolyline: List<double>.unmodifiable(edge.polyline),
         roadName: edge.name,
         tunnel: edge.tunnel,
       ));
