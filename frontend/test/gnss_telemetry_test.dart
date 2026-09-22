@@ -41,7 +41,8 @@ void main() {
       expect(snapshot.usedInFixCount, 2);
       expect(snapshot.countFor(GnssConstellation.navic), 2);
       expect(snapshot.usedCountFor(GnssConstellation.navic), 1);
-      expect(snapshot.meanCn0For(GnssConstellation.navic), closeTo(39.75, 0.001));
+      expect(
+          snapshot.meanCn0For(GnssConstellation.navic), closeTo(39.75, 0.001));
       expect(snapshot.satellites.first.carrierBand, 'L5');
       expect(
         snapshot.recordedAt,
