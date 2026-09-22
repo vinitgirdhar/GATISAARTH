@@ -42,8 +42,8 @@ void main() {
   test('builds a signed, receiver-aware and reproducible field report', () async {
     const log = '''
 {"t":"m","u":0,"sid":"drive-1","start":1,"dev":"Test Phone","mount":"dashboard cradle","road":"tunnel"}
-{"t":"s","u":1000000,"raw":true,"vis":5,"used":3,"sv":[[7,3,41.0,true,1176450000.0],[1,8,35.0,true,1575420000.0]]}
-{"t":"s","u":2000000,"raw":true,"vis":4,"used":2,"sv":[[7,3,38.0,true,1176450000.0]]}
+{"t":"s","u":1000000,"raw":true,"rm":9,"adr":4,"vis":5,"used":3,"sv":[[7,3,41.0,true,1176450000.0],[1,8,35.0,true,1575420000.0]]}
+{"t":"s","u":2000000,"raw":true,"rm":8,"adr":3,"vis":4,"used":2,"sv":[[7,3,38.0,true,1176450000.0]]}
 {"t":"k","u":2100000,"l":"tunnel entry"}
 ''';
 
@@ -65,6 +65,8 @@ void main() {
     expect(receiver['navicObserved'], isTrue);
     expect(receiver['rawMeasurementsObserved'], isTrue);
     expect(receiver['maxVisibleSatellites'], 5);
+    expect(receiver['maxRawMeasurements'], 9);
+    expect(receiver['maxAdrMeasurements'], 4);
     expect((payload['benchmark'] as Map)['config'], isNotNull);
     expect(attestation['algorithm'], 'SHA256withECDSA');
     expect(attestation['signatureBase64'], 'signature');
