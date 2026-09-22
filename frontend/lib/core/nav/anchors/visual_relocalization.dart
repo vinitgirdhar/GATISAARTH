@@ -44,7 +44,7 @@ class VisualRelocalizationPolicy {
         VisualRelocalizationRejection.notOnDevice,
       );
     }
-    if (!observation.confidence.isFinite || observation.confidence < 0.88) {
+    if (!observation.confidence.isFinite || observation.confidence < 0.94) {
       return const VisualRelocalizationDecision.rejected(
         VisualRelocalizationRejection.lowConfidence,
       );

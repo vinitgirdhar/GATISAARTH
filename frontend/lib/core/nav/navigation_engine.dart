@@ -496,6 +496,7 @@ class NavigationEngine {
   MeasurementResult? onPortalAnchor(
     PortalAnchorMeasurement measurement, {
     required int monotonicUs,
+    String measurementName = 'portal_anchor',
   }) {
     if (_outageStartedUs == null || !_filter.isInitialised) return null;
 
@@ -504,7 +505,7 @@ class NavigationEngine {
       latitudeDeg: anchor.latitudeDeg,
       longitudeDeg: anchor.longitudeDeg,
       horizontalSigma: measurement.horizontalSigmaM,
-      name: 'portal_anchor',
+      name: measurementName,
     );
     _record(result);
     if (result.accepted) {

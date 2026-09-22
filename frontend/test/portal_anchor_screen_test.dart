@@ -43,4 +43,24 @@ void main() {
     expect(find.text('Unknown or unsafe marker'), findsOneWidget);
     expect(find.text('Test scan'), findsOneWidget);
   });
+
+  testWidgets('optional RTT action reports unsupported hardware safely',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: PortalAnchorScreen(
+        scannerBuilder: (_) => const SizedBox(),
+        onPayload: (_) async => const PortalAnchorUiResult(
+          accepted: false,
+          message: 'Unused',
+        ),
+        onRadioRange: () async => const PortalAnchorUiResult(
+          accepted: false,
+          message: 'No fresh, plausible range',
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Try nearby Wi-Fi RTT anchor'));
+    await tester.pump();
+    expect(find.text('No fresh, plausible range'), findsOneWidget);
+  });
 }

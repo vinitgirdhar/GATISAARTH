@@ -67,8 +67,8 @@ class ProfileTab extends StatelessWidget {
                   isPedestrian
                       ? Icons.directions_walk_rounded
                       : isTwoWheeler
-                      ? Icons.two_wheeler_rounded
-                      : Icons.directions_car_rounded,
+                          ? Icons.two_wheeler_rounded
+                          : Icons.directions_car_rounded,
                   color: AppColors.primary,
                   size: 24,
                 ),
@@ -82,8 +82,8 @@ class ProfileTab extends StatelessWidget {
                       isPedestrian
                           ? 'Pedestrian / Last-mile Active'
                           : isTwoWheeler
-                          ? 'Two-Wheeler Dynamics Active'
-                          : 'Car / Four-Wheeler Dynamics Active',
+                              ? 'Two-Wheeler Dynamics Active'
+                              : 'Car / Four-Wheeler Dynamics Active',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -95,8 +95,8 @@ class ProfileTab extends StatelessWidget {
                       isPedestrian
                           ? 'Vehicle-only lateral constraints disabled'
                           : isTwoWheeler
-                          ? 'Lean-angle compensation & bump suppression enabled'
-                          : 'Non-holonomic constraint (NHC) zero-lateral slip active',
+                              ? 'Lean-angle compensation & bump suppression enabled'
+                              : 'Non-holonomic constraint (NHC) zero-lateral slip active',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -144,8 +144,15 @@ class ProfileTab extends StatelessWidget {
               _ProfileMenuTile(
                 icon: Icons.directions_run_rounded,
                 title: 'Automatic activity mode',
-                subtitle: 'Detected · ${session.activityMode.name}',
-                trailing: const Icon(Icons.auto_awesome_rounded, size: 20),
+                subtitle: session.automaticActivityEnabled
+                    ? 'Detected · ${session.activityMode.name}'
+                    : 'Off · manual profile takes precedence',
+                trailing: Switch(
+                  value: session.automaticActivityEnabled,
+                  activeThumbColor: AppColors.primary,
+                  onChanged: (enabled) =>
+                      session.setAutomaticActivityEnabled(enabled),
+                ),
               ),
               const Divider(height: 1),
               _ProfileMenuTile(
@@ -176,7 +183,9 @@ class ProfileTab extends StatelessWidget {
                 title: 'Trusted Portal Scanner',
                 subtitle: session.anchorPackId == null
                     ? 'Loading local anchor pack'
-                    : 'Offline pack · ${session.anchorPackId}',
+                    : session.hasInstalledAnchors
+                        ? 'Offline pack · ${session.anchorPackId}'
+                        : 'No field-surveyed anchors installed',
                 trailing: const Icon(Icons.chevron_right_rounded, size: 22),
                 onTap: () => Navigator.pushNamed(context, '/portal-anchor'),
               ),
@@ -233,14 +242,14 @@ class ProfileTab extends StatelessWidget {
                 icon: isPedestrian
                     ? Icons.directions_walk_rounded
                     : isTwoWheeler
-                    ? Icons.two_wheeler_rounded
-                    : Icons.directions_car_rounded,
+                        ? Icons.two_wheeler_rounded
+                        : Icons.directions_car_rounded,
                 title: 'Vehicle Preference',
                 subtitle: isPedestrian
                     ? 'Pedestrian / last-mile'
                     : isTwoWheeler
-                    ? 'Two-wheeler (Motorcycle / Scooter)'
-                    : 'Car / Four-wheeler',
+                        ? 'Two-wheeler (Motorcycle / Scooter)'
+                        : 'Car / Four-wheeler',
                 trailing: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

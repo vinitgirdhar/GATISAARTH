@@ -6,13 +6,14 @@ void main() {
       () {
     final pack = AnchorPack.parse('''
 {"schemaVersion":1,"packId":"sih-demo","anchors":[
- {"id":"portal-a","label":"Portal A","kind":"tunnelPortal","lat":28.639,"lon":77.0661,"sigmaM":4,"visualDescriptor":"f0f0","radioId":"GS-DEMO-A"}
+ {"id":"portal-a","label":"Portal A","kind":"tunnelPortal","lat":28.639,"lon":77.0661,"sigmaM":4,"visualDescriptor":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","radioId":"aa:bb:cc:dd:ee:ff"}
 ]}''');
 
     expect(pack.packId, 'sih-demo');
     expect(pack.anchors.single.id, 'portal-a');
-    expect(pack.anchors.single.visualDescriptor, 'f0f0');
-    expect(pack.anchors.single.radioId, 'GS-DEMO-A');
+    expect(pack.anchors.single.visualDescriptor,
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
+    expect(pack.anchors.single.radioId, 'aa:bb:cc:dd:ee:ff');
   });
 
   test('rejects unsupported, duplicate, and invalid-coordinate packs', () {

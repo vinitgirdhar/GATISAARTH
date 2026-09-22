@@ -45,8 +45,10 @@ class RadioAnchorPolicy {
     }
     if (!observation.rangeM.isFinite ||
         observation.rangeM < 0 ||
+        observation.rangeM > 15 ||
         !observation.rangeSigmaM.isFinite ||
-        observation.rangeSigmaM <= 0) {
+        observation.rangeSigmaM <= 0 ||
+        observation.age.isNegative) {
       return const RadioAnchorDecision.rejected(RadioAnchorRejection.invalid);
     }
     if (observation.age > const Duration(seconds: 3)) {

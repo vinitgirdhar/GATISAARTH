@@ -15,6 +15,12 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.net.wifi.WifiManager
+import android.net.wifi.rtt.RangingRequest
+import android.net.wifi.rtt.RangingResult
+import android.net.wifi.rtt.RangingResultCallback
+import android.net.wifi.rtt.WifiRttManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -53,8 +59,13 @@ class MainActivity: FlutterActivity() {
     private val GNSS_TELEMETRY_CHANNEL = "com.gatisaarth.app/gnss_telemetry"
     private val ACTIVITY_CONTROL_CHANNEL = "com.gatisaarth.app/activity_control"
     private val ACTIVITY_UPDATES_CHANNEL = "com.gatisaarth.app/activity_updates"
+    private val WIFI_RTT_CHANNEL = "com.gatisaarth.app/wifi_rtt"
     private val ACTIVITY_PERMISSION_REQUEST = 7412
+    private val WIFI_RTT_PERMISSION_REQUEST = 7413
     private var pendingActivityResult: MethodChannel.Result? = null
+    private var activityRequested = false
+    private var pendingRttResult: MethodChannel.Result? = null
+    private var pendingRttBssid: String? = null
     private var gnssEventSink: EventChannel.EventSink? = null
     private var gnssStatus: GnssStatus? = null
     private var gnssStatusRegistered = false
@@ -126,9 +137,20 @@ class MainActivity: FlutterActivity() {
             when (call.method) {
                 "start" -> startActivityTransitions(result)
                 "stop" -> {
+                    activityRequested = false
                     stopActivityTransitions()
                     result.success(null)
                 }
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            WIFI_RTT_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "range" -> rangeWifiRtt(call.argument<String>("radioId"), result)
                 else -> result.notImplemented()
             }
         }
@@ -234,6 +256,7 @@ class MainActivity: FlutterActivity() {
     )
 
     private fun startActivityTransitions(result: MethodChannel.Result) {
+        activityRequested = true
         if (!hasActivityPermission()) {
             pendingActivityResult = result
             requestPermissions(
@@ -282,17 +305,111 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    private fun rangeWifiRtt(bssid: String?, result: MethodChannel.Result) {
+        if (bssid == null || !Regex("^[0-9a-f]{2}(:[0-9a-f]{2}){5}$").matches(bssid)) {
+            result.error("RTT_INVALID_ID", "Invalid registered BSSID", null)
+            return
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P ||
+            !packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_RTT)) {
+            result.error("RTT_UNSUPPORTED", "Phone does not support Wi-Fi RTT", null)
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES) !=
+                PackageManager.PERMISSION_GRANTED) {
+            if (pendingRttResult != null) {
+                result.error("RTT_BUSY", "Another range request is in progress", null)
+                return
+            }
+            pendingRttResult = result
+            pendingRttBssid = bssid
+            requestPermissions(
+                arrayOf(Manifest.permission.NEARBY_WIFI_DEVICES),
+                WIFI_RTT_PERMISSION_REQUEST
+            )
+            return
+        }
+        performWifiRtt(bssid, result)
+    }
+
+    private fun performWifiRtt(bssid: String, result: MethodChannel.Result) {
+        if (!hasFineLocationPermission()) {
+            result.error("RTT_LOCATION_PERMISSION", "Precise location permission required", null)
+            return
+        }
+        try {
+            val rtt = getSystemService(Context.WIFI_RTT_RANGING_SERVICE) as? WifiRttManager
+            if (rtt == null || !rtt.isAvailable) {
+                result.error("RTT_UNAVAILABLE", "Wi-Fi RTT currently unavailable", null)
+                return
+            }
+            val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            val accessPoint = wifi.scanResults.firstOrNull {
+                it.BSSID.equals(bssid, ignoreCase = true) && it.is80211mcResponder
+            }
+            if (accessPoint == null) {
+                result.error("RTT_AP_NOT_FOUND", "Registered RTT access point not visible", null)
+                return
+            }
+            val request = RangingRequest.Builder().addAccessPoint(accessPoint).build()
+            rtt.startRanging(request, { task -> runOnUiThread(task) },
+                object : RangingResultCallback() {
+                    override fun onRangingFailure(code: Int) {
+                        result.error("RTT_RANGE_FAILED", "Ranging failed: $code", null)
+                    }
+
+                    override fun onRangingResults(results: List<RangingResult>) {
+                        val measured = results.firstOrNull {
+                            it.macAddress?.toString()?.equals(bssid, ignoreCase = true) == true &&
+                                it.status == RangingResult.STATUS_SUCCESS
+                        }
+                        if (measured == null || measured.numSuccessfulMeasurements < 2) {
+                            result.error("RTT_NO_VALID_RANGE", "No reliable RTT measurement", null)
+                            return
+                        }
+                        val ageMs = (SystemClock.elapsedRealtime() -
+                            measured.rangingTimestampMillis).coerceAtLeast(0L)
+                        result.success(mapOf(
+                            "radioId" to bssid,
+                            "rangeM" to measured.distanceMm / 1000.0,
+                            "rangeSigmaM" to measured.distanceStdDevMm / 1000.0,
+                            "ageMs" to ageMs
+                        ))
+                    }
+                })
+        } catch (error: SecurityException) {
+            result.error("RTT_PERMISSION_DENIED", error.message, null)
+        } catch (error: Exception) {
+            result.error("RTT_UNAVAILABLE", error.message, null)
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == WIFI_RTT_PERMISSION_REQUEST) {
+            val result = pendingRttResult
+            val bssid = pendingRttBssid
+            pendingRttResult = null
+            pendingRttBssid = null
+            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED &&
+                result != null && bssid != null) {
+                performWifiRtt(bssid, result)
+            } else {
+                result?.error("RTT_PERMISSION_DENIED", "Nearby Wi-Fi permission denied", null)
+            }
+            return
+        }
         if (requestCode != ACTIVITY_PERMISSION_REQUEST) return
         val result = pendingActivityResult
         pendingActivityResult = null
         if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
-            registerActivityTransitions(result)
+            if (activityRequested) registerActivityTransitions(result)
+            else result?.success(null)
         } else {
             result?.error("ACTIVITY_PERMISSION_DENIED", "Activity recognition denied", null)
         }

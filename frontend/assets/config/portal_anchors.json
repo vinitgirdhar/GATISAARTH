@@ -1,16 +1,5 @@
 {
   "schemaVersion": 1,
-  "packId": "sih-demo-delhi-v1",
-  "anchors": [
-    {
-      "id": "sih-demo-portal-a",
-      "label": "SIH demo tunnel portal A",
-      "kind": "tunnelPortal",
-      "lat": 28.639,
-      "lon": 77.0661,
-      "sigmaM": 4.0,
-      "visualDescriptor": "f0f0",
-      "radioId": "GS-SIH-DEMO-A"
-    }
-  ]
+  "packId": "empty-unsurveyed",
+  "anchors": []
 }

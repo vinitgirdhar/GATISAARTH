@@ -7,6 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/dr_constants.dart';
 import '../../../../core/nav/anchors/anchor_pack.dart';
 import '../../../../core/nav/anchors/portal_anchor.dart';
+import '../../../../core/nav/anchors/radio_anchor.dart';
+import '../../../../core/nav/anchors/visual_landmark_matcher.dart';
+import '../../../../core/nav/anchors/visual_relocalization.dart';
 import '../../../../core/nav/gnss/gnss_quality.dart';
 import '../../../../core/nav/guidance/mission_guidance.dart';
 import '../../../../core/nav/math/nav_math.dart' show Vector3;
@@ -20,6 +23,7 @@ import '../../../../core/platform/gnss/gnss_telemetry.dart';
 import '../../../../core/platform/gnss/gnss_integrity_monitor.dart';
 import '../../../../core/platform/anchors/anchor_pack_source.dart';
 import '../../../../core/platform/activity/activity_mode_source.dart';
+import '../../../../core/platform/radio/wifi_rtt_anchor_source.dart';
 import '../../../../core/nav/replay/drive_recorder.dart';
 import '../../../../core/nav/sensors/sensor_sample.dart';
 import '../../../../core/platform/storage/drive_log_store.dart';
@@ -97,6 +101,7 @@ const Duration _imuNotifyEvery = Duration(milliseconds: 250);
 const Duration _maxCatchUp = Duration(seconds: 15);
 const String _cacheLatKey = 'last_known_lat';
 const String _vehicleKey = 'vehicle_profile';
+const String _autoActivityKey = 'automatic_activity_enabled';
 const String _hapticsKey = 'haptics_enabled';
 const String _voiceGuidanceKey = 'voice_guidance_enabled';
 
@@ -136,6 +141,7 @@ class LiveSessionController extends ChangeNotifier {
     VoiceGuidance? voiceGuidance,
     AnchorPackSource? anchorPacks,
     ActivityModeSource? activityModes,
+    WifiRttAnchorSource? radioAnchors,
   })  : _sensors = sensors,
         _alignment = alignment,
         _hardware = hardware,
@@ -149,6 +155,7 @@ class LiveSessionController extends ChangeNotifier {
         _voiceGuidance = voiceGuidance ?? const NoopVoiceGuidance(),
         _anchorPacks = anchorPacks ?? const EmptyAnchorPackSource(),
         _activityModes = activityModes ?? const NoopActivityModeSource(),
+        _radioAnchors = radioAnchors ?? const NoopWifiRttAnchorSource(),
         _road = RoadConstraint(source: roads, clock: clock) {
     _road.onRoadsChanged = _onRoadsChanged;
     _aiFeed = AiEngineFeed(speed: speedEstimator);
@@ -168,8 +175,11 @@ class LiveSessionController extends ChangeNotifier {
   final VoiceGuidance _voiceGuidance;
   final AnchorPackSource _anchorPacks;
   final ActivityModeSource _activityModes;
+  final WifiRttAnchorSource _radioAnchors;
   final ActivityModeClassifier _activityClassifier = ActivityModeClassifier();
   ActivityMode _activityMode = ActivityMode.unknown;
+  bool _automaticActivityEnabled = false;
+  int _activityPreferenceRevision = 0;
   AnchorPack? _anchorPack;
   PortalAnchorPolicy? _portalAnchorPolicy;
   final GnssIntegrityMonitor _gnssIntegrity = GnssIntegrityMonitor();
@@ -317,12 +327,12 @@ class LiveSessionController extends ChangeNotifier {
 
     await _loadCachedPosition();
     await _loadVehicleProfile();
+    await _loadAutomaticActivityPreference();
     await _loadHaptics();
     await _loadVoiceGuidance();
     await _loadAnchorPack();
-    _activitySub ??= _activityModes.observations.listen(_onActivityObservation);
-    await _activityModes.start();
     await location.start();
+    if (_automaticActivityEnabled) await _startActivitySource();
     _gnssTelemetrySub ??= _gnssTelemetrySource.snapshots.listen(
       (snapshot) {
         _gnssTelemetry = snapshot;
@@ -362,25 +372,102 @@ class LiveSessionController extends ChangeNotifier {
     }
     final decision = policy.evaluate(
       payload: payload,
-      context: PortalAnchorContext(
-        inOutage: inOutage,
-        estimatedLatitudeDeg: _navSnapshot?.latitude ?? _lat,
-        estimatedLongitudeDeg: _navSnapshot?.longitude ?? _lon,
-        horizontalSigmaM:
-            _navSnapshot?.horizontalSigmaM ?? uncertainty?.marginMeters ?? 25,
-      ),
+      context: _anchorContext,
     );
     if (!decision.accepted) {
       return AnchorApplicationResult(
           false, _portalRejectionMessage(decision.reason));
     }
+    return _applyAnchorMeasurement(decision.measurement!, 'portal_anchor');
+  }
+
+  AnchorApplicationResult applyVisualDescriptor(String descriptor) {
+    final pack = _anchorPack;
+    if (pack == null || pack.anchors.isEmpty) {
+      return const AnchorApplicationResult(
+          false, 'No surveyed anchor pack installed');
+    }
+    final registry = PortalAnchorRegistry(pack.anchors);
+    final observation =
+        VisualLandmarkMatcher(registry).matchDescriptor(descriptor);
+    if (observation == null) {
+      return const AnchorApplicationResult(
+          false, 'No enrolled landmark matches this image');
+    }
+    final decision = VisualRelocalizationPolicy(registry: registry).evaluate(
+      observation: observation,
+      context: _anchorContext,
+    );
+    if (!decision.accepted) {
+      return AnchorApplicationResult(
+        false,
+        switch (decision.reason) {
+          VisualRelocalizationRejection.lowConfidence =>
+            'Landmark match is below the safety threshold',
+          VisualRelocalizationRejection.ambiguous =>
+            'Landmark is ambiguous; no correction applied',
+          _ => 'Landmark rejected by outage or residual safety gate',
+        },
+      );
+    }
+    return _applyAnchorMeasurement(decision.measurement!, 'visual_anchor');
+  }
+
+  Future<AnchorApplicationResult> rangeRadioAnchor() async {
+    if (!inOutage) {
+      return const AnchorApplicationResult(
+        false,
+        'Radio anchors are available only during a GNSS outage',
+      );
+    }
+    final pack = _anchorPack;
+    if (pack == null ||
+        pack.anchors.every((anchor) => anchor.radioId == null)) {
+      return const AnchorApplicationResult(
+          false, 'No surveyed Wi-Fi RTT anchor installed');
+    }
+    final registry = PortalAnchorRegistry(pack.anchors);
+    final policy = RadioAnchorPolicy(registry: registry);
+    for (final anchor in pack.anchors) {
+      final id = anchor.radioId;
+      if (id == null) continue;
+      final observation = await _radioAnchors.range(id);
+      if (observation == null) continue;
+      final decision = policy.evaluate(
+        observation: observation,
+        context: _anchorContext,
+      );
+      if (decision.accepted) {
+        return _applyAnchorMeasurement(
+            decision.measurement!, 'wifi_rtt_anchor');
+      }
+    }
+    return const AnchorApplicationResult(
+      false,
+      'No fresh, plausible range from a registered RTT access point',
+    );
+  }
+
+  PortalAnchorContext get _anchorContext => PortalAnchorContext(
+        inOutage: inOutage,
+        estimatedLatitudeDeg: _navSnapshot?.latitude ?? _lat,
+        estimatedLongitudeDeg: _navSnapshot?.longitude ?? _lon,
+        horizontalSigmaM:
+            _navSnapshot?.horizontalSigmaM ?? uncertainty?.marginMeters ?? 25,
+      );
+
+  AnchorApplicationResult _applyAnchorMeasurement(
+      PortalAnchorMeasurement measurement, String source) {
     final us = _engineNowUs;
     if (us == null) {
       return const AnchorApplicationResult(
           false, 'Navigation sensors are not ready');
     }
-    final update =
-        _engine.onPortalAnchor(decision.measurement!, monotonicUs: us);
+    final update = _engine.onPortalAnchor(
+      measurement,
+      monotonicUs: us,
+      measurementName: source,
+    );
     if (update == null || !update.accepted) {
       return const AnchorApplicationResult(
           false, 'Anchor rejected by the navigation filter');
@@ -389,7 +476,7 @@ class LiveSessionController extends ChangeNotifier {
     _touch();
     return AnchorApplicationResult(
       true,
-      '${decision.measurement!.anchor.label} accepted · EKF corrected',
+      '${measurement.anchor.label} accepted · core EKF corrected. Map display changes only when the core is validated and leading.',
     );
   }
 
@@ -425,7 +512,7 @@ class LiveSessionController extends ChangeNotifier {
       unawaited(_writeCache(_targetLat, _targetLon));
     }
     await _gnssTelemetrySource.stop();
-    await _activityModes.stop();
+    if (_automaticActivityEnabled) await _activityModes.stop();
     await location.pause();
   }
 
@@ -439,7 +526,7 @@ class LiveSessionController extends ChangeNotifier {
       if (_autoTick) _startTimers();
       await location.resume();
       await _gnssTelemetrySource.start();
-      await _activityModes.start();
+      if (_automaticActivityEnabled) await _startActivitySource();
     }
     await location.recheck();
   }
@@ -531,8 +618,45 @@ class LiveSessionController extends ChangeNotifier {
   }
 
   void setVehicleProfile(VehicleProfile profile) {
+    if (_automaticActivityEnabled)
+      unawaited(setAutomaticActivityEnabled(false));
     _applyVehicleProfile(profile);
     unawaited(_saveVehicleProfile(profile));
+  }
+
+  bool get automaticActivityEnabled => _automaticActivityEnabled;
+
+  Future<void> setAutomaticActivityEnabled(bool enabled) async {
+    if (_automaticActivityEnabled == enabled) return;
+    _automaticActivityEnabled = enabled;
+    final revision = ++_activityPreferenceRevision;
+    if (enabled && _running) {
+      await _startActivitySource();
+    } else if (!enabled) {
+      await _activitySub?.cancel();
+      _activitySub = null;
+      await _activityModes.stop();
+      _activityMode = ActivityMode.unknown;
+    }
+    _touch();
+    if (revision != _activityPreferenceRevision) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (revision != _activityPreferenceRevision) return;
+      await prefs.setBool(_autoActivityKey, enabled);
+    } catch (_) {}
+  }
+
+  Future<void> _loadAutomaticActivityPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _automaticActivityEnabled = prefs.getBool(_autoActivityKey) ?? false;
+    } catch (_) {}
+  }
+
+  Future<void> _startActivitySource() async {
+    _activitySub ??= _activityModes.observations.listen(_onActivityObservation);
+    await _activityModes.start();
   }
 
   /// The chosen vehicle is remembered: an app that restarts mid-ride must not
@@ -565,6 +689,7 @@ class LiveSessionController extends ChangeNotifier {
   }
 
   void _onActivityObservation(ActivityObservation observation) {
+    if (!_automaticActivityEnabled) return;
     final next = _activityClassifier.add(observation);
     if (next == _activityMode) return;
     _activityMode = next;
@@ -1506,6 +1631,7 @@ class LiveSessionController extends ChangeNotifier {
   VehicleProfile get vehicleProfile => _vehicleProfile;
   ActivityMode get activityMode => _activityMode;
   String? get anchorPackId => _anchorPack?.packId;
+  bool get hasInstalledAnchors => _anchorPack?.anchors.isNotEmpty ?? false;
 
   double get speed => _speed;
   double get heading => _heading;

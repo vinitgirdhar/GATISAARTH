@@ -8,9 +8,7 @@ void main() {
     final image = img.Image(width: 170, height: 160);
     for (var y = 0; y < image.height; y++) {
       for (var x = 0; x < image.width; x++) {
-        final v = ((x ~/ 10 + y ~/ 10) % 2 == (reverse ? 1 : 0))
-            ? 230
-            : 25;
+        final v = ((x ~/ 10 + y ~/ 10) % 2 == (reverse ? 1 : 0)) ? 230 : 25;
         image.setPixelRgb(x, y, v, v, v);
       }
     }
@@ -18,7 +16,8 @@ void main() {
   }
 
   test('local camera bytes yield a bounded 256-bit descriptor', () {
-    final descriptor = VisualLandmarkMatcher.describe(img.encodePng(patterned(false)));
+    final descriptor =
+        VisualLandmarkMatcher.describe(img.encodePng(patterned(false)));
     expect(descriptor, matches(RegExp(r'^[0-9a-f]{64}$')));
     expect(VisualLandmarkMatcher.describe([]), isNull);
   });
@@ -43,6 +42,6 @@ void main() {
     expect(match.confidence, 1);
     expect(match.processedOnDevice, isTrue);
     expect(matcher.match(img.encodePng(patterned(true)))!.confidence,
-        lessThan(0.88));
+        lessThan(0.94));
   });
 }

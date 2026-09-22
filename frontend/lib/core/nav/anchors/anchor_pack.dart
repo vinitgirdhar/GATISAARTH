@@ -19,6 +19,7 @@ class AnchorPack {
       throw const FormatException('Invalid anchor pack metadata');
     }
     final ids = <String>{};
+    final radios = <String>{};
     final anchors = <PortalAnchor>[];
     for (final raw in rawAnchors) {
       if (raw is! Map<String, dynamic>) {
@@ -30,6 +31,8 @@ class AnchorPack {
       final lat = raw['lat'];
       final lon = raw['lon'];
       final sigma = raw['sigmaM'];
+      final descriptor = raw['visualDescriptor'];
+      final radioId = raw['radioId'];
       PortalAnchorKind? kind;
       for (final candidate in PortalAnchorKind.values) {
         if (candidate.name == kindName) kind = candidate;
@@ -48,7 +51,15 @@ class AnchorPack {
           lat.abs() > 90 ||
           lon.abs() > 180 ||
           !sigma.isFinite ||
-          sigma <= 0) {
+          sigma <= 0 ||
+          (descriptor != null &&
+              (descriptor is! String ||
+                  !RegExp(r'^[0-9a-f]{64}$').hasMatch(descriptor))) ||
+          (radioId != null &&
+              (radioId is! String ||
+                  !RegExp(r'^[0-9a-f]{2}(:[0-9a-f]{2}){5}$')
+                      .hasMatch(radioId) ||
+                  !radios.add(radioId)))) {
         throw const FormatException('Invalid or duplicate anchor');
       }
       anchors.add(PortalAnchor(
@@ -58,8 +69,8 @@ class AnchorPack {
         longitudeDeg: lon.toDouble(),
         horizontalSigmaM: sigma.toDouble(),
         kind: kind,
-        visualDescriptor: raw['visualDescriptor'] as String?,
-        radioId: raw['radioId'] as String?,
+        visualDescriptor: descriptor as String?,
+        radioId: radioId as String?,
       ));
     }
     return AnchorPack(packId: packId, anchors: List.unmodifiable(anchors));
