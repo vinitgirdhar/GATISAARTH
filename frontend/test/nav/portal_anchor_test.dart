@@ -45,7 +45,8 @@ void main() {
     expect(decision.reason, PortalAnchorRejection.notInOutage);
   });
 
-  test('rejects unknown, malformed, and implausibly distant portal payloads', () {
+  test('rejects unknown, malformed, and implausibly distant portal payloads',
+      () {
     final context = const PortalAnchorContext(
       inOutage: true,
       estimatedLatitudeDeg: 28.6390,
@@ -54,7 +55,8 @@ void main() {
     );
 
     expect(
-      policy.evaluate(payload: 'GSARTH-ANCHOR:1:unknown', context: context)
+      policy
+          .evaluate(payload: 'GSARTH-ANCHOR:1:unknown', context: context)
           .reason,
       PortalAnchorRejection.unknownAnchor,
     );
