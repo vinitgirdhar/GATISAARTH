@@ -53,11 +53,31 @@ The winning direction is therefore **not “another navigation app.”** It is a
 6. Add multi-modal classification and profile-specific constraints. Android's activity-transition API supports in-vehicle, bicycle, walking, running and still transitions, making this practical and battery-aware. [Android documentation](https://developer.android.com/codelabs/activity-recognition-transition)
 7. Add offline visual re-localisation as a gated measurement update, with a hard reject threshold and no background video upload.
 
-#### Phase B status — started 22 September 2026
+#### Phase B software status — 23 September 2026
 
 - [x] **Trusted portal-anchor core:** a QR/AprilTag payload is an identifier only; it must resolve against a device-local registry, may be used only during an outage, and must pass a conservative residual gate.
 - [x] **EKF integration:** an accepted portal is recorded as an auditable `portal_anchor` measurement with its own fusion contribution. It never directly overwrites the estimated position and never falsely declares GNSS recovery.
-- [ ] **Next:** ship the local anchor-pack registry and camera scanner flow, then add multimodal activity transitions and gated offline visual re-localisation through the same measurement boundary.
+- [x] **Offline anchor-pack and scanner flow:** versioned device-local packs, strict coordinate/descriptor/BSSID validation, QR/Data Matrix camera scanner, user-facing acceptance/rejection, and app-specific sideload path. The bundled pack is deliberately empty: its old unsurveyed demo coordinate was removed, so it cannot correct a live journey.
+- [x] **Multimodal switching:** opt-in Android Activity Transition events for car, bicycle, walking, running and still; the matching car/two-wheeler/pedestrian dynamics; no car-only lateral constraint or driving-road snap while walking. A manual profile selection disables automatic switching until re-enabled.
+- [x] **Offline visual landmark path:** user-triggered camera capture, temporary-file deletion, on-device 256-bit descriptor matching against enrolled local landmarks, hard confidence and runner-up margins, outage/residual gate, then a named `visual_anchor` EKF measurement. No background video or image upload.
+- [x] **Optional radio path:** user-triggered Android Wi-Fi RTT to an installed, RTT-capable access point BSSID; permission/hardware/freshness/range/uncertainty checks; a rejected or unsupported reading never moves the estimate. It is not needed for the commodity-phone QR path. [Android Wi-Fi RTT guide](https://developer.android.com/develop/connectivity/wifi/wifi-rtt)
+- [x] **Software verification:** 1,019 Flutter tests passed (29 skipped), 86.9% overall Dart line coverage, targeted Dart analysis clean, Android Kotlin compilation successful, and a debug APK built. Repository-wide analysis still reports 10 pre-existing warnings/info in unrelated home-tab, motion-widget and calibration-test files.
+- [ ] **Field acceptance:** survey and install a real portal/landmark/RTT AP pack; run held-out image false-positive/false-negative trials and physical tunnel/parking routes on the target Pixel. Confirm that core EKF acceptance improves measured position before enabling it to lead the driver-facing map. The QR/visual/radio update currently corrects the navigation core, while the map only follows that core after the existing field-validation handover gate. Do not present simulated or unsurveyed anchors as physical proof.
+
+**Phase B handoff:** the software integration is ready for Phase C work, but the field-acceptance item is an open operational gate for the SIH demo. App version and the Pixel installation remain at `3.1`; do not switch to `4.1` or update the handset until all planned phases and release checks are complete.
+
+##### Field anchor-pack contract
+
+The operator must measure each marker's actual WGS84 coordinate and conservative horizontal uncertainty. A printed QR/Data Matrix contains only `GSARTH-ANCHOR:1:<id>`, never raw coordinates. To enroll a landmark photo locally, run `dart run tool/anchor_descriptor.dart <photo>` from `frontend` and copy the 64-character lowercase hash. A Wi-Fi RTT `radioId` is the AP's lowercase BSSID; the AP and phone must both support RTT, and a single range is treated as a coarse, near-AP correction rather than triangulation. Android exposes RTT hardware and permission limits in its [official guide](https://developer.android.com/develop/connectivity/wifi/wifi-rtt).
+
+```json
+{"schemaVersion":1,"packId":"surveyed-site-2026-09","anchors":[
+  {"id":"portal-a","label":"Surveyed tunnel portal A","kind":"tunnelPortal","lat":28.6000,"lon":77.1000,"sigmaM":5},
+  {"id":"landmark-b","label":"Approved landmark B","kind":"approvedLandmark","lat":28.6001,"lon":77.1001,"sigmaM":5,"visualDescriptor":"<64 lowercase hex characters>"}
+]}
+```
+
+The JSON example is a schema illustration, **not a real surveyed pack**. Replace every coordinate, uncertainty and descriptor using actual field measurements. Save the validated file as `anchors/portal_anchors.json` under the Android app-specific external files directory (`/sdcard/Android/data/com.gatisaarth.app/files/`). Restart the session to load it. An invalid installed pack fails closed; it does not silently fall back to demo coordinates. Capture several independent landmark views and unknown-scene negatives before allowing a visual correction in a judged field run.
 
 ### Phase C — scale narrative
 
