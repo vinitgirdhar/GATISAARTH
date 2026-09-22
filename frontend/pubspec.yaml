@@ -24,6 +24,8 @@ dependencies:
   vector_math: ^2.4.0
   share_plus: ^13.3.0
   mobile_scanner: ^7.4.2
+  image_picker: ^1.2.3
+  image: ^4.3.0
   # Bounded concurrent reads of the offline map archives (already a transitive
   # dependency of `pmtiles`).
   pool: ^1.5.1
