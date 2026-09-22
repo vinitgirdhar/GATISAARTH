@@ -7,6 +7,8 @@ import 'package:gatisaarth/core/router/app_router.dart';
 import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart';
 import 'package:gatisaarth/core/platform/location/live_location_service.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/controllers/live_session_controller.dart';
+import 'package:gatisaarth/features/navigation_ui/presentation/screens/tabs/home_tab.dart';
+import 'package:gatisaarth/features/navigation_ui/presentation/widgets/road_anomaly_ticker.dart';
 
 import 'support/fake_location_gateway.dart';
 import 'support/load_fonts.dart';
@@ -83,6 +85,30 @@ Future<void> _scrollTo(WidgetTester tester, Finder target) async {
 void main() {
   setUpAll(loadAppFonts);
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  testWidgets('GNSS and sensor status follows Edge AI and telemetry',
+      (tester) async {
+    final h = _Harness();
+    _phone(tester, const Size(360, 740));
+    await _pumpApp(tester, h);
+    final list = tester.widget<ListView>(find.descendant(
+      of: find.byType(HomeTab),
+      matching: find.byType(ListView),
+    ).first);
+    final children = (list.childrenDelegate as SliverChildListDelegate).children;
+    final heading = children.indexWhere(
+      (child) => child is Text && child.data == 'Edge AI & Telemetry',
+    );
+    final ticker = children.indexWhere(
+      (child) => child is RoadAnomalyTicker,
+    );
+    final status = children.indexWhere(
+      (child) => child.toStringShort() == '_SystemStatusCard',
+    );
+    expect(heading, greaterThanOrEqualTo(0));
+    expect(ticker, greaterThan(heading));
+    expect(status, greaterThan(ticker));
+  });
 
   for (final size in const [Size(320, 568), Size(360, 740), Size(411, 915)]) {
     testWidgets('dashboard lays out cleanly on ${size.width.toInt()}x'
