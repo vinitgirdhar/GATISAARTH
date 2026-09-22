@@ -71,8 +71,9 @@ class GnssIntegrityMonitor {
         snapshot.satellites.length;
     final previous = _cn0History.isEmpty
         ? null
-        : _cn0History.skip(math.max(0, _cn0History.length - 5)).reduce(
-                (a, b) => a + b) /
+        : _cn0History
+                .skip(math.max(0, _cn0History.length - 5))
+                .reduce((a, b) => a + b) /
             math.min(5, _cn0History.length);
     final change = previous == null ? null : mean - previous;
     final usedRatio = snapshot.usedInFixCount / snapshot.visibleCount;

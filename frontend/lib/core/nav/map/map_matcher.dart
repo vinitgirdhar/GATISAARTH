@@ -46,7 +46,8 @@ class MapMatchCandidate {
   final String? roadName;
   final bool tunnel;
 
-  double get roadHeadingDeg => NavMath.wrap360(roadHeadingRad * NavMath.radToDeg);
+  double get roadHeadingDeg =>
+      NavMath.wrap360(roadHeadingRad * NavMath.radToDeg);
 }
 
 /// Result of one match step.
@@ -80,8 +81,7 @@ class MapMatchResult {
   /// driver wondering.
   final String reason;
 
-  MapMatchCandidate? get best =>
-      candidates.isEmpty ? null : candidates.first;
+  MapMatchCandidate? get best => candidates.isEmpty ? null : candidates.first;
 }
 
 class _Hypothesis {
@@ -331,8 +331,7 @@ class MapMatcher {
     // The posterior is a softmax over the roads considered, so one lone
     // road always scores 1.0 however far away it is. Whether the vehicle is
     // plausibly on a road at all is a separate question, and this is it.
-    final distanceLimit =
-        _config.maxSnapDistanceSigma * math.max(sigmaM, 3.0);
+    final distanceLimit = _config.maxSnapDistanceSigma * math.max(sigmaM, 3.0);
     if (best.perpendicularM > distanceLimit) {
       return MapMatchResult(
         candidates: candidates,
