@@ -83,6 +83,12 @@ The JSON example is a schema illustration, **not a real surveyed pack**. Replace
 
 8. Build the opt-in aggregated GNSS-risk map only after the single-device story is validated. It needs explicit consent, minimum aggregation thresholds, short retention and a local-only default; do not collect raw location histories by default.
 
+#### Phase C foundation status — 23 September 2026
+
+- [x] Added a **local, volatile GNSS-risk aggregation core**. It is off by default, never stores raw coordinates, bins only precise/fresh observations into coarse 250 m cells, requires at least three distinct journeys and six observations before exposing a cell, weights journeys equally, expires observations after seven days, and erases data immediately when opt-in is withdrawn.
+- [ ] Live GNSS ingestion, a user-facing consent control/map overlay, persistence, and any cross-device upload or aggregation are **not enabled**. The current component has no storage or network connection; it collects nothing in the installed app.
+- [ ] Before enabling collection or a shared map: complete the Phase A/B physical field-acceptance campaign, validate cell-risk calibration against held-out routes, specify a defensible cross-device privacy threshold and retention policy, then review consent and deletion flows. Do not use risk cells as positioning corrections or a substitute for the ES-EKF.
+
 ## Architecture: keep the filter authoritative
 
 ```text
