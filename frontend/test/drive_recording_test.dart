@@ -196,7 +196,7 @@ void main() {
     expect(header, contains('"dev":"Test Phone"'));
     expect(header, contains('"os":"Android 15 (API 35)"'));
     expect(header, contains('"veh":"twoWheeler"'));
-    expect(header, contains('"app":"3.1.0"'));
+    expect(header, contains('"app":"4.2.0"'));
     expect(header, contains('"mount":"unverified mount"'));
   });
 

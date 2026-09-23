@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gatisaarth/core/constants/dr_constants.dart';
 
 void main() {
-  test('Phase B preview is labeled 4.1', () {
-    expect(AppConstants.appVersion, '4.1.0');
-    expect(AppConstants.appBuild, '41');
+  test('the requested 4.2 build is labeled consistently', () {
+    expect(AppConstants.appVersion, '4.2.0');
+    expect(AppConstants.appBuild, '42');
   });
 
   test('the version shown in the app is the one in pubspec.yaml', () {
