@@ -103,13 +103,26 @@ class LocalGnssRiskMap {
           journeys.length < minDistinctJourneys) {
         continue;
       }
-      final degraded = observations.where((item) => item.degraded).length;
+      // Equal journey weighting prevents a high-frequency recorder from
+      // overpowering two other journeys through the same cell.
+      final byJourney = <String, (int degraded, int total)>{};
+      for (final item in observations) {
+        final previous = byJourney[item.journeyId] ?? (0, 0);
+        byJourney[item.journeyId] = (
+          previous.$1 + (item.degraded ? 1 : 0),
+          previous.$2 + 1,
+        );
+      }
+      final risk = byJourney.values
+              .map((counts) => counts.$1 / counts.$2)
+              .reduce((a, b) => a + b) /
+          byJourney.length;
       visible.add(GnssRiskCell(
         x: entry.key.$1,
         y: entry.key.$2,
         observations: observations.length,
         distinctJourneys: journeys.length,
-        riskFraction: degraded / observations.length,
+        riskFraction: risk,
       ));
     }
     return List.unmodifiable(visible);
