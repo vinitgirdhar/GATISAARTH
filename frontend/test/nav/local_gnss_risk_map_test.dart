@@ -50,7 +50,17 @@ void main() {
     expect(cells, hasLength(1));
     expect(cells.single.observations, 8);
     expect(cells.single.distinctJourneys, 3);
-    expect(cells.single.riskFraction, closeTo(0.75, 0.00001));
+    expect(cells.single.riskFraction, closeTo(1 / 3, 0.00001));
+  });
+
+  test('high-rate samples from one journey cannot dominate the risk score', () {
+    final map = LocalGnssRiskMap()..setOptIn(true);
+    for (var i = 0; i < 100; i++) {
+      map.add(_sample(journey: 'one'), now: _now);
+    }
+    map.add(_sample(journey: 'two', degraded: false), now: _now);
+    map.add(_sample(journey: 'three', degraded: false), now: _now);
+    expect(map.visibleCells(_now).single.riskFraction, closeTo(1 / 3, 0.00001));
   });
 
   test('rejects invalid, imprecise, stale and future observations', () {
