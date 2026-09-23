@@ -3,6 +3,7 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/geo_format.dart';
 import '../../controllers/live_session_scope.dart';
 import '../../widgets/fusion_confidence_badge.dart';
+import '../../widgets/engine_status_card.dart';
 import '../../widgets/map_controls.dart';
 import '../../widgets/navigation_map.dart';
 import '../../widgets/mission_guidance_card.dart';
@@ -125,6 +126,73 @@ class MapTab extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: EngineStatusCard(
+                  compact: session.isSimulatingTunnel ||
+                      session.isSimulatingCanyon ||
+                      MediaQuery.sizeOf(context).height < 800,
+                  snapshot: session.navSnapshot,
+                  isLeading: session.isEngineLeading,
+                  blocker: session.engineHandoverBlocker,
+                  isRecording: session.isRecording,
+                  recordedDuration: session.recordedDuration,
+                  recordedLines: session.recordedLines,
+                  recordingError: session.recordingError,
+                  onStartRecording: () async {
+                    final path = await session.startRecording();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(path == null
+                            ? 'Could not start recording — storage unavailable'
+                            : 'Recording this drive. The screen stays on.'),
+                        backgroundColor:
+                            path == null ? AppColors.error : AppColors.cyan,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  },
+                  onStopRecording: () async {
+                    final file = await session.stopRecording();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(file == null
+                            ? 'Recording stopped'
+                            : 'Saved ${file.name} (${file.sizeMb.toStringAsFixed(1)} MB)'),
+                        backgroundColor: AppColors.healthy,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  },
+                  onMarkEvent: () {
+                    session.markEvent('driver marker');
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Marked this moment in the log'),
+                        backgroundColor: AppColors.cyan,
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
           ),
         ),
 

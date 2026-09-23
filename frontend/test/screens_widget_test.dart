@@ -117,13 +117,16 @@ void main() {
     await _pumpApp(tester, h);
     await tester.tap(find.text('Map').last);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
+    expect(
+        tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
         isFalse);
     final normalMapHeight = tester.getSize(find.byType(NavigationMap)).height;
 
     h.controller.startTunnelTest();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+        tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
         isTrue);
     expect(tester.getSize(find.byType(NavigationMap)).height,
         greaterThan(normalMapHeight));
@@ -131,7 +134,9 @@ void main() {
     h.controller.resetSimulation();
     h.controller.startUrbanCanyon();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+        tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
         isTrue);
     expect(tester.takeException(), isNull);
   });

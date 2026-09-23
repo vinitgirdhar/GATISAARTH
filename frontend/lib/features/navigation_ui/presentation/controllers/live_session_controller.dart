@@ -309,6 +309,20 @@ class LiveSessionController extends ChangeNotifier {
   final DriveLogSink _logStore;
   DriveRecorder? _recorder;
   String? _recordingPath;
+  Future<void> _screenAwakeUpdate = Future<void>.value();
+
+  /// Apply wake-flag changes in order, including a rapid start/stop pair.
+  Future<void> _setScreenAwake(bool on) async {
+    final previous = _screenAwakeUpdate;
+    final done = Completer<void>();
+    _screenAwakeUpdate = done.future;
+    try {
+      await previous;
+      await _hardware.setKeepScreenOn(on);
+    } finally {
+      done.complete();
+    }
+  }
 
   // ---------------------------------------------------------------- lifecycle
 
@@ -1299,7 +1313,7 @@ class LiveSessionController extends ChangeNotifier {
     _recordingPath = path;
     // Without this the drive ends at the screen timeout: backgrounding stops
     // the sensors, by design.
-    unawaited(_hardware.setKeepScreenOn(true));
+    await _setScreenAwake(true);
     _touch();
     return path;
   }
@@ -1312,7 +1326,7 @@ class LiveSessionController extends ChangeNotifier {
     _recorder = null;
     _recordingPath = null;
     unawaited(_haptics.fire(HapticEvent.recordingStopped));
-    unawaited(_hardware.setKeepScreenOn(false));
+    await _setScreenAwake(false);
     final file = await _logStore.close();
     if (!_disposed) _touch();
     return file;

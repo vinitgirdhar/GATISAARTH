@@ -5,7 +5,6 @@ import '../../../../../core/widgets/motion.dart';
 import '../../../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../controllers/live_session_controller.dart';
 import '../../controllers/live_session_scope.dart';
-import '../../widgets/engine_status_card.dart';
 import '../../widgets/navic_weight_indicator.dart';
 import '../../widgets/satellite_breakdown.dart';
 import '../../widgets/gnss_integrity_panel.dart';
@@ -196,64 +195,6 @@ class SensorsTab extends StatelessWidget {
           telemetry: session.gnssTelemetry,
           assessment: session.gnssIntegrity,
           cn0History: session.gnssCn0History,
-        ),
-
-        const SizedBox(height: AppSpacing.lg),
-
-        // 4. Navigation Engine Status & Drive Recorder
-        const SectionHeader(
-          title: 'Navigation core',
-          subtitle:
-              'The filter takes over once it knows how the phone sits in the vehicle',
-        ),
-        EngineStatusCard(
-          snapshot: session.navSnapshot,
-          isLeading: session.isEngineLeading,
-          blocker: session.engineHandoverBlocker,
-          isRecording: session.isRecording,
-          recordedDuration: session.recordedDuration,
-          recordedLines: session.recordedLines,
-          recordingError: session.recordingError,
-          onStartRecording: () async {
-            final path = await session.startRecording();
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(path == null
-                    ? 'Could not start recording — storage unavailable'
-                    : 'Recording this drive. The screen stays on.'),
-                backgroundColor:
-                    path == null ? AppColors.error : AppColors.cyan,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          },
-          onStopRecording: () async {
-            final file = await session.stopRecording();
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(file == null
-                    ? 'Recording stopped'
-                    : 'Saved ${file.name} (${file.sizeMb.toStringAsFixed(1)} MB)'),
-                backgroundColor: AppColors.healthy,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          },
-          onMarkEvent: () {
-            session.markEvent('driver marker');
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Marked this moment in the log'),
-                backgroundColor: AppColors.cyan,
-                duration: Duration(seconds: 1),
-              ),
-            );
-          },
         ),
       ],
     );

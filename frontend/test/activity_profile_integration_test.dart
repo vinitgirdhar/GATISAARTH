@@ -70,4 +70,44 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(session.vehicleProfile, VehicleProfile.car);
   });
+
+  test('automatic car, two-wheeler and walking transitions select profiles',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final activity = _ActivitySource();
+    final session = LiveSessionController(
+      sensors: FakeSensors(),
+      alignment: VehicleAlignmentEngine(),
+      hardware: FakeHardware(),
+      speedEstimator: FakeSpeed(),
+      telemetry: FakeTelemetry(),
+      location: LiveLocationService(
+        gateway: FakeLocationGateway(),
+        errorRetryDelay: Duration.zero,
+      ),
+      activityModes: activity,
+      autoTick: false,
+    );
+    addTearDown(() async {
+      session.dispose();
+      await activity.controller.close();
+    });
+    await session.start();
+    await session.setAutomaticActivityEnabled(true);
+
+    activity.controller.add(ActivityObservation.bicycle);
+    await Future<void>.delayed(Duration.zero);
+    expect(session.vehicleProfile, VehicleProfile.twoWheeler);
+    expect(session.activityMode, ActivityMode.bicycle);
+
+    activity.controller.add(ActivityObservation.inVehicle);
+    await Future<void>.delayed(Duration.zero);
+    expect(session.vehicleProfile, VehicleProfile.car);
+    expect(session.activityMode, ActivityMode.car);
+
+    activity.controller.add(ActivityObservation.walking);
+    await Future<void>.delayed(Duration.zero);
+    expect(session.vehicleProfile, VehicleProfile.pedestrian);
+    expect(session.activityMode, ActivityMode.pedestrian);
+  });
 }

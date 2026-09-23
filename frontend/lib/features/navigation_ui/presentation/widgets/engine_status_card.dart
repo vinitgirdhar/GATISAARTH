@@ -27,6 +27,7 @@ class EngineStatusCard extends StatelessWidget {
     this.onStartRecording,
     this.onStopRecording,
     this.onMarkEvent,
+    this.compact = false,
   });
 
   final NavigationSnapshot? snapshot;
@@ -45,14 +46,15 @@ class EngineStatusCard extends StatelessWidget {
   final VoidCallback? onStartRecording;
   final VoidCallback? onStopRecording;
   final VoidCallback? onMarkEvent;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = AppColors.isDark;
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(20),
+      margin: EdgeInsets.only(bottom: compact ? AppSpacing.sm : AppSpacing.md),
+      padding: EdgeInsets.all(compact ? 12 : 20),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         borderRadius: BorderRadius.circular(20),
@@ -80,18 +82,20 @@ class EngineStatusCard extends StatelessWidget {
               _StatusPill(isLeading: isLeading),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            isLeading
-                ? 'Position, speed and heading come from the filter'
-                : blocker ?? 'Starting',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+          if (!compact) ...[
+            const SizedBox(height: 6),
+            Text(
+              isLeading
+                  ? 'Position, speed and heading come from the filter'
+                  : blocker ?? 'Starting',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _metrics(theme),
-          const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.sm),
+            _metrics(theme),
+          ],
+          SizedBox(height: compact ? 8 : AppSpacing.sm),
           _recordingRow(context, theme),
           if (recordingError != null) ...[
             const SizedBox(height: 6),
