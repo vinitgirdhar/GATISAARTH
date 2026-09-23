@@ -110,7 +110,7 @@ void main() {
     expect(find.byType(EngineStatusCard), findsNothing);
   });
 
-  testWidgets('simulations compact the core and give the map more room',
+  testWidgets('core details expand on demand and simulations restore map space',
       (tester) async {
     final h = _Harness();
     _phone(tester, const Size(411, 915));
@@ -119,8 +119,17 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(
         tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
-        isFalse);
+        isTrue);
     final normalMapHeight = tester.getSize(find.byType(NavigationMap)).height;
+    await tester.tap(find.byTooltip('Show core details'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+        tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
+        isFalse);
+    expect(tester.getSize(find.byType(NavigationMap)).height,
+        lessThan(normalMapHeight));
+    final expandedMapHeight = tester.getSize(find.byType(NavigationMap)).height;
 
     h.controller.startTunnelTest();
     await tester.pump(const Duration(milliseconds: 300));
@@ -129,7 +138,7 @@ void main() {
         tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
         isTrue);
     expect(tester.getSize(find.byType(NavigationMap)).height,
-        greaterThan(normalMapHeight));
+        greaterThan(expandedMapHeight));
 
     h.controller.resetSimulation();
     h.controller.startUrbanCanyon();
