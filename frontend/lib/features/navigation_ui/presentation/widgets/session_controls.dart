@@ -12,6 +12,7 @@ class SessionControls extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final bool showBackground;
   final bool showDiagnostics;
+  final bool compact;
 
   const SessionControls({
     Key? key,
@@ -23,6 +24,7 @@ class SessionControls extends StatelessWidget {
     this.padding,
     this.showBackground = true,
     this.showDiagnostics = true,
+    this.compact = false,
   }) : super(key: key);
 
   @override
@@ -75,8 +77,7 @@ class SessionControls extends StatelessWidget {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content:
-                    Text('Simulation cleared — back to live GNSS status'),
+                content: Text('Simulation cleared — back to live GNSS status'),
                 backgroundColor: AppColors.healthy,
                 duration: Duration(seconds: 2),
               ),
@@ -133,7 +134,10 @@ class SessionControls extends StatelessWidget {
           child: PressableScale(
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              padding: EdgeInsets.symmetric(
+                vertical: compact ? 6 : 8,
+                horizontal: 4,
+              ),
               decoration: BoxDecoration(
                 color: accentColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(14),
@@ -146,14 +150,15 @@ class SessionControls extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: EdgeInsets.all(compact ? 4 : 8),
                     decoration: BoxDecoration(
                       color: accentColor.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: accentColor, size: 20),
+                    child:
+                        Icon(icon, color: accentColor, size: compact ? 17 : 20),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: compact ? 3 : 6),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(

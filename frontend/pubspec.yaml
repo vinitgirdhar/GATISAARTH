@@ -1,7 +1,7 @@
 name: gatisaarth
 description: "GatiSaarth - High-Precision Vehicle Navigation System using Dead Reckoning, Multi-GNSS/NavIC, and Edge AI"
 publish_to: 'none'
-version: 4.2.0+42
+version: 4.2.0+44
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

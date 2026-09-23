@@ -4,9 +4,11 @@ import '../../../../core/nav/guidance/mission_guidance.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class MissionGuidanceCard extends StatelessWidget {
-  const MissionGuidanceCard({super.key, required this.decision});
+  const MissionGuidanceCard(
+      {super.key, required this.decision, this.compact = false});
 
   final MissionGuidanceDecision decision;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -18,9 +20,10 @@ class MissionGuidanceCard extends StatelessWidget {
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        padding:
+            EdgeInsets.symmetric(horizontal: 14, vertical: compact ? 8 : 11),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
+          color: compact ? AppColors.surface : color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: color.withValues(alpha: 0.4)),
         ),
@@ -29,16 +32,16 @@ class MissionGuidanceCard extends StatelessWidget {
             Icon(
               warning ? Icons.volume_up_rounded : Icons.gps_fixed_rounded,
               color: color,
-              size: 20,
+              size: compact ? 17 : 20,
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: compact ? 8 : 10),
             Expanded(
               child: Text(
                 decision.display,
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                  fontSize: compact ? 11 : 12,
                 ),
               ),
             ),

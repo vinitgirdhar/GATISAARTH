@@ -28,6 +28,7 @@ class EngineStatusCard extends StatelessWidget {
     this.onStopRecording,
     this.onMarkEvent,
     this.compact = false,
+    this.onToggleDetails,
   });
 
   final NavigationSnapshot? snapshot;
@@ -47,6 +48,7 @@ class EngineStatusCard extends StatelessWidget {
   final VoidCallback? onStopRecording;
   final VoidCallback? onMarkEvent;
   final bool compact;
+  final VoidCallback? onToggleDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +82,17 @@ class EngineStatusCard extends StatelessWidget {
                 ),
               ),
               _StatusPill(isLeading: isLeading),
+              if (onToggleDetails != null)
+                IconButton(
+                  tooltip: compact ? 'Show core details' : 'Hide core details',
+                  onPressed: onToggleDetails,
+                  icon: Icon(
+                    compact
+                        ? Icons.keyboard_arrow_down
+                        : Icons.keyboard_arrow_up,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
             ],
           ),
           if (!compact) ...[

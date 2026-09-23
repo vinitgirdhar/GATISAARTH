@@ -10,6 +10,7 @@ import 'package:gatisaarth/features/navigation_ui/presentation/controllers/live_
 import 'package:gatisaarth/features/navigation_ui/presentation/screens/tabs/home_tab.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/screens/tabs/map_tab.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/widgets/engine_status_card.dart';
+import 'package:gatisaarth/features/navigation_ui/presentation/widgets/mission_guidance_card.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/widgets/navigation_map.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/widgets/road_anomaly_ticker.dart';
 
@@ -149,6 +150,31 @@ void main() {
         isTrue);
     expect(tester.takeException(), isNull);
   });
+
+  for (final size in [const Size(320, 568), const Size(360, 740)]) {
+    testWidgets('Map remains usable at ${size.width}x${size.height} dp',
+        (tester) async {
+      final h = _Harness();
+      _phone(tester, size);
+      await _pumpApp(tester, h);
+      await tester.tap(find.text('Map').last);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(NavigationMap), findsOneWidget);
+      expect(
+          tester.getSize(find.byType(NavigationMap)).height, greaterThan(80));
+      expect(tester.takeException(), isNull);
+      h.controller.startTunnelTest();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
+      if (find.byType(MissionGuidanceCard).evaluate().isNotEmpty) {
+        expect(
+          tester.getBottomLeft(find.byType(MissionGuidanceCard)).dy,
+          lessThanOrEqualTo(tester.getTopLeft(find.byType(NavigationMap)).dy),
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('GNSS and sensor status follows Edge AI and telemetry',
       (tester) async {
