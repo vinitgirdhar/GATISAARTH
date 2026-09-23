@@ -8,6 +8,9 @@ import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart'
 import 'package:gatisaarth/core/platform/location/live_location_service.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/controllers/live_session_controller.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/screens/tabs/home_tab.dart';
+import 'package:gatisaarth/features/navigation_ui/presentation/screens/tabs/map_tab.dart';
+import 'package:gatisaarth/features/navigation_ui/presentation/widgets/engine_status_card.dart';
+import 'package:gatisaarth/features/navigation_ui/presentation/widgets/navigation_map.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/widgets/road_anomaly_ticker.dart';
 
 import 'support/fake_location_gateway.dart';
@@ -85,6 +88,53 @@ Future<void> _scrollTo(WidgetTester tester, Finder target) async {
 void main() {
   setUpAll(loadAppFonts);
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  testWidgets('navigation core lives below Exact Location on Map, not Sensors',
+      (tester) async {
+    final h = _Harness();
+    _phone(tester, const Size(411, 915));
+    await _pumpApp(tester, h);
+    await _goLive(tester, h);
+    await tester.tap(find.text('Map').last);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(MapTab), findsOneWidget);
+    expect(find.byType(EngineStatusCard), findsOneWidget);
+    expect(tester.getTopLeft(find.byType(EngineStatusCard)).dy,
+        greaterThan(tester.getTopLeft(find.text('Exact Location')).dy));
+    expect(tester.getTopLeft(find.byType(NavigationMap)).dy,
+        greaterThan(tester.getTopLeft(find.byType(EngineStatusCard)).dy));
+
+    await tester.tap(find.text('Sensors').last);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(EngineStatusCard), findsNothing);
+  });
+
+  testWidgets('simulations compact the core and give the map more room',
+      (tester) async {
+    final h = _Harness();
+    _phone(tester, const Size(411, 915));
+    await _pumpApp(tester, h);
+    await tester.tap(find.text('Map').last);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
+        isFalse);
+    final normalMapHeight = tester.getSize(find.byType(NavigationMap)).height;
+
+    h.controller.startTunnelTest();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
+        isTrue);
+    expect(tester.getSize(find.byType(NavigationMap)).height,
+        greaterThan(normalMapHeight));
+
+    h.controller.resetSimulation();
+    h.controller.startUrbanCanyon();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
+        isTrue);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('GNSS and sensor status follows Edge AI and telemetry',
       (tester) async {

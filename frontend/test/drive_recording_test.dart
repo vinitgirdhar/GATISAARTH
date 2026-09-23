@@ -53,6 +53,14 @@ class FakeLogSink implements DriveLogSink {
   }
 }
 
+class _DelayedScreenHardware extends FakeHardware {
+  @override
+  Future<void> setKeepScreenOn(bool on) async {
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    await super.setKeepScreenOn(on);
+  }
+}
+
 const _fix = GnssFix(
   latitude: 19.45,
   longitude: 72.81,
@@ -133,6 +141,30 @@ void main() {
     expect(controller.isRecording, isFalse);
     expect(logSink.lines, isEmpty);
     expect(controller.recordingPath, isNull);
+  });
+
+  test('recording start and stop await the screen-awake state', () async {
+    final delayedHardware = _DelayedScreenHardware();
+    final delayedSession = LiveSessionController(
+      sensors: FakeSensors(),
+      alignment: VehicleAlignmentEngine(),
+      hardware: delayedHardware,
+      speedEstimator: FakeSpeed(),
+      telemetry: FakeTelemetry(),
+      location: LiveLocationService(
+        gateway: FakeLocationGateway(),
+        errorRetryDelay: Duration.zero,
+      ),
+      autoTick: false,
+      logStore: FakeLogSink(),
+    );
+    addTearDown(delayedSession.dispose);
+    await delayedSession.start();
+    expect(delayedHardware.keepScreenOn, isFalse);
+    await delayedSession.startRecording();
+    expect(delayedHardware.keepScreenOn, isTrue);
+    await delayedSession.stopRecording();
+    expect(delayedHardware.keepScreenOn, isFalse);
   });
 
   test('starting a recording writes a header then the drive', () async {
