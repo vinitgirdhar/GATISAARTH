@@ -32,6 +32,12 @@ class AiConfig {
     this.modelOutputTtl = const Duration(seconds: 1),
     this.minGnssTrust = 0.2,
     this.minInsTrust = 0.25,
+    this.perVehicleCalibration = false,
+    this.calibrationWindowSamples = 300,
+    this.calibrationMinSamples = 30,
+    this.calibrationMinSpeedSpreadMps = 2.0,
+    this.calibrationScaleMin = 0.7,
+    this.calibrationScaleMax = 1.4,
   });
 
   /// **Off by default.** Master switch: while false the engine ignores every
@@ -111,6 +117,20 @@ class AiConfig {
   final double minGnssTrust;
   final double minInsTrust;
 
+  /// Correct the model's speed per vehicle (gnss ≈ scale · model + offset,
+  /// see `SpeedCalibration`) before it is validated or applied. Off until a
+  /// real replay shows it helps.
+  final bool perVehicleCalibration;
+
+  /// Pairs remembered, pairs needed before correcting, the speed spread
+  /// (1-sigma, m/s) needed before the scale (not only the offset) is fitted,
+  /// and the band a plausible scale lies in.
+  final int calibrationWindowSamples;
+  final int calibrationMinSamples;
+  final double calibrationMinSpeedSpreadMps;
+  final double calibrationScaleMin;
+  final double calibrationScaleMax;
+
   bool get speedActive => enabled && speedMeasurement;
   bool get disturbanceActive => enabled && disturbanceAdaptation;
   bool get fusionActive => enabled && fusionTrust;
@@ -128,6 +148,7 @@ class AiConfig {
         'floorSigma': floorSigma,
         'validationMaxRmse': validationMaxRmse,
         'validationMaxBias': validationMaxBias,
+        'perVehicleCalibration': perVehicleCalibration,
       };
 }
 

@@ -1,91 +1,30 @@
-# GatiSaarth — Machine Learning Subsystem & Edge AI Pipeline
+# ml/
 
-This directory contains the machine learning subsystem trained on the **IO-VNBD** (*Inertial and Odometry Vehicle Navigation Benchmark Dataset*) to provide real-time forward velocity estimation, vibration scoring, motion quality calibration, and GNSS anomaly detection.
+The speed model's data and training.
 
----
+| Path | What it is |
+|---|---|
+| `src/dataset/` | IO-VNBD download (`fetch_iovnbd.py`), parsing (`iovnbd.py`), clock and mount sync (`sync.py`), the 13-channel features and leak-free trip-level splits and windows (`windows.py`), the build that writes `data/processed/` (`build.py`), and the converter to app drive logs (`iovnbd_to_drive_log.py`). |
+| `src/training/train_speed_v4.py` | The shipped speed model: a dilated causal temporal-convolution network trained from scratch, exported straight to TFLite (built-in ops only) with a parity check. |
+| `src/evaluation/iovnbd_eval.py` | Position drift on held-out IO-VNBD trips. |
+| `src/export/ai_replay_log.py` | Attaches a model's held-out predictions to a drive log for `frontend/test/nav/real_ai_ablation_test.dart`. |
+| `models/speed_estimator_v4/` | The trained model, its TFLite export and `report.json` (held-out metrics). |
+| `tests/` | pytest for the data pipeline. |
 
-## 🧠 Model Zoo Summary
-
-| Model | Architecture | Parameters | Input Tensor | Output | Performance |
-|---|---|---|---|---|---|
-| **SpeedEstimatorNet** | 1D-CNN + ResBlock + Bi-GRU + Dual Heads | 64,658 | `[B, 20, 13]` (10 Hz, 2.0s) | Speed $\hat{v}$ (m/s) + Uncertainty $\log(\sigma^2)$ | **MAE: 0.280 m/s (1.01 km/h)**, $R^2: 0.9959$ |
-| **VibrationClassifierNet** | 3-Layer Conv1D + Dual Heads | 23,396 | `[B, 20, 13]` | [LOW, NORMAL, HIGH] + $V_{\text{score}} \in [0, 1]$ | **Weighted F1: 1.0000** |
-| **MotionQualityNet** | Temporal Conv + Spatial Fusion MLP | ~5,000 | `[B, 20, 13]` | Trust Score $Q_{\text{motion}} \in [0, 1]$ | **Validation MAE: 0.0389** |
-| **GNSS Anomaly Detector** | 3-Layer MLP | ~700 | `[B, 4]` | Anomaly Probability $\in [0, 1]$ | **Accuracy: 100%, False Alarm: 0.0%** |
-
----
-
-## 📂 Directory Structure
-
-```
-ml/
-├── configs/                   # YAML hyperparameter configurations
-│   ├── speed_model_config.yaml
-│   └── vibration_config.yaml
-│
-├── data/                      # Dataset repository
-│   ├── raw/IO-VNBD/           # Raw smartphone (5 trajectories) & vehicle CAN files
-│   ├── processed/cleaned/     # Resampled 10 Hz uniform dataset (iovnbd_cleaned_10hz.parquet)
-│   ├── processed/splits/      # Leak-free train/val/test split definitions
-│   ├── processed/windows/     # Window tensors ([5950, 20, 13] train, val, test .npz)
-│   └── scalers/               # StandardScaler parameters (json & pkl)
-│
-├── evaluation/                # Performance reports & diagnostic charts
-│   ├── metrics/               # 8 JSON summary files (evaluation, latency, outage benchmarks)
-│   └── plots/                 # 13 high-resolution diagnostic charts & error CDFs
-│
-├── models/                    # Model artifacts repository
-│   ├── speed_estimator/       # Checkpoint (.pth), ONNX (opset 14), INT8 TFLite (49.2 KB)
-│   ├── vibration_classifier/  # Checkpoint (.pth), ONNX (opset 14), INT8 TFLite (49.2 KB)
-│   └── motion_quality/        # Best weights (.pth), ONNX, INT8 TFLite (49.2 KB)
-│
-├── notebooks/                 # Master Jupyter notebook pipeline
-│   └── gati_ai_dead_reckoning_master_pipeline.ipynb
-│
-├── run_pipeline_script_mode.py # Headless automated execution runner
-└── README.md
-```
-
----
-
-## 🔬 13-Channel Feature Engineering Pipeline
-
-For every time step $t$, the pipeline constructs a 13-dimensional kinematic feature vector $\mathbf{x}_t \in \mathbb{R}^{13}$:
-1. $a_x$ — Forward/longitudinal acceleration ($\text{m/s}^2$)
-2. $a_y$ — Lateral acceleration ($\text{m/s}^2$)
-3. $a_z$ — Vertical acceleration ($\text{m/s}^2$)
-4. $g_x$ — Roll angular velocity ($\text{rad/s}$)
-5. $g_y$ — Pitch angular velocity ($\text{rad/s}$)
-6. $g_z$ — Yaw angular velocity ($\text{rad/s}$)
-7. $\|a\|$ — Total acceleration norm $\sqrt{a_x^2 + a_y^2 + a_z^2}$
-8. $\|g\|$ — Total angular velocity norm $\sqrt{g_x^2 + g_y^2 + g_z^2}$
-9. $\Delta a_x$ — Numerical longitudinal jerk $\frac{da_x}{dt}$
-10. $\Delta a_y$ — Numerical lateral jerk $\frac{da_y}{dt}$
-11. $\Delta a_z$ — Numerical vertical jerk $\frac{da_z}{dt}$
-12. $\text{pitch}$ — Gravity tilt angle $\text{atan2}(a_x, \sqrt{a_y^2 + a_z^2})$
-13. $\text{roll}$ — Gravity tilt angle $\text{atan2}(a_y, a_z)$
-
----
-
-## ⚙️ Mathematical Bridge to 15-State UKF
-
-Neural predictions do not output raw coordinates; they adaptively modulate Kalman filter covariance:
-- **Measurement Noise Scaling**:
-  $$R_{\text{speed}} = \frac{\sigma_{\text{ai}}^2 \cdot (1.0 + 2.0 \cdot V_{\text{score}})}{Q_{\text{motion}}}$$
-- **Process Noise Scaling**:
-  $$Q_{\text{ins}} = \frac{Q_{\text{nominal}} \cdot (1.0 + 1.5 \cdot V_{\text{score}})}{Q_{\text{motion}}}$$
-- **Zero-Velocity Constraint (ZUPT)**: Smooth exponential decay when $\hat{v} < 0.10\text{ m/s}$ and dynamic acceleration $< 0.38\text{ m/s}^2$.
-
----
-
-## ⚡ Running the ML Pipeline
-
-To re-run the entire data ingestion, preprocessing, training, evaluation, and export pipeline:
+## Train and deploy
 
 ```bash
-# Script mode execution
-python ml/run_pipeline_script_mode.py
-
-# Or launch Jupyter Notebook:
-jupyter notebook ml/notebooks/gati_ai_dead_reckoning_master_pipeline.ipynb
+# TensorFlow lives in its own environment
+ml/.venv-export/Scripts/python.exe ml/src/training/train_speed_v4.py --out ml/models/speed_estimator_v4
+cp ml/models/speed_estimator_v4/speed_estimator.tflite frontend/assets/models/
 ```
+
+Then update `frontend/assets/models/model_metadata.json` from `report.json`.
+
+## Contract with the app
+
+Input `[1, 20, 13]`: 20 samples at 10 Hz of `ax ay az gx gy gz |a| |g| dax day daz pitch roll` in the levelled vehicle frame (accelerometer includes gravity), standardised with the scaler in `model_metadata.json`. Output `[1, 2]`: speed (m/s, >= 0) and its log-variance.
+
+## Honest numbers (held-out trips M, Vtb01-03, Vtb05, Y1)
+
+v4: speed MAE 3.33 m/s, RMSE 4.61 m/s, R² 0.58; 61 % of errors inside 1-sigma, 87.5 % inside 2-sigma. The app only lets it into the filter after it agrees with GNSS Doppler speed on the same drive (RMS <= 1 m/s); on these trips it does not, so it stays advisory.

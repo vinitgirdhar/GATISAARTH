@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 /// The 10 Hz, 13-feature, 20-frame window every on-device model reads
-/// (`assets/models/model_metadata.json`, v3.1.0): the speed model, the vibration
+/// (`assets/models/model_metadata.json`): the speed model, the vibration
 /// classifier and the motion-quality model share one contract, so they share
 /// this class.
 ///

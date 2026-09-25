@@ -12,8 +12,12 @@ import '../../../../core/nav/anchors/visual_landmark_matcher.dart';
 import '../../../../core/nav/anchors/visual_relocalization.dart';
 import '../../../../core/nav/gnss/gnss_quality.dart';
 import '../../../../core/nav/guidance/mission_guidance.dart';
+import '../../../../core/nav/map/tunnel_lookahead.dart';
 import '../../../../core/nav/math/nav_math.dart' show Vector3;
+import '../../../../core/nav/model/correction_explainer.dart';
 import '../../../../core/nav/model/nav_snapshot.dart';
+import '../../../../core/nav/model/outage_log.dart';
+import '../../../../core/nav/model/outage_recovery.dart';
 import '../../../../core/nav/motion/activity_mode.dart';
 import '../../../../core/nav/motion/motion_classifier.dart' show VehicleClass;
 import '../../../../core/nav/navigation_engine.dart';
@@ -25,6 +29,7 @@ import '../../../../core/platform/anchors/anchor_pack_source.dart';
 import '../../../../core/platform/activity/activity_mode_source.dart';
 import '../../../../core/platform/radio/wifi_rtt_anchor_source.dart';
 import '../../../../core/nav/replay/drive_recorder.dart';
+import '../../../../core/nav/sensors/parking_level.dart';
 import '../../../../core/nav/sensors/sensor_sample.dart';
 import '../../../../core/platform/storage/drive_log_store.dart';
 import '../../../../core/platform/hardware/device_hardware.dart';
@@ -33,8 +38,6 @@ import '../../../../core/platform/hardware/haptics.dart';
 import '../../../../core/platform/hardware/sensor_api.dart';
 import '../../../../core/platform/hardware/vehicle_alignment_engine.dart';
 import '../../../../core/platform/location/live_location_service.dart';
-import '../../../../core/platform/network/backend_telemetry_client.dart'
-    show BackendSyncState;
 import '../../../../core/platform/maps/pack_road_source.dart'
     show RoadGraphSource;
 import '../../../../core/platform/network/telemetry_sink.dart';
@@ -252,6 +255,12 @@ class LiveSessionController extends ChangeNotifier {
 
   /// Keeps dead reckoning on the roads of the installed map (see class doc).
   final RoadConstraint _road;
+  final TunnelLookahead _tunnelLook = TunnelLookahead(config: NavConfig.live);
+  TunnelAhead? _tunnelAhead;
+  final OutageLog _outageLog = OutageLog();
+  final ParkingLevelTracker _parking =
+      ParkingLevelTracker(config: NavConfig.live);
+  DateTime? _lastTunnelCheck;
 
   /// The direction of travel the satellites reported at the last fix, or null
   /// when the vehicle was too slow for it to mean anything. Better than the
@@ -900,8 +909,7 @@ class LiveSessionController extends ChangeNotifier {
     final ax = v[0], ay = v[1], az = v[2];
     final gx = v[3], gy = v[4], gz = v[5];
 
-    final vehicleAccel = _alignment.transformToVehicleFrame(ax, ay, az);
-    _alignment.applyNonHolonomicConstraints(vehicleAccel);
+    _alignment.addAccelerometer(ax, ay, az);
     final netAccel = (sqrt(ax * ax + ay * ay + az * az) - 9.81).abs();
 
     _sampleCount++;
@@ -1096,6 +1104,8 @@ class LiveSessionController extends ChangeNotifier {
       alreadyElapsed: gap,
     );
     _updateMissionGuidance();
+    _updateTunnelAhead(now);
+    _updateParkingLevel(starting);
     if (starting && _outageIsWorthAlerting(now)) {
       unawaited(
           _haptics.fire(HapticEvent.outageStarted, recording: isRecording));
@@ -1117,6 +1127,43 @@ class LiveSessionController extends ChangeNotifier {
     } else {
       _outage.addDistance(missed);
     }
+  }
+
+  /// Once a second: the tunnel on the road ahead (or the one being driven),
+  /// from the same offline roads the marker follows.
+  void _updateTunnelAhead(DateTime now) {
+    final last = _lastTunnelCheck;
+    if (last != null && now.difference(last) < const Duration(seconds: 1)) {
+      return;
+    }
+    _lastTunnelCheck = now;
+    final graph = _road.graph;
+    final moving = _drActive || _speed > _stationarySpeed;
+    final found = graph == null || !moving || uncertainty == null
+        ? null
+        : _tunnelLook.find(graph, lat: _lat, lon: _lon, headingDeg: _heading);
+    if (found?.inside != _tunnelAhead?.inside ||
+        found?.distanceM.round() != _tunnelAhead?.distanceM.round()) {
+      _dirty = true;
+    }
+    _tunnelAhead = found;
+  }
+
+  /// Car-park floors: counted from the barometer while dead reckoning, from
+  /// the height where GNSS was lost.
+  void _updateParkingLevel(bool outageStarting) {
+    final height = _navSnapshot?.barometer?.relativeAltitudeM;
+    if (!_drActive) {
+      if (_parking.isTracking) {
+        _parking.clear();
+        _dirty = true;
+      }
+      return;
+    }
+    if (height == null) return;
+    if (outageStarting || !_parking.isTracking) _parking.markEntry(height);
+    final before = _parking.current?.level;
+    if (_parking.update(height)?.level != before) _dirty = true;
   }
 
   void _updateMissionGuidance() {
@@ -1423,6 +1470,8 @@ class LiveSessionController extends ChangeNotifier {
       _recorder?.recordGnss(observation);
       final snapshot = _engine.onGnss(observation);
       if (snapshot != null) _navSnapshot = snapshot;
+      final recovery = _engine.snapshot?.lastRecovery;
+      if (recovery != null && _outageLog.add(recovery)) _dirty = true;
       _appliedEngineFixCount++;
     } catch (e) {
       debugPrint('[NavigationEngine] fix feed failed: $e');
@@ -1690,8 +1739,8 @@ class LiveSessionController extends ChangeNotifier {
 
   double get vibrationRms => _vibrationRms;
   String get vibrationLevel => _vibrationLevel;
-  double get temperature => _hardware.currentTemperature;
-  double get thermalBias => _hardware.thermalBiasCorrection;
+  /// Phone temperature in °C, or null until the phone has reported one.
+  double? get temperature => _hardware.currentTemperature;
   List<AnomalyEventModel> get anomalies => List.unmodifiable(_anomalies);
 
   double get pitchDegrees => _alignment.pitch * 180 / pi;
@@ -1793,6 +1842,49 @@ class LiveSessionController extends ChangeNotifier {
   /// Diagnostics only for now — the map marker still comes from the
   /// pipeline above (see [_engine]).
   NavigationSnapshot? get navSnapshot => _navSnapshot;
+
+  /// The outage the core has just come out of, scored against the fix that
+  /// ended it, for the recovery card. Shown for [_recoveryCardFor] after the
+  /// returning fix and hidden again the moment a new outage starts.
+  OutageRecovery? get recentRecovery {
+    final snapshot = _navSnapshot;
+    final recovery = snapshot?.lastRecovery;
+    final now = _engineNowUs;
+    if (recovery == null || now == null) return null;
+    if (snapshot!.mode.isDeadReckoning) return null;
+    return recovery.isRecent(nowUs: now, window: _recoveryCardFor)
+        ? recovery
+        : null;
+  }
+
+  static const Duration _recoveryCardFor = Duration(seconds: 30);
+
+  /// The car-park floor relative to where GNSS was lost, once it differs
+  /// from the entry level; null otherwise (or with no barometer).
+  ParkingLevel? get parkingLevel {
+    final p = _parking.current;
+    return p == null || p.level == 0 ? null : p;
+  }
+
+  /// What the core did with each correction source lately, and why.
+  List<CorrectionExplanation> get corrections => _engine.corrections;
+
+  /// Every outage scored this session (the per-outage evidence table).
+  OutageLog get outageLog => _outageLog;
+
+  /// The tunnel to warn about: the one being driven, or one ahead within the
+  /// announce distance. Null when there is none (or no offline roads).
+  TunnelAhead? get tunnelAhead {
+    final t = _tunnelAhead;
+    if (t == null) return null;
+    return t.inside || t.distanceM <= NavConfig.live.tunnel.announceWithinM
+        ? t
+        : null;
+  }
+
+  /// True once the AI speed has been validated against GNSS on this drive.
+  bool get isSpeedAidValidated =>
+      _navSnapshot?.aiDiagnostics.validated ?? false;
 
   NavMode get engineMode => _engine.mode;
 

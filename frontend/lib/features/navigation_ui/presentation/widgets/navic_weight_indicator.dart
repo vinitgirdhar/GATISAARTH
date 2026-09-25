@@ -14,7 +14,8 @@ class NavicWeightIndicator extends StatelessWidget {
     final isDark = AppColors.isDark;
 
     return StandardCard(
-      titleText: 'NAVIC FUSION WEIGHT',
+      // The receiver picks the satellites; the filter weights no constellation.
+      titleText: 'NAVIC SHARE OF FIX',
       trailing: Text(
         '$weightPercent%',
         style: const TextStyle(
@@ -40,7 +41,7 @@ class NavicWeightIndicator extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Primary position fix priority assigned to NavIC S-band & L5 signals.',
+            "NavIC (IRNSS) satellites as a share of those the phone's receiver used in its last fix.",
             style: TextStyle(
               color: isDark
                   ? const Color(0xFF94A3B8)

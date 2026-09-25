@@ -1,7 +1,7 @@
 name: gatisaarth
 description: "GatiSaarth - High-Precision Vehicle Navigation System using Dead Reckoning, Multi-GNSS/NavIC, and Edge AI"
 publish_to: 'none'
-version: 4.2.0+44
+version: 4.4.0+46
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -55,53 +55,23 @@ flutter_native_splash:
 flutter:
   uses-material-design: true
   assets:
-    - assets/models/
+    # Listed file by file: only what the app loads ships in the APK.
+    - assets/models/model_metadata.json
+    - assets/models/speed_estimator.tflite
     - assets/benchmarks/
-    - assets/maps/
     - assets/maps/packs/
-    - assets/maps/tiles/
-    - assets/maps/tiles/11/1462/
-    - assets/maps/tiles/11/1463/
-    - assets/maps/tiles/12/2924/
-    - assets/maps/tiles/12/2925/
-    - assets/maps/tiles/12/2926/
-    - assets/maps/tiles/13/5848/
-    - assets/maps/tiles/13/5849/
-    - assets/maps/tiles/13/5850/
-    - assets/maps/tiles/13/5851/
-    - assets/maps/tiles/13/5852/
-    - assets/maps/tiles/13/5853/
-    - assets/maps/tiles/14/11697/
-    - assets/maps/tiles/14/11698/
-    - assets/maps/tiles/14/11699/
-    - assets/maps/tiles/14/11700/
-    - assets/maps/tiles/14/11701/
-    - assets/maps/tiles/14/11702/
-    - assets/maps/tiles/14/11703/
-    - assets/maps/tiles/14/11704/
-    - assets/maps/tiles/14/11705/
-    - assets/maps/tiles/14/11706/
-    - assets/maps/tiles/14/11707/
-    - assets/maps/tiles/15/23396/
-    - assets/maps/tiles/15/23397/
-    - assets/maps/tiles/15/23398/
-    - assets/maps/tiles/15/23399/
-    - assets/maps/tiles/15/23400/
-    - assets/maps/tiles/15/23410/
-    - assets/maps/tiles/15/23411/
-    - assets/maps/tiles/15/23412/
-    - assets/maps/tiles/16/46795/
-    - assets/maps/tiles/16/46796/
-    - assets/maps/tiles/16/46797/
-    - assets/maps/tiles/16/46798/
-    - assets/maps/tiles/16/46799/
-    - assets/maps/tiles/16/46822/
-    - assets/maps/tiles/16/46823/
-    - assets/maps/tiles/16/46824/
-    - assets/icons/
+    - assets/icons/logo.png
+    - assets/icons/logo_mark.png
+    - assets/icons/splash_icon.png
+    - assets/icons/wordmark.png
+    - assets/icons/wordmark_dark.png
     - assets/images/
-    - assets/config/
+    - assets/config/portal_anchors.json
   fonts:
     - family: .SF Pro Text
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf
+    # Some text styles name the family directly.
+    - family: Inter
       fonts:
         - asset: assets/fonts/Inter-Variable.ttf

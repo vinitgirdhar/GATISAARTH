@@ -1,47 +1,23 @@
+import '../../../../core/platform/gnss/gnss_telemetry.dart';
+
+/// Where the position on screen comes from right now.
 enum FusionMode {
-  gnssLocked,
-  gnssDegraded,
-  deadReckoning,
-  reacquiring,
-}
+  gnssLocked('GNSS locked', 'GNSS_LOCKED'),
+  gnssDegraded('GNSS degraded', 'GNSS_DEGRADED'),
+  deadReckoning('Dead reckoning', 'DEAD_RECKONING'),
+  reacquiring('Reacquiring GNSS', 'REACQUIRING');
 
-extension FusionModeExtension on FusionMode {
+  const FusionMode(this.label, this.nameString);
+
   /// Short readable name, for the map and status pills.
-  String get label {
-    switch (this) {
-      case FusionMode.gnssLocked:
-        return 'GNSS locked';
-      case FusionMode.gnssDegraded:
-        return 'GNSS degraded';
-      case FusionMode.deadReckoning:
-        return 'Dead reckoning';
-      case FusionMode.reacquiring:
-        return 'Reacquiring GNSS';
-    }
-  }
+  final String label;
 
-  String get nameString {
-    switch (this) {
-      case FusionMode.gnssLocked:
-        return 'GNSS_LOCKED';
-      case FusionMode.gnssDegraded:
-        return 'GNSS_DEGRADED';
-      case FusionMode.deadReckoning:
-        return 'DEAD_RECKONING';
-      case FusionMode.reacquiring:
-        return 'REACQUIRING';
-    }
-  }
+  /// Stable upper-case code for logs and telemetry.
+  final String nameString;
 }
 
+/// The position the UI draws, with the mode that produced it.
 class NavigationStateModel {
-  final double latitude;
-  final double longitude;
-  final double heading;
-  final double speed;
-  final double confidence;
-  final FusionMode fusionMode;
-
   const NavigationStateModel({
     required this.latitude,
     required this.longitude,
@@ -50,6 +26,18 @@ class NavigationStateModel {
     required this.confidence,
     required this.fusionMode,
   });
+
+  final double latitude, longitude;
+
+  /// Degrees clockwise from north.
+  final double heading;
+
+  /// m/s.
+  final double speed;
+
+  /// 0..1.
+  final double confidence;
+  final FusionMode fusionMode;
 }
 
 /// One ranked road geometry that remains plausible during an outage.
@@ -63,18 +51,14 @@ class RoadCorridorModel {
     this.roadName,
   });
 
+  /// Flat `[lat0, lon0, lat1, lon1, …]`.
   final List<double> polyline;
   final double probability;
   final String? roadName;
 }
 
+/// Whether each sensor is delivering usable data.
 class SensorHealthModel {
-  final bool accelerometer;
-  final bool gyroscope;
-  final bool magnetometer;
-  final bool gnss;
-  final bool barometer;
-
   const SensorHealthModel({
     required this.accelerometer,
     required this.gyroscope,
@@ -82,87 +66,73 @@ class SensorHealthModel {
     required this.gnss,
     this.barometer = false,
   });
+
+  final bool accelerometer, gyroscope, magnetometer, gnss, barometer;
 }
 
+/// Satellites of one constellation and their mean signal (C/N0, dB-Hz).
 class SatelliteInfoModel {
+  const SatelliteInfoModel({required this.count, required this.signalStrength});
+
   final int count;
   final double signalStrength;
-
-  const SatelliteInfoModel({
-    required this.count,
-    required this.signalStrength,
-  });
 }
 
+/// The four constellations the Sensors tab lists.
 class SatelliteBreakdownModel {
-  final SatelliteInfoModel navIC;
-  final SatelliteInfoModel gps;
-  final SatelliteInfoModel galileo;
-  final SatelliteInfoModel glonass;
-
   const SatelliteBreakdownModel({
     required this.navIC,
     required this.gps,
     required this.galileo,
     required this.glonass,
   });
+
+  /// Per-constellation counts and mean C/N0 from the phone's own GNSS status;
+  /// all zero before the first status arrives.
+  factory SatelliteBreakdownModel.fromTelemetry(GnssTelemetrySnapshot? t) {
+    SatelliteInfoModel of(GnssConstellation c) => SatelliteInfoModel(
+          count: t?.countFor(c) ?? 0,
+          signalStrength: t?.meanCn0For(c) ?? 0,
+        );
+    return SatelliteBreakdownModel(
+      navIC: of(GnssConstellation.navic),
+      gps: of(GnssConstellation.gps),
+      galileo: of(GnssConstellation.galileo),
+      glonass: of(GnssConstellation.glonass),
+    );
+  }
+
+  final SatelliteInfoModel navIC, gps, galileo, glonass;
 }
 
+/// What the AI panel shows about the speed model.
 class InferenceStatsModel {
-  /// Null until the neural model has actually run.
-  final int? latencyMs;
-  final String modelVersion;
-  final double? confidence;
-  final double? estimatedSpeed;
-
   const InferenceStatsModel({
     required this.latencyMs,
     required this.modelVersion,
     required this.confidence,
     required this.estimatedSpeed,
   });
+
+  /// Null until the neural model has actually run.
+  final int? latencyMs;
+  final String modelVersion;
+  final double? confidence;
+  final double? estimatedSpeed;
 }
 
+/// A bump or pothole the vibration detector flagged.
 class AnomalyEventModel {
-  final String type;
-  final int timestamp;
-  final double confidence;
-
   const AnomalyEventModel({
     required this.type,
     required this.timestamp,
     required this.confidence,
   });
-}
 
-class ThermalStateModel {
-  final double temperature;
-  final double biasCorrection;
+  /// `pothole` or `speed_breaker`.
+  final String type;
 
-  const ThermalStateModel({
-    required this.temperature,
-    required this.biasCorrection,
-  });
-}
-
-class DashboardDataModel {
-  final NavigationStateModel navigationState;
-  final SensorHealthModel sensorHealth;
-  final SatelliteBreakdownModel satelliteBreakdown;
-  final InferenceStatsModel inferenceStats;
-  final List<AnomalyEventModel> anomalyEvents;
-  final ThermalStateModel thermalState;
-  final double navicWeight;
-  final double mapMatchConfidence;
-
-  const DashboardDataModel({
-    required this.navigationState,
-    required this.sensorHealth,
-    required this.satelliteBreakdown,
-    required this.inferenceStats,
-    required this.anomalyEvents,
-    required this.thermalState,
-    required this.navicWeight,
-    required this.mapMatchConfidence,
-  });
+  /// Epoch milliseconds.
+  final int timestamp;
+  final double confidence;
 }

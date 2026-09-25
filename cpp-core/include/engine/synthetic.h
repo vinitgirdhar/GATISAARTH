@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "common/types.h"
+#include "engine/types.h"
 #include "engine/sensor_types.h"
 
 namespace gati {

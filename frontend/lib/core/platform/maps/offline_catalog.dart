@@ -145,7 +145,7 @@ class OfflineCatalog {
     north: 19.45,
     east: 73.30,
     maxZoom: 15,
-    approxBytes: 25655850,
+    approxBytes: 25661437,
     detail: true,
   );
 

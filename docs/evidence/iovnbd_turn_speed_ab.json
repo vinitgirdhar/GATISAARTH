@@ -1,0 +1,1580 @@
+{
+  "what": "Coordinated-turn speed (v = a_lat / yaw rate) A/B on real IO-VNBD trips. IMU = vehicle ESP/CAN (external-IMU proxy, 10 Hz), GNSS = VBOX 1 Hz, truth = withheld fixes. Median over trips of each trip's median drift; only trips scored (n >= 3) in both runs count.",
+  "10s": {
+    "trips": 21,
+    "off_drift_pct": 5.59,
+    "on_drift_pct": 5.63,
+    "off_error_m": 6.85,
+    "on_error_m": 6.77,
+    "trips_better": 0,
+    "trips_worse": 0,
+    "matched_drift_pct": 5.99,
+    "matched_error_m": 7.03,
+    "matched_trips_under_10_pct": 18,
+    "off_trips_under_10_pct": 17,
+    "on_trips_under_10_pct": 17
+  },
+  "30s": {
+    "trips": 21,
+    "off_drift_pct": 10.66,
+    "on_drift_pct": 10.66,
+    "off_error_m": 33.44,
+    "on_error_m": 33.62,
+    "trips_better": 1,
+    "trips_worse": 3,
+    "matched_drift_pct": 10.66,
+    "matched_error_m": 35.31,
+    "matched_trips_under_10_pct": 9,
+    "off_trips_under_10_pct": 10,
+    "on_trips_under_10_pct": 10
+  },
+  "60s": {
+    "trips": 21,
+    "off_drift_pct": 20.18,
+    "on_drift_pct": 19.92,
+    "off_error_m": 126.02,
+    "on_error_m": 127.68,
+    "trips_better": 10,
+    "trips_worse": 3,
+    "matched_drift_pct": 18.44,
+    "matched_error_m": 116.09,
+    "matched_trips_under_10_pct": 4,
+    "off_trips_under_10_pct": 5,
+    "on_trips_under_10_pct": 6
+  },
+  "120s": {
+    "trips": 20,
+    "off_drift_pct": 24.36,
+    "on_drift_pct": 25.21,
+    "off_error_m": 317.34,
+    "on_error_m": 317.34,
+    "trips_better": 6,
+    "trips_worse": 7,
+    "matched_drift_pct": 22.46,
+    "matched_error_m": 291.7,
+    "matched_trips_under_10_pct": 2,
+    "off_trips_under_10_pct": 3,
+    "on_trips_under_10_pct": 2
+  },
+  "per_trip": {
+    "S_Driver_A__S1__S1.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 8.06,
+          "error_m": 7.03,
+          "n": 12
+        },
+        "30s": {
+          "drift_pct": 7.26,
+          "error_m": 18.89,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 30.76,
+          "error_m": 136.66,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 41.33,
+          "error_m": 328.78,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 8.06,
+          "error_m": 7.03,
+          "n": 12
+        },
+        "30s": {
+          "drift_pct": 7.34,
+          "error_m": 19.65,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 29.27,
+          "error_m": 133.56,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 39.52,
+          "error_m": 328.76,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 8.06,
+          "error_m": 7.03,
+          "n": 12
+        },
+        "30s": {
+          "drift_pct": 7.06,
+          "error_m": 20.64,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 26.4,
+          "error_m": 111.47,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 31.75,
+          "error_m": 264.94,
+          "n": 16
+        }
+      }
+    },
+    "S_Driver_A__S2__S2.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 6.27,
+          "error_m": 5.98,
+          "n": 12
+        },
+        "30s": {
+          "drift_pct": 20.96,
+          "error_m": 40.29,
+          "n": 14
+        },
+        "60s": {
+          "drift_pct": 19.36,
+          "error_m": 98.0,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 36.32,
+          "error_m": 209.87,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 6.0,
+          "error_m": 5.9,
+          "n": 12
+        },
+        "30s": {
+          "drift_pct": 21.07,
+          "error_m": 39.5,
+          "n": 14
+        },
+        "60s": {
+          "drift_pct": 19.92,
+          "error_m": 94.86,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 34.57,
+          "error_m": 214.81,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 5.99,
+          "error_m": 5.81,
+          "n": 12
+        },
+        "30s": {
+          "drift_pct": 11.05,
+          "error_m": 21.63,
+          "n": 14
+        },
+        "60s": {
+          "drift_pct": 16.78,
+          "error_m": 83.71,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 37.28,
+          "error_m": 233.13,
+          "n": 16
+        }
+      }
+    },
+    "S_Driver_A__S3a__S3a.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 3.26,
+          "error_m": 3.02,
+          "n": 17
+        },
+        "30s": {
+          "drift_pct": 9.56,
+          "error_m": 34.67,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 20.34,
+          "error_m": 100.51,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 34.07,
+          "error_m": 330.04,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 3.13,
+          "error_m": 3.02,
+          "n": 17
+        },
+        "30s": {
+          "drift_pct": 9.56,
+          "error_m": 34.64,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 19.95,
+          "error_m": 100.28,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 37.14,
+          "error_m": 359.1,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 3.01,
+          "error_m": 3.64,
+          "n": 17
+        },
+        "30s": {
+          "drift_pct": 10.32,
+          "error_m": 36.16,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 19.02,
+          "error_m": 116.09,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 36.53,
+          "error_m": 359.03,
+          "n": 16
+        }
+      }
+    },
+    "S_Driver_A__S3b__S3b.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 13.87,
+          "error_m": 7.0,
+          "n": 14
+        },
+        "30s": {
+          "drift_pct": 21.19,
+          "error_m": 26.5,
+          "n": 15
+        },
+        "60s": {
+          "drift_pct": 41.3,
+          "error_m": 156.29,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 30.83,
+          "error_m": 255.37,
+          "n": 13
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 14.18,
+          "error_m": 7.01,
+          "n": 14
+        },
+        "30s": {
+          "drift_pct": 20.84,
+          "error_m": 31.09,
+          "n": 15
+        },
+        "60s": {
+          "drift_pct": 43.86,
+          "error_m": 143.81,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 31.72,
+          "error_m": 191.71,
+          "n": 13
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 14.59,
+          "error_m": 7.05,
+          "n": 14
+        },
+        "30s": {
+          "drift_pct": 20.58,
+          "error_m": 35.31,
+          "n": 15
+        },
+        "60s": {
+          "drift_pct": 44.36,
+          "error_m": 150.04,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 31.83,
+          "error_m": 192.4,
+          "n": 13
+        }
+      }
+    },
+    "S_Driver_A__S3c__S3c.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 6.75,
+          "error_m": 6.85,
+          "n": 15
+        },
+        "30s": {
+          "drift_pct": 9.84,
+          "error_m": 30.32,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 20.18,
+          "error_m": 140.7,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 23.81,
+          "error_m": 394.63,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 6.74,
+          "error_m": 6.79,
+          "n": 15
+        },
+        "30s": {
+          "drift_pct": 9.84,
+          "error_m": 30.32,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 20.88,
+          "error_m": 139.0,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 26.14,
+          "error_m": 379.78,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 8.32,
+          "error_m": 7.07,
+          "n": 15
+        },
+        "30s": {
+          "drift_pct": 7.85,
+          "error_m": 30.71,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 19.31,
+          "error_m": 126.95,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 22.13,
+          "error_m": 333.65,
+          "n": 16
+        }
+      }
+    },
+    "S_Driver_A__S4__S4.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 17.21,
+          "error_m": 17.16,
+          "n": 14
+        },
+        "30s": {
+          "drift_pct": 46.51,
+          "error_m": 185.37,
+          "n": 13
+        },
+        "60s": {
+          "drift_pct": 77.97,
+          "error_m": 156.89,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 56.68,
+          "error_m": 473.03,
+          "n": 15
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 17.21,
+          "error_m": 17.13,
+          "n": 14
+        },
+        "30s": {
+          "drift_pct": 46.51,
+          "error_m": 185.37,
+          "n": 13
+        },
+        "60s": {
+          "drift_pct": 77.97,
+          "error_m": 157.9,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 61.12,
+          "error_m": 474.6,
+          "n": 15
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 17.21,
+          "error_m": 17.12,
+          "n": 14
+        },
+        "30s": {
+          "drift_pct": 46.51,
+          "error_m": 185.37,
+          "n": 13
+        },
+        "60s": {
+          "drift_pct": 77.97,
+          "error_m": 158.58,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 55.68,
+          "error_m": 483.75,
+          "n": 15
+        }
+      }
+    },
+    "Vf_Driver_E__V-Vfa02__Vfa02.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 1.25,
+          "error_m": 2.98,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 4.61,
+          "error_m": 31.32,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 10.32,
+          "error_m": 160.22,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 16.06,
+          "error_m": 488.5,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 1.25,
+          "error_m": 2.98,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 4.61,
+          "error_m": 31.18,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 10.32,
+          "error_m": 160.22,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 15.9,
+          "error_m": 501.61,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 1.25,
+          "error_m": 2.98,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 4.61,
+          "error_m": 31.5,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 10.32,
+          "error_m": 160.22,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 15.79,
+          "error_m": 507.56,
+          "n": 16
+        }
+      }
+    },
+    "Vta_Driver_E__Vta01a__Vta1a.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 5.59,
+          "error_m": 7.03,
+          "n": 17
+        },
+        "30s": {
+          "drift_pct": 10.93,
+          "error_m": 48.38,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 10.43,
+          "error_m": 98.1,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 13.75,
+          "error_m": 263.47,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 5.63,
+          "error_m": 7.42,
+          "n": 17
+        },
+        "30s": {
+          "drift_pct": 10.93,
+          "error_m": 48.38,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 9.6,
+          "error_m": 98.58,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 13.8,
+          "error_m": 255.98,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 5.59,
+          "error_m": 7.48,
+          "n": 17
+        },
+        "30s": {
+          "drift_pct": 11.03,
+          "error_m": 48.45,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 10.62,
+          "error_m": 98.1,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 12.21,
+          "error_m": 245.93,
+          "n": 16
+        }
+      }
+    },
+    "Vta_Driver_E__Vta02__Vta2.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 8.11,
+          "error_m": 7.15,
+          "n": 10
+        },
+        "30s": {
+          "drift_pct": 21.4,
+          "error_m": 33.23,
+          "n": 9
+        },
+        "60s": {
+          "drift_pct": 49.11,
+          "error_m": 221.92,
+          "n": 10
+        },
+        "120s": {
+          "drift_pct": 56.9,
+          "error_m": 517.58,
+          "n": 8
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 7.91,
+          "error_m": 7.15,
+          "n": 10
+        },
+        "30s": {
+          "drift_pct": 20.01,
+          "error_m": 33.62,
+          "n": 9
+        },
+        "60s": {
+          "drift_pct": 48.41,
+          "error_m": 218.54,
+          "n": 10
+        },
+        "120s": {
+          "drift_pct": 57.32,
+          "error_m": 517.58,
+          "n": 8
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 8.38,
+          "error_m": 7.15,
+          "n": 10
+        },
+        "30s": {
+          "drift_pct": 18.55,
+          "error_m": 35.31,
+          "n": 9
+        },
+        "60s": {
+          "drift_pct": 47.18,
+          "error_m": 216.25,
+          "n": 10
+        },
+        "120s": {
+          "drift_pct": 57.98,
+          "error_m": 517.58,
+          "n": 8
+        }
+      }
+    },
+    "Vta_Driver_E__Vta08__Vta8.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 1.82,
+          "error_m": 3.38,
+          "n": 5
+        },
+        "30s": {
+          "drift_pct": 10.66,
+          "error_m": 58.88,
+          "n": 4
+        },
+        "60s": {
+          "drift_pct": 20.26,
+          "error_m": 203.85,
+          "n": 3
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 1.82,
+          "error_m": 3.38,
+          "n": 5
+        },
+        "30s": {
+          "drift_pct": 10.66,
+          "error_m": 58.88,
+          "n": 4
+        },
+        "60s": {
+          "drift_pct": 20.26,
+          "error_m": 202.84,
+          "n": 3
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 1.82,
+          "error_m": 3.38,
+          "n": 5
+        },
+        "30s": {
+          "drift_pct": 10.66,
+          "error_m": 58.86,
+          "n": 4
+        },
+        "60s": {
+          "drift_pct": 20.26,
+          "error_m": 204.95,
+          "n": 3
+        }
+      }
+    },
+    "Vta_Driver_E__Vta16__Vta16.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 7.92,
+          "error_m": 12.12,
+          "n": 13
+        },
+        "30s": {
+          "drift_pct": 13.95,
+          "error_m": 45.57,
+          "n": 15
+        },
+        "60s": {
+          "drift_pct": 20.27,
+          "error_m": 148.29,
+          "n": 14
+        },
+        "120s": {
+          "drift_pct": 24.91,
+          "error_m": 446.04,
+          "n": 13
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 7.92,
+          "error_m": 12.12,
+          "n": 13
+        },
+        "30s": {
+          "drift_pct": 13.93,
+          "error_m": 45.57,
+          "n": 15
+        },
+        "60s": {
+          "drift_pct": 18.95,
+          "error_m": 138.33,
+          "n": 14
+        },
+        "120s": {
+          "drift_pct": 24.27,
+          "error_m": 417.46,
+          "n": 13
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 7.92,
+          "error_m": 12.12,
+          "n": 13
+        },
+        "30s": {
+          "drift_pct": 14.48,
+          "error_m": 54.86,
+          "n": 15
+        },
+        "60s": {
+          "drift_pct": 18.44,
+          "error_m": 150.37,
+          "n": 14
+        },
+        "120s": {
+          "drift_pct": 22.8,
+          "error_m": 409.17,
+          "n": 13
+        }
+      }
+    },
+    "Vta_Driver_E__Vta17__Vta17.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 7.64,
+          "error_m": 9.29,
+          "n": 11
+        },
+        "30s": {
+          "drift_pct": 12.87,
+          "error_m": 31.32,
+          "n": 12
+        },
+        "60s": {
+          "drift_pct": 9.79,
+          "error_m": 53.08,
+          "n": 10
+        },
+        "120s": {
+          "drift_pct": 16.78,
+          "error_m": 149.98,
+          "n": 7
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 7.64,
+          "error_m": 8.86,
+          "n": 11
+        },
+        "30s": {
+          "drift_pct": 12.87,
+          "error_m": 31.28,
+          "n": 12
+        },
+        "60s": {
+          "drift_pct": 9.62,
+          "error_m": 47.45,
+          "n": 10
+        },
+        "120s": {
+          "drift_pct": 11.14,
+          "error_m": 122.38,
+          "n": 7
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 7.85,
+          "error_m": 8.13,
+          "n": 11
+        },
+        "30s": {
+          "drift_pct": 15.14,
+          "error_m": 31.67,
+          "n": 12
+        },
+        "60s": {
+          "drift_pct": 11.18,
+          "error_m": 53.1,
+          "n": 10
+        },
+        "120s": {
+          "drift_pct": 11.05,
+          "error_m": 121.37,
+          "n": 7
+        }
+      }
+    },
+    "Vta_Driver_E__Vta28__Vta28.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 5.25,
+          "error_m": 5.9,
+          "n": 2
+        },
+        "30s": {
+          "drift_pct": 20.7,
+          "error_m": 70.08,
+          "n": 2
+        },
+        "60s": {
+          "drift_pct": 43.27,
+          "error_m": 257.89,
+          "n": 2
+        },
+        "120s": {
+          "drift_pct": 63.48,
+          "error_m": 799.38,
+          "n": 2
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 5.27,
+          "error_m": 5.91,
+          "n": 2
+        },
+        "30s": {
+          "drift_pct": 21.46,
+          "error_m": 72.62,
+          "n": 2
+        },
+        "60s": {
+          "drift_pct": 43.93,
+          "error_m": 261.94,
+          "n": 2
+        },
+        "120s": {
+          "drift_pct": 63.77,
+          "error_m": 803.07,
+          "n": 2
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 5.51,
+          "error_m": 6.18,
+          "n": 2
+        },
+        "30s": {
+          "drift_pct": 23.1,
+          "error_m": 78.01,
+          "n": 2
+        },
+        "60s": {
+          "drift_pct": 45.08,
+          "error_m": 269.0,
+          "n": 2
+        },
+        "120s": {
+          "drift_pct": 64.27,
+          "error_m": 809.28,
+          "n": 2
+        }
+      }
+    },
+    "Vta_Driver_E__Vta29__Vta29.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 10.12,
+          "error_m": 11.35,
+          "n": 13
+        },
+        "30s": {
+          "drift_pct": 14.38,
+          "error_m": 50.57,
+          "n": 15
+        },
+        "60s": {
+          "drift_pct": 32.9,
+          "error_m": 264.82,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 27.46,
+          "error_m": 341.33,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 10.12,
+          "error_m": 11.35,
+          "n": 13
+        },
+        "30s": {
+          "drift_pct": 14.34,
+          "error_m": 50.44,
+          "n": 15
+        },
+        "60s": {
+          "drift_pct": 32.04,
+          "error_m": 265.06,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 27.95,
+          "error_m": 343.57,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 8.44,
+          "error_m": 9.46,
+          "n": 13
+        },
+        "30s": {
+          "drift_pct": 13.36,
+          "error_m": 46.98,
+          "n": 15
+        },
+        "60s": {
+          "drift_pct": 29.58,
+          "error_m": 234.6,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 32.21,
+          "error_m": 354.17,
+          "n": 16
+        }
+      }
+    },
+    "Vta_Driver_E__Vta30__Vta30.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 5.57,
+          "error_m": 6.55,
+          "n": 9
+        },
+        "30s": {
+          "drift_pct": 27.01,
+          "error_m": 45.25,
+          "n": 14
+        },
+        "60s": {
+          "drift_pct": 50.35,
+          "error_m": 87.68,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 53.24,
+          "error_m": 294.8,
+          "n": 15
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 5.57,
+          "error_m": 6.55,
+          "n": 9
+        },
+        "30s": {
+          "drift_pct": 26.77,
+          "error_m": 44.9,
+          "n": 14
+        },
+        "60s": {
+          "drift_pct": 50.35,
+          "error_m": 87.68,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 55.09,
+          "error_m": 294.8,
+          "n": 15
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 6.17,
+          "error_m": 7.24,
+          "n": 9
+        },
+        "30s": {
+          "drift_pct": 24.62,
+          "error_m": 44.72,
+          "n": 14
+        },
+        "60s": {
+          "drift_pct": 50.33,
+          "error_m": 87.68,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 53.24,
+          "error_m": 294.8,
+          "n": 15
+        }
+      }
+    },
+    "Vtb_Driver_E__Vtb01__Vtb1.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 258.43,
+          "error_m": 409.16,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 187.43,
+          "error_m": 715.98,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 119.02,
+          "error_m": 898.43,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 99.48,
+          "error_m": 1584.84,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 258.42,
+          "error_m": 409.15,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 187.69,
+          "error_m": 715.68,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 117.21,
+          "error_m": 884.99,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 97.8,
+          "error_m": 1542.9,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 258.41,
+          "error_m": 409.13,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 187.43,
+          "error_m": 715.92,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 119.01,
+          "error_m": 898.34,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 99.47,
+          "error_m": 1584.82,
+          "n": 16
+        }
+      }
+    },
+    "Vtb_Driver_E__Vtb05__Vtb5.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 2.99,
+          "error_m": 6.16,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 8.93,
+          "error_m": 33.44,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 11.95,
+          "error_m": 126.02,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 14.1,
+          "error_m": 305.9,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 2.99,
+          "error_m": 6.16,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 8.65,
+          "error_m": 33.44,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 12.13,
+          "error_m": 127.68,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 14.34,
+          "error_m": 305.93,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 2.99,
+          "error_m": 6.16,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 9.5,
+          "error_m": 33.44,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 12.25,
+          "error_m": 116.23,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 14.77,
+          "error_m": 288.61,
+          "n": 16
+        }
+      }
+    },
+    "Vw_Driver_E__Vw02__Vw2.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 1.14,
+          "error_m": 2.51,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 3.55,
+          "error_m": 15.59,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 4.45,
+          "error_m": 63.15,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 8.58,
+          "error_m": 133.12,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 1.14,
+          "error_m": 2.51,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 3.22,
+          "error_m": 15.58,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 4.45,
+          "error_m": 63.15,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 8.58,
+          "error_m": 133.16,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 1.14,
+          "error_m": 2.51,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 3.61,
+          "error_m": 16.62,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 4.45,
+          "error_m": 63.15,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 8.58,
+          "error_m": 134.14,
+          "n": 16
+        }
+      }
+    },
+    "Vw_Driver_E__Vw03__Vw3.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 1.84,
+          "error_m": 2.99,
+          "n": 1
+        },
+        "30s": {
+          "drift_pct": 19.91,
+          "error_m": 46.36,
+          "n": 1
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 1.84,
+          "error_m": 2.99,
+          "n": 1
+        },
+        "30s": {
+          "drift_pct": 19.75,
+          "error_m": 45.99,
+          "n": 1
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 1.84,
+          "error_m": 2.99,
+          "n": 1
+        },
+        "30s": {
+          "drift_pct": 20.86,
+          "error_m": 48.57,
+          "n": 1
+        }
+      }
+    },
+    "Vw_Driver_E__Vw04__Vw4.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 2.66,
+          "error_m": 5.49,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 6.89,
+          "error_m": 40.33,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 8.81,
+          "error_m": 95.5,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 9.57,
+          "error_m": 239.75,
+          "n": 16
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 2.66,
+          "error_m": 5.49,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 6.89,
+          "error_m": 40.92,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 8.72,
+          "error_m": 97.6,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 10.07,
+          "error_m": 240.29,
+          "n": 16
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 2.66,
+          "error_m": 5.49,
+          "n": 16
+        },
+        "30s": {
+          "drift_pct": 6.89,
+          "error_m": 40.4,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 8.67,
+          "error_m": 102.09,
+          "n": 16
+        },
+        "120s": {
+          "drift_pct": 10.19,
+          "error_m": 240.28,
+          "n": 16
+        }
+      }
+    },
+    "Vw_Driver_E__Vw11__Vw11.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 3.62,
+          "error_m": 6.87,
+          "n": 10
+        },
+        "30s": {
+          "drift_pct": 7.84,
+          "error_m": 26.25,
+          "n": 10
+        },
+        "60s": {
+          "drift_pct": 11.27,
+          "error_m": 94.91,
+          "n": 8
+        },
+        "120s": {
+          "drift_pct": 21.73,
+          "error_m": 333.0,
+          "n": 5
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 3.62,
+          "error_m": 6.77,
+          "n": 10
+        },
+        "30s": {
+          "drift_pct": 7.89,
+          "error_m": 26.25,
+          "n": 10
+        },
+        "60s": {
+          "drift_pct": 11.79,
+          "error_m": 94.2,
+          "n": 8
+        },
+        "120s": {
+          "drift_pct": 22.36,
+          "error_m": 342.72,
+          "n": 5
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 3.62,
+          "error_m": 6.77,
+          "n": 10
+        },
+        "30s": {
+          "drift_pct": 7.8,
+          "error_m": 26.25,
+          "n": 10
+        },
+        "60s": {
+          "drift_pct": 12.47,
+          "error_m": 95.05,
+          "n": 8
+        },
+        "120s": {
+          "drift_pct": 22.11,
+          "error_m": 338.78,
+          "n": 5
+        }
+      }
+    },
+    "Vw_Driver_E__Vw14b__Vw14b.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 1.76,
+          "error_m": 3.13,
+          "n": 17
+        },
+        "30s": {
+          "drift_pct": 4.91,
+          "error_m": 28.29,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 7.99,
+          "error_m": 90.24,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 11.43,
+          "error_m": 196.09,
+          "n": 14
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 1.76,
+          "error_m": 3.13,
+          "n": 17
+        },
+        "30s": {
+          "drift_pct": 4.91,
+          "error_m": 28.29,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 7.99,
+          "error_m": 90.24,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 11.43,
+          "error_m": 196.09,
+          "n": 14
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 1.76,
+          "error_m": 3.13,
+          "n": 17
+        },
+        "30s": {
+          "drift_pct": 4.91,
+          "error_m": 28.29,
+          "n": 16
+        },
+        "60s": {
+          "drift_pct": 7.99,
+          "error_m": 90.24,
+          "n": 15
+        },
+        "120s": {
+          "drift_pct": 11.43,
+          "error_m": 196.09,
+          "n": 14
+        }
+      }
+    },
+    "Vw_Driver_E__Vw16a__Vw16a.jsonl": {
+      "off": {
+        "10s": {
+          "drift_pct": 2.28,
+          "error_m": 5.0,
+          "n": 11
+        },
+        "30s": {
+          "drift_pct": 5.11,
+          "error_m": 29.91,
+          "n": 10
+        },
+        "60s": {
+          "drift_pct": 6.57,
+          "error_m": 74.01,
+          "n": 9
+        },
+        "120s": {
+          "drift_pct": 7.84,
+          "error_m": 169.9,
+          "n": 6
+        }
+      },
+      "on": {
+        "10s": {
+          "drift_pct": 2.28,
+          "error_m": 5.0,
+          "n": 11
+        },
+        "30s": {
+          "drift_pct": 5.11,
+          "error_m": 29.91,
+          "n": 10
+        },
+        "60s": {
+          "drift_pct": 6.57,
+          "error_m": 74.01,
+          "n": 9
+        },
+        "120s": {
+          "drift_pct": 7.84,
+          "error_m": 169.9,
+          "n": 6
+        }
+      },
+      "on_matched": {
+        "10s": {
+          "drift_pct": 2.28,
+          "error_m": 5.0,
+          "n": 11
+        },
+        "30s": {
+          "drift_pct": 5.11,
+          "error_m": 29.91,
+          "n": 10
+        },
+        "60s": {
+          "drift_pct": 6.57,
+          "error_m": 74.01,
+          "n": 9
+        },
+        "120s": {
+          "drift_pct": 7.84,
+          "error_m": 169.9,
+          "n": 6
+        }
+      }
+    }
+  }
+}

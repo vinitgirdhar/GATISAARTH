@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/geo_format.dart';
 import '../../controllers/live_session_scope.dart';
@@ -6,6 +7,10 @@ import '../../widgets/fusion_confidence_badge.dart';
 import '../../widgets/engine_status_card.dart';
 import '../../widgets/map_controls.dart';
 import '../../widgets/navigation_map.dart';
+import '../../widgets/outage_recovery_card.dart';
+import '../../controllers/position_share.dart';
+import '../../widgets/parking_level_card.dart';
+import '../../widgets/tunnel_ahead_card.dart';
 import '../../widgets/mission_guidance_card.dart';
 import '../../widgets/session_controls.dart';
 import '../../widgets/telemetry_card.dart';
@@ -126,7 +131,8 @@ class _MapTabState extends State<MapTab> {
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
-                          fontFamily: 'RobotoMono',
+                          // Digits of equal width, so the line does not jitter.
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -191,6 +197,17 @@ class _MapTabState extends State<MapTab> {
                         ),
                       );
                     },
+                    onMarkBump: () {
+                      session.markEvent('bump');
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Bump labelled in the log'),
+                          backgroundColor: AppColors.warning,
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
                     onMarkEvent: () {
                       session.markEvent('driver marker');
                       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -208,7 +225,29 @@ class _MapTabState extends State<MapTab> {
             ),
           ),
 
-          if (session.missionGuidance != null)
+          // A just-ended outage is scored first; guidance returns after.
+          if (session.recentRecovery != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/outage-log'),
+                child: OutageRecoveryCard(recovery: session.recentRecovery!),
+              ),
+            )
+          else if (session.parkingLevel != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: ParkingLevelCard(level: session.parkingLevel!),
+            )
+          else if (session.tunnelAhead != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: TunnelAheadCard(
+                tunnel: session.tunnelAhead!,
+                speedAidValidated: session.isSpeedAidValidated,
+              ),
+            )
+          else if (session.missionGuidance != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: MissionGuidanceCard(
@@ -239,6 +278,26 @@ class _MapTabState extends State<MapTab> {
                     bottomInset: _sheetRadius + 12,
                     onClearTrail: session.clearTrail,
                     actions: [
+                      if (estimate != null)
+                        MapControlButton(
+                          icon: Icon(
+                            Icons.share_location_rounded,
+                            size: 22,
+                            color: AppColors.textPrimary,
+                          ),
+                          semanticLabel: 'Share my position',
+                          onTap: () => SharePlus.instance.share(ShareParams(
+                            subject: 'My position',
+                            text: positionShareText(
+                              latitude: session.latitude,
+                              longitude: session.longitude,
+                              marginM: margin,
+                              deadReckoning: session.inOutage,
+                              sinceGnssLost: session.outageElapsed,
+                              at: DateTime.now(),
+                            ),
+                          )),
+                        ),
                       MapControlButton(
                         icon: Icon(
                           Icons.fullscreen_rounded,
@@ -287,7 +346,7 @@ class _MapTabState extends State<MapTab> {
                     TelemetryCard(
                       label: 'Heading',
                       value: '${session.heading.round()}°',
-                      subtitle: 'Compass',
+                      subtitle: 'Direction of travel',
                       accentColor: AppColors.secondary,
                     ),
                     const SizedBox(width: 8),

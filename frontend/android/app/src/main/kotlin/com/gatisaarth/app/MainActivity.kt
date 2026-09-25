@@ -613,20 +613,18 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private fun getBatteryTemperature(): Double {
+    /** Battery temperature in degC, or null when the phone does not report it. */
+    private fun getBatteryTemperature(): Double? {
         return try {
             val intent = applicationContext.registerReceiver(
                 null,
                 IntentFilter(Intent.ACTION_BATTERY_CHANGED)
             )
-            val tempTenths = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1) ?: -1
-            if (tempTenths > 0) {
-                tempTenths / 10.0
-            } else {
-                35.0 // Fallback nominal operating temperature
-            }
+            val tempTenths = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE)
+                ?: Int.MIN_VALUE
+            if (tempTenths == Int.MIN_VALUE) null else tempTenths / 10.0
         } catch (e: Exception) {
-            35.0
+            null
         }
     }
 

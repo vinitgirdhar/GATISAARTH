@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/nav/sensors/sensor_sample.dart';
 import '../../../../../core/platform/gnss/gnss_telemetry.dart';
+import '../../../../../core/platform/location/live_location_service.dart';
 import '../../../../../core/widgets/motion.dart';
 import '../../../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../controllers/live_session_controller.dart';
@@ -16,6 +18,7 @@ class SensorsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = LiveSessionScope.of(context);
     final isDark = AppColors.isDark;
+    final rows = sensorRows(session);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -25,9 +28,8 @@ class SensorsTab extends StatelessWidget {
         AppSpacing.xxl,
       ),
       children: [
-        // 1. Header with Online Count
+        // 1. Header with the live count
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
               child: Column(
@@ -44,7 +46,7 @@ class SensorsTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Hardware telemetry & multi-sensor fusion',
+                    'What each sensor is delivering right now',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -54,37 +56,13 @@ class SensorsTab extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.success.withValues(alpha: 0.3),
-                ),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.check_circle_rounded,
-                      color: AppColors.success, size: 14),
-                  SizedBox(width: 6),
-                  Text(
-                    '8/8 Online',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.success,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _LiveCount(rows: rows),
           ],
         ),
 
         const SizedBox(height: AppSpacing.lg),
 
-        // 2. Sensor Item Cards (Matching UI/UX Board Screen 4)
+        // 2. One row per sensor, from measured data only
         Container(
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
@@ -98,79 +76,17 @@ class SensorsTab extends StatelessWidget {
           ),
           child: Column(
             children: [
-              _SensorStatusTile(
-                icon: Icons.gps_fixed_rounded,
-                name: 'GPS / GNSS',
-                statusText:
-                    session.hasLiveGnss ? 'Excellent' : 'Simulated Outage',
-                statusColor:
-                    session.hasLiveGnss ? AppColors.success : AppColors.warning,
-                detail: session.hasLiveGnss
-                    ? 'Fix active · ±${(session.uncertainty?.marginMeters ?? 5.0).toStringAsFixed(1)} m'
-                    : 'Searching for satellites',
-              ),
-              const Divider(height: 1),
-              _SensorStatusTile(
-                icon: Icons.speed_rounded,
-                name: 'Accelerometer',
-                statusText: 'Good',
-                statusColor: AppColors.success,
-                detail:
-                    '50 Hz · RMS ${session.vibrationRms.toStringAsFixed(2)} g',
-              ),
-              const Divider(height: 1),
-              _SensorStatusTile(
-                icon: Icons.screen_rotation_rounded,
-                name: 'Gyroscope',
-                statusText: 'Good',
-                statusColor: AppColors.success,
-                detail: '50 Hz · Low drift calibration',
-              ),
-              const Divider(height: 1),
-              _SensorStatusTile(
-                icon: Icons.explore_rounded,
-                name: 'Magnetometer',
-                statusText: 'Good',
-                statusColor: AppColors.success,
-                detail: '${session.heading.round()}° heading · Uncalibrated',
-              ),
-              const Divider(height: 1),
-              _SensorStatusTile(
-                icon: Icons.air_rounded,
-                name: 'Barometer',
-                statusText: 'Good',
-                statusColor: AppColors.success,
-                detail: 'Altitude ${session.altitude.toStringAsFixed(1)} m',
-              ),
-              const Divider(height: 1),
-              _SensorStatusTile(
-                icon: Icons.camera_alt_rounded,
-                name: 'AI Speed Estimator',
-                statusText: 'Excellent',
-                statusColor: AppColors.success,
-                detail: session.isSpeedEstimatorReady
-                    ? 'TFLite Int8 model active'
-                    : 'Rule-based fallback active',
-              ),
-              const Divider(height: 1),
-              _SensorStatusTile(
-                icon: Icons.thermostat_rounded,
-                name: 'Thermal State',
-                statusText: 'Normal',
-                statusColor: AppColors.success,
-                detail:
-                    '${session.temperature.toStringAsFixed(1)}°C · Bias compensated',
-              ),
-              const Divider(height: 1),
-              _SensorStatusTile(
-                icon: Icons.phone_android_rounded,
-                name: 'Mount Alignment',
-                statusText: 'Calibrated',
-                statusColor: AppColors.success,
-                detail:
-                    'Pitch ${session.pitchDegrees.toStringAsFixed(1)}° · Roll ${session.rollDegrees.toStringAsFixed(1)}°',
-                isLast: true,
-              ),
+              for (final (i, r) in rows.indexed) ...[
+                if (i > 0) const Divider(height: 1),
+                _SensorStatusTile(
+                  icon: r.icon,
+                  name: r.name,
+                  statusText: r.status,
+                  statusColor: r.color,
+                  detail: r.detail,
+                  isLast: i == rows.length - 1,
+                ),
+              ],
             ],
           ),
         ),
@@ -183,7 +99,8 @@ class SensorsTab extends StatelessWidget {
           subtitle: 'NavIC, GPS, Galileo, and GLONASS tracking',
         ),
         SatelliteBreakdown(
-          satelliteBreakdown: _satellites(session),
+          satelliteBreakdown:
+              SatelliteBreakdownModel.fromTelemetry(session.gnssTelemetry),
           isHardwareBacked: session.gnssTelemetry?.hasRealStatus ?? false,
           rawMeasurementsSupported:
               session.gnssTelemetry?.rawMeasurementsSupported ?? false,
@@ -197,21 +114,6 @@ class SensorsTab extends StatelessWidget {
           cn0History: session.gnssCn0History,
         ),
       ],
-    );
-  }
-
-  static SatelliteBreakdownModel _satellites(LiveSessionController s) {
-    final telemetry = s.gnssTelemetry;
-    SatelliteInfoModel info(GnssConstellation constellation) =>
-        SatelliteInfoModel(
-          count: telemetry?.countFor(constellation) ?? 0,
-          signalStrength: telemetry?.meanCn0For(constellation) ?? 0,
-        );
-    return SatelliteBreakdownModel(
-      navIC: info(GnssConstellation.navic),
-      gps: info(GnssConstellation.gps),
-      galileo: info(GnssConstellation.galileo),
-      glonass: info(GnssConstellation.glonass),
     );
   }
 
@@ -291,6 +193,198 @@ class _SensorStatusTile extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 color: statusColor,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One row of the sensor list.
+typedef SensorRow = ({
+  IconData icon,
+  String name,
+  String status,
+  Color color,
+  String detail,
+  bool stream,
+  bool live,
+});
+
+/// Builds the sensor list from what the session has actually measured: the
+/// core's per-sensor stream statistics and fault diagnoses, the GNSS state,
+/// the model and the mount. No row says "Live" unless data says so.
+List<SensorRow> sensorRows(LiveSessionController s) {
+  final snap = s.navSnapshot;
+  SensorRow imu(SensorType type, IconData icon, String name) {
+    final stats = snap?.sensorStats[type];
+    final diag = snap?.sensorFaults[type];
+    if (stats == null || stats.received == 0) {
+      return (
+        icon: icon,
+        name: name,
+        status: 'Waiting',
+        color: AppColors.textSecondary,
+        detail: 'No samples yet',
+        stream: true,
+        live: false,
+      );
+    }
+    if (diag != null && !diag.usable) {
+      return (
+        icon: icon,
+        name: name,
+        status: 'Fault',
+        color: AppColors.error,
+        detail: '${diag.fault.name} · ${diag.detail ?? 'not used by the core'}',
+        stream: true,
+        live: false,
+      );
+    }
+    final hz = stats.effectiveHz;
+    return (
+      icon: icon,
+      name: name,
+      status: 'Live',
+      color: AppColors.success,
+      detail: '${hz == null ? '--' : hz.round()} Hz measured'
+          '${stats.dropped > 0 ? ' · ${stats.dropped} dropped' : ''}',
+      stream: true,
+      live: true,
+    );
+  }
+
+  final margin = s.uncertainty?.marginMeters;
+  final SensorRow gnss = s.hasLiveGnss
+      ? (
+          icon: Icons.gps_fixed_rounded,
+          name: 'GPS / GNSS',
+          status: 'Live',
+          color: AppColors.success,
+          detail: 'Fix active · ±${margin?.toStringAsFixed(1) ?? '--'} m',
+          stream: true,
+          live: true,
+        )
+      : (
+          icon: Icons.gps_off_rounded,
+          name: 'GPS / GNSS',
+          status: s.isSimulatingTunnel
+              ? 'Test outage'
+              : switch (s.gnssStatus) {
+                  LocationStatus.serviceOff => 'Location off',
+                  LocationStatus.permissionDenied ||
+                  LocationStatus.permissionBlocked =>
+                    'No permission',
+                  LocationStatus.stale => 'Lost',
+                  _ => 'Searching',
+                },
+          color: AppColors.warning,
+          detail: s.inOutage ? 'Dead reckoning' : 'Waiting for satellites',
+          stream: true,
+          live: false,
+        );
+
+  final pressure = s.pressureHpa;
+  final SensorRow baro = pressure.isNaN
+      ? (
+          icon: Icons.air_rounded,
+          name: 'Barometer',
+          status: 'Not present',
+          color: AppColors.textSecondary,
+          detail: 'No pressure reading from this phone',
+          stream: false,
+          live: false,
+        )
+      : (
+          icon: Icons.air_rounded,
+          name: 'Barometer',
+          status: 'Live',
+          color: AppColors.success,
+          detail: '${pressure.toStringAsFixed(1)} hPa',
+          stream: true,
+          live: true,
+        );
+
+  final t = s.temperature;
+  final SensorRow thermal = (
+    icon: Icons.thermostat_rounded,
+    name: 'Thermal state',
+    status: t == null ? 'Unknown' : (t >= 45 ? 'Hot' : 'Normal'),
+    color: t == null
+        ? AppColors.textSecondary
+        : (t >= 45 ? AppColors.warning : AppColors.success),
+    detail: t == null
+        ? 'Temperature not reported'
+        : '${t.toStringAsFixed(1)}°C · phone battery',
+    stream: false,
+    live: false,
+  );
+
+  return [
+    gnss,
+    imu(SensorType.accelerometer, Icons.speed_rounded, 'Accelerometer'),
+    imu(SensorType.gyroscope, Icons.screen_rotation_rounded, 'Gyroscope'),
+    imu(SensorType.magnetometer, Icons.explore_rounded, 'Magnetometer'),
+    baro,
+    (
+      icon: Icons.memory_rounded,
+      name: 'AI speed estimator',
+      status: s.isSpeedEstimatorReady ? 'Loaded' : 'Fallback',
+      color: s.isSpeedEstimatorReady ? AppColors.success : AppColors.warning,
+      detail: s.isSpeedEstimatorReady
+          ? 'TFLite FP32 model active'
+          : 'Rule-based fallback active',
+      stream: false,
+      live: false,
+    ),
+    thermal,
+    (
+      icon: Icons.phone_android_rounded,
+      name: 'Mount alignment',
+      status: s.isMountCalibrated ? 'Calibrated' : 'Learning',
+      color: s.isMountCalibrated ? AppColors.success : AppColors.warning,
+      detail: s.isMountCalibrated
+          ? 'Pitch ${s.pitchDegrees.toStringAsFixed(1)}° · '
+              'Roll ${s.rollDegrees.toStringAsFixed(1)}°'
+          : 'Drive straight, speed up and brake a few times',
+      stream: false,
+      live: false,
+    ),
+  ];
+}
+
+/// "3/4 live": sensor streams delivering data now, out of those present.
+class _LiveCount extends StatelessWidget {
+  const _LiveCount({required this.rows});
+
+  final List<SensorRow> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final streams = rows.where((r) => r.stream);
+    final live = streams.where((r) => r.live).length;
+    final all = streams.isNotEmpty && live == streams.length;
+    final color = all ? AppColors.success : AppColors.warning;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(all ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+              color: color, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            '$live/${streams.length} live',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
         ],

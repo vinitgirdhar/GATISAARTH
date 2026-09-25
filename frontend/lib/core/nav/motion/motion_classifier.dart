@@ -169,12 +169,20 @@ class MotionClassifier {
   /// Lateral-velocity sigma the filter should use for the non-holonomic
   /// update right now (§17). A leaning two-wheeler genuinely has lateral
   /// motion in its body frame, so clamping it like a car would inject error.
-  double get nhcLateralSigma {
+  double get nhcLateralSigma => nhcLateralSigmaFor();
+
+  /// [nhcLateralSigma], optionally widened for a two-wheeler rolling at
+  /// [rollRateRad] (body x rate): the phone then swings sideways at
+  /// mount height × roll rate while the tyres themselves do not slip.
+  double nhcLateralSigmaFor({double rollRateRad = 0}) {
     if (vehicleClass == VehicleClass.car) return _ekf.nhcSigmaCar;
     if (vehicleClass == VehicleClass.pedestrian) return double.infinity;
     final lean = _snapshot.leanAngleRad?.abs() ?? 0;
     // Widen with lean: upright bike is nearly car-like, a 30 deg lean is not.
-    return _ekf.nhcSigmaTwoWheeler * (1 + 2 * math.sin(lean));
+    final base =
+        _ekf.nhcSigmaTwoWheeler * (1 + _ekf.nhcLeanGain * math.sin(lean));
+    final swing = _ekf.twoWheelerMountHeightM * rollRateRad.abs();
+    return math.sqrt(base * base + swing * swing);
   }
 
   void reset() {

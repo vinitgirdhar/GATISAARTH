@@ -66,6 +66,99 @@ is the dominant lever by 11×. ZUPT/ZARU shows no measurable benefit on these
 cruising profiles — do not claim it does until a stop-and-go profile says
 otherwise.
 
+## Hand-held mode (2026-09-24, iteration 2)
+
+`FeatureFlags.handHeldMode` (default **off**) lets the core lead with no
+phone-to-vehicle mount at all: `motion/phone_handling.dart` (gravity-projected,
+orientation-invariant yaw rate; a "handling" flag from how fast the low-passed
+gravity direction is moving; an std(|a|) stop detector) plus
+`motion/gyro_bias.dart` (a slow EMA of the yaw-rate bias, from GNSS-speed-gated
+stops and from a course derived from GNSS position displacement while moving
+straight and steady) feed `motion/hand_held_tracker.dart`, a small kinematic
+integrator (bias-corrected heading + held GNSS speed, **not** the mounted EKF
+— there is no known forward axis, so no NHC and no body-frame accel
+integration). `NavigationEngine._runMapMatchHandHeld` feeds a matched road's
+heading back into the tracker exactly like the mounted path's `_runMapMatch`
+does for the EKF (§58: heading only, never position) — this is the "road
+lock" for hand-held; the yaw rate still drives moment-to-moment heading and
+would settle a junction choice, since `RoadFollower`'s own position lock is a
+different, Flutter-side mechanism outside the pure-Dart core and out of scope
+here. `NavigationSnapshot.handHeld` marks a hand-held solution;
+`canLeadPosition` accepts it once `NavigationEngine._integrity()` clears it
+(never above `NavIntegrity.medium` for hand-held, by construction).
+
+**A real bug dominated the first cut's numbers.** `HandHeldTracker.onFix` only
+ever read the fix's own `bearingDeg` for heading — and on one of the three real
+drives, 0 of 459 fixes report a bearing at all (some receivers just don't).
+With no heading, dead reckoning could not move at all (speed held nonzero,
+heading stuck null), so the reported position sat frozen at the last fix while
+the vehicle drove away — which is indistinguishable, in the error metric, from
+open-loop bias drift (both read close to 100 % of the distance travelled). Now
+`onFix` falls back to a course from the raw lat/lon displacement between
+consecutive fixes when no native bearing is present
+(`HandHeldConfig.headingSigmaFromDisplacementRad` etc.) — this alone accounts
+for most of the improvement below, not the bias term.
+
+**Also found:** `benchmark_job.dart`'s `_roadGraphFor` reads
+`DriveRecord.latitude`/`.longitude`, which are only ever populated for a
+simulated `truth` record — a real phone log has none, only `gnss` ones, so
+`DRIVE_MAP=` silently built no graph at all for a real drive. Not touched
+(off-limits); `score_drive_test.dart` now builds the graph itself from the
+log's own `gnss` fixes and calls `OutageBenchmark.run` directly.
+
+**Real-drive result, all three drives, tuned on all three together** (not a
+strict per-fold search — see the leave-one-out note below):
+`DRIVE_LOG=... NAV_HANDHELD=1 [DRIVE_MAP=.../mumbai.pmtiles] flutter test
+test/nav/score_drive_test.dart`. Median error at the end of the outage,
+metres (see the CLAUDE.md-adjacent test output for p95 and 3-sigma-ok %):
+
+| drive | dur | hold | hand-held (no map) | hand-held + map |
+|---|---|---|---|---|
+| 145822 (n=2, mostly `engineNotLeading`) | 30s/60s/120s | 18.8 / 140.8 / 177.1 | 102.5 / 262.7 / 664.3 | 106.8 / 271.3 / 668.6 |
+| 151514 (n=12-15) | 30s/60s/120s | 60.0 / 156.2 / 328.3 | 70.4 / 203.5 / 422.1 | 44.8 / 140.3 / 438.9 |
+| 162733 (n=11-15) | 30s/60s/120s | 89.6 / 182.2 / 402.5 | 123.4 / 153.4 / 248.5 | 89.6 / 101.9 / 241.1 |
+
+3-sigma consistency (real error inside 3 sigma), hand-held + map, tuned
+config: drive 145822 (n=2, too small to read) 100/100/50/0 %, drive 151514
+13/13, 14/15, 13/15, 9/12 (100/93/87/75 %), drive 162733 7/7, 7/11, 7/13, 7/15
+(100/64/54/47 %) at 10/30/60/120 s. Up from 0/n on every bucket of every drive
+in iteration 1 (the frozen-position bug made every error near-deterministic,
+so the old sigma never had a chance) - the along-track fraction
+(`alongTrackErrorFraction`) and heading-sigma growth rates were raised until
+further increases stopped moving the shorter buckets and only inflated the
+longer ones; **60-120 s consistency on drive 162733 still falls short of
+~90 %** - a few outlier windows (a missed turn, a stop mis-detected) drive
+errors far outside what a smooth linear-growth sigma can honestly cover
+without being absurdly conservative everywhere else. Left as a known gap
+rather than chased further.
+
+**Leave-one-out, honestly:** the sigma-growth constants above were tuned while
+looking at all three drives' 3-sigma numbers together, not by a strict
+"tune on two, score the third" search per fold - with only three drives (one
+of them n=2), a real per-fold parameter search would be fitting noise. What
+*is* leave-one-out-clean: the map-matching wiring and the bias/heading-source
+fixes were built and debugged against the mechanism (the synthetic test,
+`phone_handling_test.dart`), not against any of the three drives' numbers, so
+their improvement on all three is not circular.
+
+**Decision: `FeatureFlags.handHeldMode` stays off by default.** Hand-held +
+map beats hold on 2 of 3 drives at 60 s and 120 s (151514 at 60 s only, 162733
+at both), but drive 145822 is worse by 3-6x, not within the 10 % the
+coordinator's bar allows - and that drive also mostly fails to lead at all
+(`engineNotLeading` skipped 44 of 60 window-attempts), a separate, unexplained
+weakness worth its own investigation before this ships. `NavConfig.live` does
+not set `handHeldMode`, so the shipped app is unaffected either way; this
+stays benchmark-only. Unit tests (`test/nav/phone_handling_test.dart`,
+`test/nav/hand_held_engine_test.dart`) still cover the detector/bias/tracker
+mechanism in isolation on a synthetic outage with a real stop and a bias in
+it.
+
+**Next iteration, if resumed:** find out why drive 145822 mostly cannot lead
+at all (44/60 window-attempts skipped) before touching sigma again; a fourth
+real drive would make the leave-one-out study honest; the map-matching gain on
+151514/162733 suggests investing there (a tighter road search radius, a real
+junction-choice policy from the yaw rate) rather than more sigma tuning.
+
 ## Road graph and map matching
 
 **No road graph file ships** (`maps/processed_graphs/road_edges.json` is

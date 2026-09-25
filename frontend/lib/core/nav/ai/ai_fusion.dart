@@ -191,7 +191,7 @@ class AiFusion {
     );
     if (!decision.applied) return (decision: decision, result: null);
     final result = filter.updateForwardSpeed(
-      speedMps: obs.speedMps,
+      speedMps: decision.speedMps ?? obs.speedMps,
       sigma: decision.sigmaUsedMps!,
       name: 'ai_forward_speed',
       preGated: true,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/nav/model/correction_explainer.dart';
 import '../../../../core/nav/model/nav_snapshot.dart';
 import '../../../../core/nav/gnss/gnss_quality.dart';
 import '../../../../core/nav/motion/motion_classifier.dart';
@@ -10,13 +11,12 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../navigation_ui/presentation/controllers/live_session_controller.dart';
 import '../../../navigation_ui/presentation/controllers/live_session_scope.dart';
 import '../../../navigation_ui/presentation/widgets/satellite_breakdown.dart';
-import '../../data/repositories/demo_navigation_repository.dart';
+import '../../domain/entities/navigation_state.dart';
 
 /// Live engineering view of the navigation core (§64, §79).
 ///
 /// Everything here is measured. A value the phone cannot produce is shown as
-/// `--` and a panel that is still demonstration data says so in as many words —
-/// the one panel that still is, is labelled, and it is the only one (§65, §83).
+/// `--`, never invented (§65, §83).
 class DiagnosticsScreen extends StatelessWidget {
   const DiagnosticsScreen({super.key});
 
@@ -34,13 +34,14 @@ class DiagnosticsScreen extends StatelessWidget {
           _engine(context, session, snapshot),
           _uncertainty(context, snapshot),
           _sensors(context, snapshot),
-          _gnss(context, snapshot),
+          _gnss(context, snapshot, session),
           _motion(context, snapshot),
           _contribution(context, snapshot),
+          _why(session),
           _subsystems(context, snapshot),
           _performance(context, session),
           _transitions(context, session),
-          _demoSatellites(context),
+          _satellites(session),
         ],
       ),
     );
@@ -148,7 +149,11 @@ class DiagnosticsScreen extends StatelessWidget {
     return '$rate, ${stats.quality.name}$drops$fault';
   }
 
-  Widget _gnss(BuildContext context, NavigationSnapshot? s) {
+  Widget _gnss(
+    BuildContext context,
+    NavigationSnapshot? s,
+    LiveSessionController session,
+  ) {
     final gnss = s?.gnss;
     return _Panel(
       title: 'GNSS',
@@ -168,7 +173,10 @@ class DiagnosticsScreen extends StatelessWidget {
         ),
         _Row(
           'Satellites',
-          '-- (Android GnssStatus not wired)',
+          session.gnssTelemetry?.hasRealStatus ?? false
+              ? '${session.gnssTelemetry!.usedInFixCount} used of '
+                  '${session.gnssTelemetry!.visibleCount} in view'
+              : '-- (no Android GNSS status yet)',
         ),
         for (final note in gnss?.notes ?? const <String>[])
           _Row('Note', note),
@@ -285,37 +293,26 @@ class DiagnosticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _demoSatellites(BuildContext context) {
-    final data = const DemoNavigationRepository().current;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  /// Why the position moved: per correction source, what the core last did
+  /// with it and why, in plain words.
+  Widget _why(LiveSessionController session) {
+    final list = session.corrections;
+    return _Panel(
+      title: 'Why the position moved',
+      subtitle: 'Last minute · each source, what the core did with it',
       children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-          decoration: BoxDecoration(
-            color: AppColors.warning.withValues(alpha: 0.12),
-            borderRadius: AppRadius.cardRadius,
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline,
-                  color: AppColors.warning, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'The panel below is illustrative demo data. Android '
-                  'GnssStatus is not wired in, so per-constellation satellite '
-                  'counts are not available. Everything above this line is '
-                  'measured.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SatelliteBreakdown(satelliteBreakdown: data.satelliteBreakdown),
+        if (list.isEmpty) const _Row('Corrections', '--'),
+        for (final c in list) _WhyRow(c),
       ],
+    );
+  }
+
+  Widget _satellites(LiveSessionController session) {
+    final telemetry = session.gnssTelemetry;
+    return SatelliteBreakdown(
+      satelliteBreakdown: SatelliteBreakdownModel.fromTelemetry(telemetry),
+      isHardwareBacked: telemetry?.hasRealStatus ?? false,
+      rawMeasurementsSupported: telemetry?.rawMeasurementsSupported ?? false,
     );
   }
 }
@@ -368,6 +365,55 @@ class _Panel extends StatelessWidget {
           ],
           const SizedBox(height: AppSpacing.sm),
           ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _WhyRow extends StatelessWidget {
+  const _WhyRow(this.c);
+
+  final CorrectionExplanation c;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = c.used ? AppColors.success : AppColors.warning;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              c.used ? Icons.check_circle_rounded : Icons.block_rounded,
+              size: 15,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${c.source} · ${c.accepted} used'
+                  '${c.refused == 0 ? '' : ', ${c.refused} refused'}',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  c.reason,
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

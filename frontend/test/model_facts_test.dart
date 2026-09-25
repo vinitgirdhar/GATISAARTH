@@ -18,14 +18,14 @@ class _DiskBundle extends CachingAssetBundle {
 void main() {
   test('the model card is built from the shipped model files', () async {
     final facts = (await ModelFacts.load(bundle: _DiskBundle()))!;
-    expect(facts.version, 'v3.1.0');
+    expect(facts.version, 'v4.0.0');
     expect(facts.windowSamples, 20);
     expect(facts.rateHz, 10);
     expect(facts.features, 13);
     expect(facts.quantization, 'fp32');
     expect(
         facts.sizeBytes, File('assets/models/speed_estimator.tflite').lengthSync());
-    expect(facts.sizeBytes, greaterThan(300000));
+    expect(facts.sizeBytes, greaterThan(100000));
     expect(facts.speedMaeMps, isNotNull);
     expect(facts.parity, contains('PASSED'));
   });

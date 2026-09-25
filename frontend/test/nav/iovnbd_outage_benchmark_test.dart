@@ -25,7 +25,7 @@ void main() {
 
   test('the navigation core on real IO-VNBD drives',
       skip: dir == null ? 'set IOVNBD_LOG_DIR to a folder of drive logs' : false,
-      timeout: const Timeout(Duration(minutes: 40)), () {
+      timeout: const Timeout(Duration(minutes: 40)), () async {
     final files = Directory(dir!)
         .listSync()
         .whereType<File>()
@@ -41,7 +41,7 @@ void main() {
       final label = file.uri.pathSegments.last;
       final OutageReport report;
       try {
-        report = runBenchmarkJob(BenchmarkJob(label: label, path: file.path));
+        report = await runBenchmarkJob(BenchmarkJob(label: label, path: file.path));
       } catch (e) {
         trips.add({'trip': label, 'error': '$e'});
         continue;

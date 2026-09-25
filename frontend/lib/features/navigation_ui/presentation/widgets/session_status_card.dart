@@ -99,12 +99,14 @@ class SessionStatusCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // The core's phone-to-vehicle alignment, not just the tilt:
+                // the same test the Sensors tab and the hand-over use.
                 Text(
-                  session.isAlignmentCalibrated
+                  session.isMountCalibrated
                       ? 'Mount calibrated'
-                      : 'Calibrating mount…',
+                      : 'Mount learning…',
                   style: TextStyle(
-                    color: session.isAlignmentCalibrated
+                    color: session.isMountCalibrated
                         ? AppColors.healthy
                         : AppColors.textMuted,
                     fontSize: 12,
@@ -153,7 +155,7 @@ class SessionStatusCard extends StatelessWidget {
           title: 'Nominal GNSS lock',
           subtitle: 'Real-time sensors · Vibration $vibration '
               '(${s.vibrationRms.toStringAsFixed(2)} g) · '
-              '${s.temperature.toStringAsFixed(1)}°C',
+              '${s.temperature?.toStringAsFixed(1) ?? '--'}°C',
         );
       case LocationStatus.stale:
         return _StatusView(

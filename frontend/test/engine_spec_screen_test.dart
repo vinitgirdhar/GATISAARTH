@@ -37,7 +37,7 @@ void main() {
 
       expect(find.text('Navigation engine'), findsOneWidget, reason: 'title');
       expect(find.text('GatiSaarth Navigation Engine'), findsOneWidget);
-      expect(find.text('v4.2.0 (build 44)'), findsOneWidget);
+      expect(find.text('v4.4.0 (build 46)'), findsOneWidget);
       for (final section in [
         'Right now',
         'How it works',
@@ -77,7 +77,7 @@ void main() {
       await _loadAssets(tester);
 
       expect(find.text('Motion model (edge AI)'), findsOneWidget);
-      expect(find.textContaining('SpeedEstimatorNet'), findsOneWidget);
+      expect(find.textContaining('temporal convolutions (TCN)'), findsOneWidget);
       expect(find.textContaining('Advisory'), findsOneWidget);
       expect(find.textContaining('never sets speed or position'),
           findsOneWidget);

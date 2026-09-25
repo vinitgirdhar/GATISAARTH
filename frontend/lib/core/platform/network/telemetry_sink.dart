@@ -1,7 +1,14 @@
-import 'backend_telemetry_client.dart';
+/// State of a telemetry link. The shipped app has none: every drive stays on
+/// the phone unless the driver shares a recording.
+enum BackendSyncState {
+  uninitialized,
+  connecting,
+  connected,
+  offline,
+  error,
+}
 
-/// Where live telemetry frames go. Optional by design: the app is fully
-/// functional with no backend reachable.
+/// Where live telemetry frames go. The app is fully functional with none.
 abstract class TelemetrySink {
   Future<bool> send({
     required double latitude,
@@ -19,12 +26,9 @@ abstract class TelemetrySink {
   Future<void> stop();
 }
 
-/// Sends frames to the optional FastAPI backend.
-class BackendTelemetrySink implements TelemetrySink {
-  BackendTelemetrySink([BackendTelemetryClient? client])
-      : _client = client ?? BackendTelemetryClient();
-
-  final BackendTelemetryClient _client;
+/// The shipped sink: nothing leaves the phone.
+class LocalOnlyTelemetrySink implements TelemetrySink {
+  const LocalOnlyTelemetrySink();
 
   @override
   Future<bool> send({
@@ -36,24 +40,15 @@ class BackendTelemetrySink implements TelemetrySink {
     required bool gnssAvailable,
     required String mode,
     double? altitude,
-  }) =>
-      _client.sendTelemetry(
-        latitude: latitude,
-        longitude: longitude,
-        heading: heading,
-        speed: speed,
-        confidence: confidence,
-        gnssAvailable: gnssAvailable,
-        mode: mode,
-        altitude: altitude,
-      );
+  }) async =>
+      false;
 
   @override
-  BackendSyncState get syncState => _client.syncState;
+  BackendSyncState get syncState => BackendSyncState.offline;
 
   @override
-  int get recordsSent => _client.recordsSent;
+  int get recordsSent => 0;
 
   @override
-  Future<void> stop() => _client.stopSession();
+  Future<void> stop() async {}
 }

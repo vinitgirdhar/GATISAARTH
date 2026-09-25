@@ -15,7 +15,7 @@
 #include <array>
 #include <cstdint>
 
-#include "common/types.h"
+#include "engine/types.h"
 #include "engine/engine_config.h"
 #include "engine/kalman_update.h"
 #include "engine/linalg.h"

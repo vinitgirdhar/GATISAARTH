@@ -84,7 +84,6 @@ void main() {
     test('Gravity leveling prevents out-of-distribution feature errors on upright phone', () {
       // Phone held upright (e.g. on mount or emulator): gravity is on Y axis
       final rawAcc = Vector3(0.05, 9.77, 0.81);
-      final rawG = Vector3(0.01, 0.02, 0.01);
 
       // Leveling decomposition
       final up = rawAcc.normalized();

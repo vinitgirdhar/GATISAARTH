@@ -1,7 +1,7 @@
 // replay_external_imu: drive the standalone navigation engine from an external IMU/GNSS
 // CSV (format: include/engine/sensor_source.h, cpp-core/README.md) and score it.
 //
-//   replay_external_imu --input drive.csv [--out traj.csv] [--json metrics.json]
+//   replay_external_imu --input drive.csv|-|udp:PORT [--out traj.csv] [--json metrics.json]
 //       [--outage-start 20 --outage-len 60] [--sweep 10,30,60,120 [--stride 20]]
 //       [--axes flu|frd] [--set key=value ...]
 //
@@ -11,12 +11,14 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include "engine/replay.h"
 #include "engine/sensor_source.h"
+#include "engine/udp_stream.h"
 
 using namespace gati;
 
@@ -30,7 +32,7 @@ struct Args {
 
 int usage() {
     std::fputs(
-        "usage: replay_external_imu --input FILE|- [--out traj.csv] [--json metrics.json] [--windows windows.csv]\n"
+        "usage: replay_external_imu --input FILE|-|udp:PORT [--out traj.csv] [--json metrics.json] [--windows windows.csv]\n"
         "         [--outage-start S --outage-len L] [--sweep L1,L2,...] [--stride S] [--settle S] [--min-distance M]\n"
         "         [--axes flu|frd] [--set key=value]...\n",
         stderr);
@@ -118,7 +120,19 @@ int main(int argc, char** argv) {
 
     std::ifstream file;
     std::istream* in = &std::cin;
-    if (args.input != "-") {
+    std::unique_ptr<UdpLineBuf> udp;
+    std::unique_ptr<std::istream> udpIn;
+    if (args.input.rfind("udp:", 0) == 0) {
+        // A live external IMU: CSV rows arriving as UDP datagrams (udp_stream.h).
+        udp = std::make_unique<UdpLineBuf>(static_cast<std::uint16_t>(std::stoi(args.input.substr(4))));
+        if (!udp->ok()) {
+            std::fprintf(stderr, "error: %s\n", udp->error().c_str());
+            return 3;
+        }
+        std::fprintf(stderr, "listening on UDP port %u\n", static_cast<unsigned>(udp->port()));
+        udpIn = std::make_unique<std::istream>(udp.get());
+        in = udpIn.get();
+    } else if (args.input != "-") {
         file.open(args.input, std::ios::binary);
         if (!file) {
             std::fprintf(stderr, "error: cannot open %s\n", args.input.c_str());

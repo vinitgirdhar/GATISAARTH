@@ -13,7 +13,6 @@ import '../../../core/platform/maps/offline_catalog.dart';
 import '../../../core/platform/maps/offline_map_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/motion.dart';
-import '../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../navigation_ui/presentation/controllers/live_session_controller.dart';
 import '../../navigation_ui/presentation/controllers/live_session_scope.dart';
 
@@ -165,14 +164,10 @@ class _EngineSpecScreenState extends State<EngineSpecScreen> {
             'a copy through Android\'s share sheet, after asking.',
           ),
           _Bullet(
-            'An optional developer telemetry link only starts if a backend '
-            'answers on the local network. On a normal phone none does.',
-          ),
-          _Bullet(
-            'Outside the offline regions, map tiles may be fetched from '
-            'Stadia Maps while you are online. That server sees which tiles '
-            'you look at (roughly where you are) and your IP address, like '
-            'any web request.',
+            'Outside the offline regions the map uses tiles cached on the '
+            'phone. A build made with its own Stadia Maps key also fetches '
+            'missing tiles online; that server then sees which tiles you look '
+            'at (roughly where you are) and your IP address.',
           ),
         ],
       ),
@@ -301,8 +296,8 @@ class _ModelCard extends StatelessWidget {
       title: 'Motion model (edge AI)',
       icon: Icons.memory_rounded,
       children: [
-        _Row('Model', f == null ? 'SpeedEstimatorNet' : 'SpeedEstimatorNet ${f.version}'),
-        const _Row('Type', '1-D convolutions with a bidirectional GRU'),
+        _Row('Model', f == null ? 'Speed model' : 'Speed model ${f.version}'),
+        const _Row('Type', 'Dilated causal temporal convolutions (TCN)'),
         if (f != null) ...[
           _Row(
             'Input',
@@ -365,7 +360,7 @@ class _MapsCard extends StatelessWidget {
           ),
         const _Row(
           'Elsewhere',
-          'Cached tiles, and Stadia Maps tiles while online',
+          'Cached tiles (online Stadia tiles only with a build key)',
         ),
         const SizedBox(height: 8),
         Align(

@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 /// every string ~2x wider than on a phone and produces false overflow
 /// failures. Loading the app's real font makes layout match the device.
 Future<void> loadAppFonts() async {
-  final loader = FontLoader('.SF Pro Text')
-    ..addFont(rootBundle.load('assets/fonts/Inter-Variable.ttf'));
-  await loader.load();
+  for (final family in ['.SF Pro Text', 'Inter']) {
+    await (FontLoader(family)
+          ..addFont(rootBundle.load('assets/fonts/Inter-Variable.ttf')))
+        .load();
+  }
 }

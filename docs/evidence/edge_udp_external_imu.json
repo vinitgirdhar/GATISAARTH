@@ -1,0 +1,119 @@
+{
+  "what": "External IMU over UDP (cpp-core/include/engine/udp_stream.h): IO-VNBD trip S3c streamed by cpp-core/tools/udp_imu_sender.py to replay_external_imu --input udp:5005 on localhost, compared with reading the same CSV file.",
+  "machine": "localhost loopback; no physical IMU or network link tested",
+  "rows_sent": 37183,
+  "identical_to_file_replay": true,
+  "stream": {
+    "imu": 37183,
+    "gnss": 3719,
+    "truth": 37183,
+    "duration_s": 3718.2,
+    "imu_rate_hz": 10
+  },
+  "udp_result": {
+    "stream": {
+      "imu": 37183,
+      "gnss": 3719,
+      "truth": 37183,
+      "duration_s": 3718.2,
+      "imu_rate_hz": 10
+    },
+    "warnings": [],
+    "engine": {
+      "aligned_at_s": 2,
+      "imu_used": 37162,
+      "imu_invalid": 0,
+      "imu_out_of_order": 0,
+      "imu_gaps": 0,
+      "diverged": 0,
+      "gnss_resets": 15,
+      "gnss_position": {
+        "accepted": 3669,
+        "rejected": 47,
+        "failed": 0,
+        "mean_nis": 2.0401309
+      },
+      "gnss_velocity": {
+        "accepted": 3216,
+        "rejected": 100,
+        "failed": 0,
+        "mean_nis": 1.953264
+      },
+      "gnss_altitude": {
+        "accepted": 0,
+        "rejected": 0,
+        "failed": 0,
+        "mean_nis": 0
+      },
+      "nhc": {
+        "accepted": 30975,
+        "rejected": 0,
+        "failed": 0,
+        "mean_nis": 0.011597858
+      },
+      "zupt": {
+        "accepted": 2739,
+        "rejected": 0,
+        "failed": 0,
+        "mean_nis": 0.20235357
+      },
+      "zaru": {
+        "accepted": 273,
+        "rejected": 0,
+        "failed": 0,
+        "mean_nis": 0.64889887
+      }
+    },
+    "continuous_error_m": {
+      "samples": 37063,
+      "median": 0.47957058,
+      "p95": 4.198762,
+      "max": 114.5097
+    },
+    "sweep": {
+      "stride_s": 20,
+      "settle_s": 10,
+      "min_distance_m": 30,
+      "lengths": [
+        {
+          "length_s": 30,
+          "windows_scored": 176,
+          "windows_skipped": 7,
+          "drift_percent": {
+            "median": 9.5475514,
+            "mean": 17.679799,
+            "p90": 46.007696,
+            "max": 93.48499
+          },
+          "fraction_windows_under_10_percent": 0.51704545,
+          "end_error_m": {
+            "median": 34.762867,
+            "p90": 108.80901
+          },
+          "hold_velocity_median_drift_percent": 57.875387,
+          "coverage_3_sigma": 0.88636364,
+          "median_heading_error_deg": 3.8949112
+        },
+        {
+          "length_s": 60,
+          "windows_scored": 183,
+          "windows_skipped": 0,
+          "drift_percent": {
+            "median": 14.412556,
+            "mean": 18.250138,
+            "p90": 37.374433,
+            "max": 84.33912
+          },
+          "fraction_windows_under_10_percent": 0.3442623,
+          "end_error_m": {
+            "median": 80.711152,
+            "p90": 281.26783
+          },
+          "hold_velocity_median_drift_percent": 76.509921,
+          "coverage_3_sigma": 0.87431694,
+          "median_heading_error_deg": 7.0790059
+        }
+      ]
+    }
+  }
+}

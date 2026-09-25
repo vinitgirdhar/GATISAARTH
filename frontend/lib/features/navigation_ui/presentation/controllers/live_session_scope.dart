@@ -25,7 +25,7 @@ LiveSessionController createLiveSession({OfflineMapService? maps}) =>
       alignment: VehicleAlignmentEngine(),
       hardware: DeviceHardwareService(),
       speedEstimator: MlSpeedEstimator(),
-      telemetry: BackendTelemetrySink(),
+      telemetry: const LocalOnlyTelemetrySink(),
       location: LiveLocationService(
         gateway: const GeolocatorGateway(),
         staleAfter: const Duration(seconds: 18),

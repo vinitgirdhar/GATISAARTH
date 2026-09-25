@@ -66,7 +66,7 @@ frontend/
 │   ├── maps/
 │   │   ├── packs/                  # PMTiles archives (delhi-ncr.pmtiles, 37 MB, git-ignored)
 │   │   └── tiles/                  # Fallback offline raster tiles (Delhi zoom 11-16)
-│   └── models/                     # speed_estimator.tflite (351 KB float32 BiGRU)
+│   └── models/                     # speed_estimator.tflite (209 KB float32 TCN, v4)
 ├── lib/
 │   ├── main.dart                   # Application entry point, scope initialization
 │   ├── app_widget.dart             # Root MaterialApp, theme transition host, lifecycle hooks
@@ -90,7 +90,7 @@ frontend/
 │   │   │   ├── hardware/           # Sensor driver, vehicle alignment, haptic policy
 │   │   │   ├── maps/               # PMTiles reader, region extractor, download service
 │   │   │   ├── storage/            # DriveLogStore (JSONL recordings in app-private storage)
-│   │   │   └── network/            # BackendTelemetryClient with exponential backoff
+│   │   │   └── network/            # Local-only telemetry sink (nothing leaves the phone)
 │   │   ├── theme/                  # AppColors, AppTypography, AppTheme tokens
 │   │   ├── widgets/                # SoftOverscroll, FadeIndexedStack, ThemeTransitionHost
 │   │   └── router/                 # Named route definitions
@@ -177,7 +177,7 @@ GatiSaarth renders vector map tiles directly on the smartphone using OpenStreetM
           │
       (missing)
           ▼
-[Cached Raster Tiles] ───────▶ [Network Stadia Raster Fallback (Circuit Breaker)]
+[Cached Raster Tiles] ───────▶ [Stadia Raster, only with a build key (Circuit Breaker)]
 ```
 
 ### In-Place APK Streaming
@@ -192,9 +192,9 @@ When downloading new regions (e.g., Pune 17 MB, Mumbai 26 MB, Maharashtra 79 MB)
 
 ## Edge AI Speed Estimator
 
-An on-device neural network (`assets/models/speed_estimator.tflite`, 351 KB float32) provides supplementary velocity inference:
+An on-device neural network (`assets/models/speed_estimator.tflite`, v4, 209 KB float32) provides supplementary velocity inference:
 
-- **Model Architecture:** Bidirectional GRU (BiGRU) trained on 10 Hz IMU windows.
+- **Model Architecture:** dilated causal temporal-convolution network (v4) trained from scratch on 10 Hz IO-VNBD windows (`ml/src/training/train_speed_v4.py`).
 - **Input Contract:** 10 Hz raw accelerometer data *including gravity* (levelled vehicle frame + 9.81 m/s² on the vertical axis).
 - **Advisory Role:** The neural model operates as a stillness gate. It can halt vehicle marker creep when stopped, but never overrides physics-based EKF velocity or position states.
 - **Visual Disclosure:** The AI inference panel displays `--` until the model has executed on real sensor frames, preventing heuristic estimates from being misrepresented as AI output.
@@ -293,4 +293,4 @@ For presentations, hackathons, and technical evaluations, follow this quick-refe
   - `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` are requested at runtime for satellite positioning.
   - `INTERNET` is used solely for downloading optional offline map packs.
   - `VIBRATE` is used strictly for the three defined haptic events.
-- **Map Attribution:** © OpenStreetMap contributors · Protomaps · Stadia Maps.
+- **Map Attribution:** © OpenStreetMap contributors · Protomaps (· Stadia Maps in builds with a key).

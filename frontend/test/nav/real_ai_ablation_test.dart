@@ -20,12 +20,16 @@ void main() {
     const bench = OutageBenchmarkConfig(
         durationsS: [10, 30, 60, 120], strideS: 120, maxStarts: 12);
     final rows = <String, Object?>{};
-    for (final enabled in [false, true]) {
+    const configs = {
+      'off': AiConfig(enabled: false, fusionTrust: false),
+      'on': AiConfig(enabled: true, fusionTrust: false),
+      'on_calibrated': AiConfig(
+          enabled: true, fusionTrust: false, perVehicleCalibration: true),
+    };
+    for (final MapEntry(key: name, value: ai) in configs.entries) {
       final report = OutageBenchmark.run(records,
-          config: bench,
-          engineConfig:
-              NavConfig(ai: AiConfig(enabled: enabled, fusionTrust: false)));
-      rows[enabled ? 'on' : 'off'] = [
+          config: bench, engineConfig: NavConfig(ai: ai));
+      rows[name] = [
         for (final d in report.durations)
           {
             'seconds': d.durationS,
@@ -41,6 +45,6 @@ void main() {
       File(out)
           .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(rows));
     // This is evidence collection, not an assertion that real data meets the target.
-    expect(rows.length, 2);
+    expect(rows.length, 3);
   });
 }

@@ -10,7 +10,7 @@
 #include <cstdint>
 
 #include "engine/nav_engine.h"
-#include "sensor/ring_buffer.h"
+#include "engine/spsc_queue.h"
 
 namespace gati {
 
@@ -21,7 +21,7 @@ struct PipelineStats {
 
 class EdgePipeline {
 public:
-    static constexpr std::size_t kCapacity = 1024;   // 1023 events = 5.1 s of a 200 Hz stream
+    static constexpr std::size_t kCapacity = 1024;   // 1024 events = 5.1 s of a 200 Hz stream
 
     explicit EdgePipeline(const EngineConfig& config = EngineConfig{}) : engine_(config) {}
 
@@ -37,7 +37,7 @@ public:
     const NavEngine& engine() const { return engine_; }
 
 private:
-    RingBuffer<SensorEvent, kCapacity> queue_;
+    SpscQueue<SensorEvent, kCapacity> queue_;
     NavEngine engine_;
     std::atomic<std::uint64_t> offered_{0}, dropped_{0}, processed_{0};
     std::atomic<std::size_t> maxOccupancy_{0};

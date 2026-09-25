@@ -1,102 +1,103 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_theme.dart';
 
+/// One figure in a row of figures (speed, heading, margin…). It takes an equal
+/// share of its [Row] and shrinks its text rather than wrapping or clipping, so
+/// a row of three still fits a 320 dp phone.
 class TelemetryCard extends StatelessWidget {
+  const TelemetryCard({
+    super.key,
+    required this.label,
+    required this.value,
+    this.unit,
+    this.subtitle,
+    this.accentColor = AppColors.cyan,
+  });
+
   final String label;
   final String value;
   final String? unit;
   final String? subtitle;
   final Color accentColor;
 
-  const TelemetryCard({
-    Key? key,
-    required this.label,
-    required this.value,
-    this.unit,
-    this.subtitle,
-    this.accentColor = AppColors.cyan,
-  }) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: AppRadius.cardRadius,
           boxShadow: AppShadow.card,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _OneLine(Text(
                 label.toUpperCase(),
-                maxLines: 1,
-                softWrap: false,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      letterSpacing: 0.6,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Row(
+                style: text.labelSmall
+                    ?.copyWith(letterSpacing: 0.6, fontWeight: FontWeight.w700),
+              )),
+              const SizedBox(height: 6),
+              _OneLine(Row(
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
                     value,
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineMedium
-                        ?.copyWith(
-                          color: accentColor,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: text.headlineMedium?.copyWith(
+                      color: accentColor,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  if (unit != null) ...[
-                    const SizedBox(width: 3),
-                    Text(
-                      unit!,
-                      style: TextStyle(
-                        color: accentColor.withValues(alpha: 0.75),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                  if (unit != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 3),
+                      child: Text(
+                        unit!,
+                        style: TextStyle(
+                          color: accentColor.withValues(alpha: 0.75),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ],
                 ],
-              ),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
+              )),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                _OneLine(Text(
                   subtitle!,
-                  maxLines: 1,
-                  softWrap: false,
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
-                ),
-              ),
+                )),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Keeps [child] on one line, scaled down when the card is narrow.
+class _OneLine extends StatelessWidget {
+  const _OneLine(this.child);
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: child,
+      );
 }

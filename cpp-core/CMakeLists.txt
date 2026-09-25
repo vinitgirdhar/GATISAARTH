@@ -19,46 +19,31 @@ option(GATI_ASAN "Build with AddressSanitizer (MSVC /fsanitize=address, GCC/Clan
 # machine no longer fails at configure time.
 find_package(Threads REQUIRED)
 
-file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS "src/engine/*.cpp")
-file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-set(LEGACY_SOURCES ${ALL_SOURCES})
-list(REMOVE_ITEM LEGACY_SOURCES ${ENGINE_SOURCES})
+# Only src/engine is built: it is the whole engine (the NavEngine ES-EKF, the edge
+# pipeline, replay and the synthetic drive). Nothing else under src/ is compiled.
+file(GLOB ENGINE_SOURCES CONFIGURE_DEPENDS "src/engine/*.cpp")
 
-# ---- object libraries: compiled once, linked into the DLL/.so, the static library, the tools and the tests
-add_library(gati_engine_obj OBJECT ${ENGINE_SOURCES})
-add_library(gati_legacy_obj OBJECT ${LEGACY_SOURCES})
-foreach(tgt gati_engine_obj gati_legacy_obj)
-  target_include_directories(${tgt} PUBLIC include)
-endforeach()
+add_library(gati_engine STATIC ${ENGINE_SOURCES})
+target_include_directories(gati_engine PUBLIC include)
+target_link_libraries(gati_engine PUBLIC Threads::Threads)
+if(WIN32)
+  target_link_libraries(gati_engine PUBLIC ws2_32)   # UdpLineBuf
+endif()
 
 if(MSVC)
-  target_compile_options(gati_engine_obj PRIVATE /W4 /permissive-)
+  target_compile_options(gati_engine PRIVATE /W4 /permissive-)
   set(GATI_TOOL_WARNINGS /W4 /permissive-)
   if(GATI_ASAN)
-    foreach(tgt gati_engine_obj gati_legacy_obj)
-      target_compile_options(${tgt} PRIVATE /fsanitize=address)
-    endforeach()
+    target_compile_options(gati_engine PRIVATE /fsanitize=address)
   endif()
 else()
-  target_compile_options(gati_engine_obj PRIVATE -Wall -Wextra -Wpedantic)
-  target_compile_options(gati_legacy_obj PRIVATE $<$<CONFIG:Release>:-O3>)
+  target_compile_options(gati_engine PRIVATE -Wall -Wextra -Wpedantic)
   set(GATI_TOOL_WARNINGS -Wall -Wextra -Wpedantic)
   if(GATI_ASAN)
-    foreach(tgt gati_engine_obj gati_legacy_obj)
-      target_compile_options(${tgt} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
-    endforeach()
+    target_compile_options(gati_engine PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
     add_link_options(-fsanitize=address,undefined)
   endif()
 endif()
-
-# FFI library (the C ABI of include/ffi/idr_api.h) and the static library the tools link.
-add_library(cpp_core SHARED $<TARGET_OBJECTS:gati_engine_obj> $<TARGET_OBJECTS:gati_legacy_obj>)
-add_library(gati_engine STATIC $<TARGET_OBJECTS:gati_engine_obj> $<TARGET_OBJECTS:gati_legacy_obj>)
-foreach(tgt cpp_core gati_engine)
-  target_include_directories(${tgt} PUBLIC include)
-  target_link_libraries(${tgt} PUBLIC Threads::Threads)
-endforeach()
-set_target_properties(cpp_core PROPERTIES OUTPUT_NAME "cpp_core")
 
 if(GATI_BUILD_TOOLS)
   foreach(tool replay_external_imu bench_200hz)

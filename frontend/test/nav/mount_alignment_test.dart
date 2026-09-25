@@ -385,4 +385,52 @@ void main() {
       expect(e.isConverged, isFalse);
     });
   });
+
+  group('real-phone vibration', () {
+    // A cradle-mounted phone on a real road (three drives, 2026-09-24): the
+    // gyro shakes by ~0.4 rad/s and the accelerometer by ~1.2 m/s^2 sample to
+    // sample, zero-mean. Gating each sample on "straight" and "agrees with
+    // GNSS" rejected nearly all of them and the mount never aligned.
+    test('aligns through zero-mean shake with 100 Hz IMU and 1 Hz GNSS', () {
+      final e = MountAlignmentEstimator();
+      final mount = tilted();
+      final rng = math.Random(5);
+      double n(double s) => (rng.nextDouble() - 0.5) * 2 * s * math.sqrt(3);
+      Vector3 shake(double s) => Vector3(n(s), n(s), n(s));
+      var us = 0;
+      var speed = 0.0;
+      var fixSpeed = 0.0;
+      var fixUs = 0;
+      void run(double accel, int seconds) {
+        for (var i = 0; i < seconds * 100; i++) {
+          us += 10000;
+          speed = (speed + accel * 0.01).clamp(0.0, 40.0);
+          if (us - fixUs >= 1000000) {
+            fixUs = us;
+            fixSpeed = speed;
+          }
+          e.add(
+            accelPhone: mount.measure(longitudinal: accel) + shake(1.2),
+            gyroPhone: shake(0.4),
+            monotonicUs: us,
+            gnssSpeedMps: fixSpeed,
+            gnssUs: fixUs,
+          );
+        }
+      }
+
+      run(0, 5);
+      for (var cycle = 0; cycle < 15; cycle++) {
+        run(1.2, 4);
+        run(0, 2);
+        run(-1.2, 4);
+        run(0, 2);
+      }
+      expect(e.isConverged, isTrue);
+      final forward = e.alignment!.forwardInPhone;
+      final errDeg =
+          math.acos(forward.dot(mount.forward).clamp(-1.0, 1.0)) * 180 / math.pi;
+      expect(errDeg, lessThan(5));
+    });
+  });
 }

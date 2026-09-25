@@ -4,7 +4,7 @@ import '../../../../core/platform/hardware/vehicle_alignment_engine.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/motion.dart';
 
-/// iOS-style segmented control: Car / Two-wheeler.
+/// iOS-style segmented control: Car / Walk / Two-wheeler.
 class VehicleProfileSelector extends StatelessWidget {
   const VehicleProfileSelector({
     super.key,
@@ -94,24 +94,29 @@ class _Option extends StatelessWidget {
             borderRadius: AppRadius.controlRadius,
             boxShadow: selected ? AppShadow.card : null,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: selected ? AppColors.cyan : AppColors.textSecondary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+          // Shrinks rather than clips on a narrow phone (three options share
+          // 320-360 dp).
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
                   color: selected ? AppColors.cyan : AppColors.textSecondary,
                 ),
-              ),
-            ],
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? AppColors.cyan : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

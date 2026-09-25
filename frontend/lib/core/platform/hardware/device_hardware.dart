@@ -10,14 +10,15 @@ class DeviceInfo {
   final String os;
 }
 
-/// Phone hardware services the session needs beyond the IMU: thermal reading
-/// and haptics.
+/// Phone hardware services the session needs beyond the IMU: a temperature
+/// reading and haptics.
 abstract class DeviceHardware {
   void start();
   void stop();
 
-  double get currentTemperature;
-  double get thermalBiasCorrection;
+  /// Battery temperature in °C (the closest reading Android gives to the IMU's
+  /// own), or null until the phone has reported one. Never a made-up default.
+  double? get currentTemperature;
   Stream<double> get temperatureStream;
 
   /// One vibration. Only `Haptics` calls this: it holds the whole policy for

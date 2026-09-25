@@ -260,18 +260,25 @@ class AiSpeedDecision {
   const AiSpeedDecision.rejected(AiRejectReason this.reason)
       : outcome = AiSpeedOutcome.rejected,
         sigmaUsedMps = null,
-        innovationMps = null;
+        innovationMps = null,
+        speedMps = null;
 
   const AiSpeedDecision.validatedOnly({this.innovationMps})
       : outcome = AiSpeedOutcome.validatedOnly,
         reason = null,
-        sigmaUsedMps = null;
+        sigmaUsedMps = null,
+        speedMps = null;
 
   const AiSpeedDecision.applied({
     required double this.sigmaUsedMps,
     required double this.innovationMps,
+    required double this.speedMps,
   })  : outcome = AiSpeedOutcome.applied,
         reason = null;
+
+  /// The speed handed to the filter: the model's, or its per-vehicle
+  /// correction when that is on.
+  final double? speedMps;
 
   final AiSpeedOutcome outcome;
   final AiRejectReason? reason;

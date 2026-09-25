@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'ai_config.dart';
 import 'ai_types.dart';
+import 'speed_calibration.dart';
 
 /// Decides whether one neural forward-speed prediction may touch the filter,
 /// and with what noise (P1).
@@ -37,9 +38,13 @@ import 'ai_types.dart';
 /// disturbance factor the caller passes, and finally widened until the update's
 /// Kalman gain fits `minContribution..maxContribution`.
 class AiSpeedGate {
-  AiSpeedGate(this._config);
+  AiSpeedGate(this._config) : calibration = SpeedCalibration(_config);
 
   final AiConfig _config;
+
+  /// Per-vehicle correction; only used while
+  /// [AiConfig.perVehicleCalibration] is on.
+  final SpeedCalibration calibration;
 
   int _observed = 0;
   int _applied = 0;
@@ -91,7 +96,14 @@ class AiSpeedGate {
     _validationCount = 0;
     _validationMean = 0;
     _validationMeanSquare = 0;
+    calibration.reset();
   }
+
+  /// The model speed as the gate uses it: corrected for this vehicle when
+  /// calibration is on and ready.
+  double _corrected(double modelMps) => _config.perVehicleCalibration
+      ? calibration.apply(modelMps) ?? modelMps
+      : modelMps;
 
   /// Counts a refusal made by the caller before the gate is consulted (the AI
   /// path is off, the engine is not ready, the filter would not take it).
@@ -120,7 +132,19 @@ class AiSpeedGate {
       return;
     }
     _pending = null;
-    _grade(obs.speedMps - gnssSpeedMps);
+    // Graded on the correction as it stood *before* this pair: out of sample.
+    _grade(_corrected(obs.speedMps) - gnssSpeedMps);
+    if (_config.perVehicleCalibration) {
+      final wasReady = calibration.isReady;
+      calibration.add(modelMps: obs.speedMps, gnssMps: gnssSpeedMps);
+      // The grades so far describe the uncorrected model, not the speed the
+      // gate will now use: validation starts again on the corrected one.
+      if (!wasReady && calibration.isReady) {
+        _validationCount = 0;
+        _validationMean = 0;
+        _validationMeanSquare = 0;
+      }
+    }
   }
 
   /// Judges [obs].
@@ -144,7 +168,8 @@ class AiSpeedGate {
     final dataFault = _dataFault(obs, engineUs);
     if (dataFault != null) return _refuse(dataFault);
 
-    final innovation = obs.speedMps - predictedMps;
+    final speed = _corrected(obs.speedMps);
+    final innovation = speed - predictedMps;
     _lastInnovation = innovation;
     if (!applyNow) {
       _pending = obs;
@@ -163,6 +188,7 @@ class AiSpeedGate {
     return AiSpeedDecision.applied(
       sigmaUsedMps: _withinContribution(predictedVariance, sigma),
       innovationMps: innovation,
+      speedMps: speed,
     );
   }
 

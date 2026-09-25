@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:gatisaarth/core/platform/hardware/device_hardware.dart';
 import 'package:gatisaarth/core/platform/hardware/sensor_api.dart';
-import 'package:gatisaarth/core/platform/network/backend_telemetry_client.dart'
-    show BackendSyncState;
 import 'package:gatisaarth/core/platform/network/telemetry_sink.dart';
 import 'package:gatisaarth/features/ai_motion/domain/speed_estimator.dart';
 
@@ -31,9 +29,7 @@ class FakeHardware implements DeviceHardware {
   @override
   void stop() {}
   @override
-  double get currentTemperature => 30;
-  @override
-  double get thermalBiasCorrection => 0.002;
+  double? get currentTemperature => 30;
   @override
   Stream<double> get temperatureStream => temps.stream;
   @override

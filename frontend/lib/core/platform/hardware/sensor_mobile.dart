@@ -1,119 +1,105 @@
-import 'sensor_api.dart';
 import 'dart:async';
-import 'dart:math';
+import 'dart:math' as math;
+
 import 'package:sensors_plus/sensors_plus.dart';
 
-/// Physical multi-sensor driver:
-/// - Accelerometer (50 Hz), gyroscope and magnetometer (~15 Hz, latest value held)
-/// - Barometer, only if the phone actually has one (never synthesised)
-///
-/// Each emitted frame is
-/// `[ax, ay, az, gx, gy, gz, tSeconds, mx, my, mz, pressureHpa, pressureAltM]`.
-/// The last two are [double.nan] when the phone has no barometer.
-class MobileSensorDriver implements HardwareSensorInterface {
-  final StreamController<List<double>> _imuController =
-      StreamController.broadcast();
-  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
-  StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
-  StreamSubscription<MagnetometerEvent>? _magnetometerSubscription;
-  StreamSubscription<BarometerEvent>? _barometerSubscription;
+import 'sensor_api.dart';
 
-  List<double> _latestGyroscope = const [0.0, 0.0, 0.0];
-  List<double> _latestMagnetometer = const [0.0, 0.0, 0.0];
-  double _pressureHpa = double.nan;
-  bool _barometerActive = false;
+/// The phone's own motion sensors as one frame stream.
+///
+/// The accelerometer drives the stream at the game rate (~50 Hz); every frame
+/// carries the newest gyroscope, magnetometer and barometer values alongside
+/// it:
+///
+/// `[ax, ay, az, gx, gy, gz, tSeconds, mx, my, mz, pressureHpa, pressureAltM]`
+///
+/// `tSeconds` is the accelerometer event's own timestamp, so a late frame
+/// cannot stretch the integration step. The two pressure slots are NaN on a
+/// phone without a barometer: nothing here is ever synthesised.
+class MobileSensorDriver implements HardwareSensorInterface {
+  final StreamController<List<double>> _frames =
+      StreamController<List<double>>.broadcast();
+  final List<StreamSubscription<Object>> _subscriptions = [];
+
+  var _gyro = const <double>[0, 0, 0];
+  var _mag = const <double>[0, 0, 0];
+  double _pressure = double.nan;
 
   @override
-  Stream<List<double>> get imuStream => _imuController.stream;
+  Stream<List<double>> get imuStream => _frames.stream;
 
-  /// Real barometric pressure in hPa, or NaN if the phone has no barometer.
-  double get pressureHpa => _pressureHpa;
+  /// Barometric pressure in hPa, NaN until a real reading arrives.
+  double get pressureHpa => _pressure;
 
-  /// Pressure altitude (standard atmosphere) in metres, or NaN.
-  double get pressureAltitudeMeters => _pressureAltitude(_pressureHpa);
+  /// Standard-atmosphere altitude for [pressureHpa] in metres, or NaN.
+  double get pressureAltitudeMeters => altitudeFor(_pressure);
 
-  /// True only once a real barometer reading has arrived.
-  bool get isBarometerActive => _barometerActive;
-  List<double> get latestMagnetometer => _latestMagnetometer;
-  List<double> get latestGyroscope => _latestGyroscope;
+  /// True once the phone has delivered a barometer reading.
+  bool get isBarometerActive => !_pressure.isNaN;
 
-  static double _pressureAltitude(double hpa) =>
-      hpa.isNaN ? double.nan : 44330.0 * (1.0 - pow(hpa / 1013.25, 1 / 5.255));
+  List<double> get latestGyroscope => _gyro;
+  List<double> get latestMagnetometer => _mag;
+
+  /// International standard atmosphere, sea level 1013.25 hPa.
+  static double altitudeFor(double hpa) => hpa.isNaN
+      ? double.nan
+      : 44330.0 * (1.0 - math.pow(hpa / 1013.25, 0.190295).toDouble());
 
   @override
   void start() {
-    if (_accelerometerSubscription != null) return;
-
-    // Gyroscope and accelerometer both run at 50 Hz (gameInterval) to feed
-    // the strapdown inertial navigation core with synchronized IMU frames.
-    // Magnetometer is sampled at ~15 Hz (uiInterval).
-    _gyroscopeSubscription = gyroscopeEventStream(
-      samplingPeriod: SensorInterval.gameInterval,
-    ).listen((event) {
-      _latestGyroscope = [event.x, event.y, event.z];
-    });
-
-    _magnetometerSubscription = magnetometerEventStream(
-      samplingPeriod: SensorInterval.uiInterval,
-    ).listen((event) {
-      _latestMagnetometer = [event.x, event.y, event.z];
-    });
-
-    _startBarometer();
-
-    _accelerometerSubscription = accelerometerEventStream(
-      samplingPeriod: SensorInterval.gameInterval,
-    ).listen((event) {
-      _imuController.add([
-        event.x,
-        event.y,
-        event.z,
-        ..._latestGyroscope,
-        // Hardware event time, so a janky frame cannot distort integration.
-        event.timestamp.microsecondsSinceEpoch / 1000000,
-        ..._latestMagnetometer,
-        _pressureHpa,
-        _pressureAltitude(_pressureHpa),
-      ]);
-    });
+    if (_subscriptions.isNotEmpty) return;
+    _subscriptions
+      ..add(gyroscopeEventStream(samplingPeriod: SensorInterval.gameInterval)
+          .listen((e) => _gyro = [e.x, e.y, e.z]))
+      ..add(magnetometerEventStream(samplingPeriod: SensorInterval.uiInterval)
+          .listen((e) => _mag = [e.x, e.y, e.z]));
+    _listenToBarometer();
+    _subscriptions.add(
+      accelerometerEventStream(samplingPeriod: SensorInterval.gameInterval)
+          .listen(_emit),
+    );
   }
 
-  /// Slow rate is plenty for pressure and keeps the sensor hub idle. Phones
-  /// without a barometer (and platforms without the API) simply report none.
-  void _startBarometer() {
+  void _emit(AccelerometerEvent e) {
+    _frames.add([
+      e.x,
+      e.y,
+      e.z,
+      ..._gyro,
+      e.timestamp.microsecondsSinceEpoch / 1e6,
+      ..._mag,
+      _pressure,
+      altitudeFor(_pressure),
+    ]);
+  }
+
+  /// A slow rate is plenty for pressure. A phone (or platform) without a
+  /// barometer errors here, which simply leaves the pressure slots NaN.
+  void _listenToBarometer() {
     try {
-      _barometerSubscription = barometerEventStream(
-        samplingPeriod: SensorInterval.normalInterval,
-      ).listen(
-        (event) {
-          _pressureHpa = event.pressure;
-          _barometerActive = true;
-        },
-        onError: (Object _) {
-          _pressureHpa = double.nan;
-          _barometerActive = false;
-        },
-        cancelOnError: true,
+      _subscriptions.add(
+        barometerEventStream(samplingPeriod: SensorInterval.normalInterval)
+            .listen(
+          (e) => _pressure = e.pressure,
+          onError: (Object _) => _pressure = double.nan,
+          cancelOnError: true,
+        ),
       );
     } catch (_) {
-      _barometerActive = false;
+      _pressure = double.nan;
     }
   }
 
   @override
   void stop() {
-    _accelerometerSubscription?.cancel();
-    _gyroscopeSubscription?.cancel();
-    _magnetometerSubscription?.cancel();
-    _barometerSubscription?.cancel();
-    _accelerometerSubscription = null;
-    _gyroscopeSubscription = null;
-    _magnetometerSubscription = null;
-    _barometerSubscription = null;
+    for (final s in _subscriptions) {
+      s.cancel();
+    }
+    _subscriptions.clear();
   }
 
   Future<void> dispose() async {
     stop();
-    await _imuController.close();
+    await _frames.close();
   }
 }

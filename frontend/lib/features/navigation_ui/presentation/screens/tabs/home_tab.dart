@@ -3,20 +3,18 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import '../../../../../core/constants/dr_constants.dart';
 import '../../../../../core/theme/app_theme.dart';
-import '../../../../../core/widgets/motion.dart';
 import '../../../../navigation_engine/domain/entities/navigation_state.dart';
 import '../../controllers/live_session_controller.dart';
 import '../../controllers/live_session_scope.dart';
+import '../../../../../core/nav/map/map_matcher.dart';
+import 'sensors_tab.dart' show sensorRows;
 import '../../widgets/ai_inference_panel.dart';
 import '../../widgets/dashboard_header.dart';
 import '../../widgets/fusion_mode_badge.dart';
 import '../../widgets/location_status_banner.dart';
 import '../../widgets/road_anomaly_ticker.dart';
-import '../../widgets/session_controls.dart';
 import '../../widgets/session_status_card.dart';
 import '../../widgets/thermal_compensation_card.dart';
-import 'package:gatisaarth/core/platform/network/backend_telemetry_client.dart'
-    show BackendSyncState;
 import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart';
 
 class HomeTab extends StatelessWidget {
@@ -60,8 +58,8 @@ class HomeTab extends StatelessWidget {
           confidenceSubtitle: marginText,
           confidenceProgress: confidence ?? 0.0,
           confidenceLoading: confidence == null,
-          sensorsValue: '8/8',
-          routeHealthValue: session.hasLiveGnss ? '100%' : '72%',
+          sensors: _sensorCount(session),
+          road: session.navSnapshot?.mapMatchResult,
         ),
         const SizedBox(height: AppSpacing.lg),
 
@@ -78,7 +76,7 @@ class HomeTab extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'On-device neural inference, thermal compensation & road conditions',
+          'On-device speed model, phone condition & road bumps',
           style: TextStyle(
             fontSize: 12,
             color: AppColors.textSecondary,
@@ -100,11 +98,8 @@ class HomeTab extends StatelessWidget {
                 session.hasModelInference ? session.inferenceSpeed : null,
           ),
         ),
-        ThermalCompensationCard(
-          thermalState: ThermalStateModel(
-            temperature: session.temperature,
-            biasCorrection: session.thermalBias,
-          ),
+        PhoneConditionCard(
+          temperatureC: session.temperature,
           vibrationLevel: session.vibrationLevel,
           vibrationRms: session.vibrationRms,
         ),
@@ -160,227 +155,15 @@ class HomeTab extends StatelessWidget {
   }
 }
 
+/// Sensor streams delivering data, out of those this phone has.
+({int live, int total}) _sensorCount(LiveSessionController session) {
+  final streams = sensorRows(session).where((r) => r.stream);
+  return (live: streams.where((r) => r.live).length, total: streams.length);
+}
+
 /// True only inside `flutter test`, which sets this in the environment.
 final bool _isUnderFlutterTest =
     Platform.environment.containsKey('FLUTTER_TEST');
-
-/// Exact "Next Your Journey" Component from the UI/UX board
-class _NextYourJourneyCard extends StatelessWidget {
-  const _NextYourJourneyCard({required this.onStartNavigation});
-
-  final VoidCallback onStartNavigation;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = AppColors.isDark;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Next Your Journey',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
-              fontFamily: 'Inter',
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Get real-time navigation with AI-powered safety alerts.',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-              fontFamily: 'Inter',
-            ),
-          ),
-          const SizedBox(height: 16),
-          Semantics(
-            button: true,
-            label: 'Start fullscreen navigation',
-            child: SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: onStartNavigation,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3882F6), // Board Primary
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Test-accessible text hook without visual distortion
-                      const Opacity(
-                        opacity: 0.001,
-                        child: Text(
-                          'Start fullscreen navigation',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.transparent,
-                            fontFamily: 'Inter',
-                          ),
-                        ),
-                      ),
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Start Navigation',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                              fontFamily: 'Inter',
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_rounded,
-                              size: 18, color: Colors.white),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Exact "Navigation Status" Component from the UI/UX board
-class _NavigationStatusCard extends StatelessWidget {
-  const _NavigationStatusCard({
-    required this.isOnline,
-    required this.onTap,
-  });
-
-  final bool isOnline;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = AppColors.isDark;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Navigation Status',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? const Color(0xFF94A3B8)
-                        : const Color(0xFF64748B),
-                    fontFamily: 'Inter',
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: isDark
-                      ? const Color(0xFF94A3B8)
-                      : const Color(0xFF64748B),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: isOnline
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFFF59E0B),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isOnline ? 'Excellent' : 'Degraded',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? const Color(0xFFF8FAFC)
-                        : const Color(0xFF0F172A),
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '8/8 Sensors Online',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color:
-                    isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                fontFamily: 'Inter',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// Exact "Progress & Rings" Component from the UI/UX board
 class _BoardProgressAndRings extends StatelessWidget {
@@ -388,8 +171,8 @@ class _BoardProgressAndRings extends StatelessWidget {
     required this.confidenceValue,
     required this.confidenceSubtitle,
     required this.confidenceProgress,
-    required this.sensorsValue,
-    required this.routeHealthValue,
+    required this.sensors,
+    required this.road,
     this.confidenceLoading = false,
   });
 
@@ -397,8 +180,12 @@ class _BoardProgressAndRings extends StatelessWidget {
   final String confidenceSubtitle;
   final double confidenceProgress;
   final bool confidenceLoading;
-  final String sensorsValue;
-  final String routeHealthValue;
+  /// Sensor streams live / present.
+  final ({int live, int total}) sensors;
+
+  /// The map matcher's view of the road, null while no offline roads cover
+  /// the vehicle.
+  final MapMatchResult? road;
 
   Widget _buildWhoopRing({
     required BuildContext context,
@@ -534,12 +321,14 @@ class _BoardProgressAndRings extends StatelessWidget {
             ),
             _buildWhoopRing(
               context: context,
-              progress: 1.0,
+              progress: sensors.total == 0 ? 0 : sensors.live / sensors.total,
               color:
                   const Color(0xFFFACC15), // Yellow (exact WHOOP middle ring)
-              value: sensorsValue,
+              value: '${sensors.live}/${sensors.total}',
               label: 'Sensors',
-              subtitle: 'Online',
+              subtitle: sensors.total > 0 && sensors.live == sensors.total
+                  ? 'All live'
+                  : 'Live now',
               isDark: isDark,
             ),
             Container(
@@ -551,11 +340,17 @@ class _BoardProgressAndRings extends StatelessWidget {
             ),
             _buildWhoopRing(
               context: context,
-              progress: 1.0,
+              progress: road?.confidence ?? 0,
               color: const Color(0xFF10B981), // Green
-              value: routeHealthValue,
-              label: 'Route Health',
-              subtitle: 'Nominal',
+              value: road == null || road!.candidates.isEmpty
+                  ? '--'
+                  : '${(road!.confidence * 100).round()}%',
+              label: 'Road match',
+              subtitle: road == null || road!.candidates.isEmpty
+                  ? 'No offline roads'
+                  : road!.snapped
+                      ? 'On road'
+                      : '${road!.candidates.length} candidates',
               isDark: isDark,
             ),
           ],
@@ -573,7 +368,6 @@ class _SystemStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = AppColors.isDark;
-    final backendLive = session.backendState == BackendSyncState.connected;
 
     return RepaintBoundary(
       child: Container(
@@ -602,7 +396,11 @@ class _SystemStatusCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  session.hasLiveGnss ? 'L5/S-Band' : 'Inertial DR',
+                  !session.hasLiveGnss
+                      ? 'Inertial DR'
+                      : session.gnssTelemetry?.hasRealStatus ?? false
+                          ? '${session.gnssTelemetry!.usedInFixCount} satellites in fix'
+                          : 'GNSS fix',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -641,10 +439,12 @@ class _SystemStatusCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: StatusChip(
-                    color: backendLive ? AppColors.healthy : AppColors.disabled,
-                    label: backendLive
-                        ? 'Backend live · ${session.backendRecords} frames'
-                        : 'Standalone · backend offline',
+                    color: session.isEngineLeading
+                        ? AppColors.healthy
+                        : AppColors.disabled,
+                    label: session.isEngineLeading
+                        ? 'Navigation core leading'
+                        : 'Core warming up',
                   ),
                 ),
               ],

@@ -4,10 +4,9 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 import '../../domain/imu_feature_window.dart';
 import '../../domain/speed_estimator.dart';
 
-/// GatiSaarth Edge AI Speed Estimator
-/// Uses PyTorch -> ONNX -> float32 TFLite Neural Network
-/// (1D-CNN + Residual Blocks + Bidirectional GRU + Heteroscedastic Head)
-/// to predict instantaneous vehicle speed (m/s) from 13 IMU kinematic features.
+/// On-device speed model: a float32 TFLite temporal-convolution network
+/// (`ml/src/training/train_speed_v4.py`) that predicts vehicle speed (m/s) and
+/// its log-variance from 13 IMU features.
 ///
 /// The model was trained on 10 Hz data, so callers must feed one frame per
 /// 0.1 s of raw accelerometer data (gravity included). The window therefore

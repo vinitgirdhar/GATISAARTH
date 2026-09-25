@@ -5,6 +5,7 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 
 import '../../../../core/platform/maps/offline_map_service.dart';
+import '../../../../core/platform/maps/offline_tile_provider.dart';
 import 'basemap_style.dart';
 import 'map_follow.dart';
 
@@ -218,7 +219,9 @@ class _RasterFallback extends StatelessWidget {
 String basemapAttribution(BasemapCoverage coverage) {
   final parts = <String>['© OpenStreetMap contributors'];
   if (coverage.hasVector) parts.add('Protomaps');
-  if (coverage.needsRaster) parts.add('Stadia Maps');
+  if (coverage.needsRaster && BundledOfflineTileProvider.hasNetworkSource) {
+    parts.add('Stadia Maps');
+  }
   return parts.join(' · ');
 }
 

@@ -199,6 +199,16 @@ class ProfileTab extends StatelessWidget {
               ),
               const Divider(height: 1),
               _ProfileMenuTile(
+                icon: Icons.fact_check_rounded,
+                title: 'Outage Log',
+                subtitle: session.outageLog.isEmpty
+                    ? 'Every GNSS outage this session, scored on recovery'
+                    : '${session.outageLog.length} scored this session',
+                trailing: const Icon(Icons.chevron_right_rounded, size: 22),
+                onTap: () => Navigator.pushNamed(context, '/outage-log'),
+              ),
+              const Divider(height: 1),
+              _ProfileMenuTile(
                 icon: Icons.speed_rounded,
                 title: 'Outage Benchmark',
                 subtitle: 'Score dead reckoning with GNSS switched off',

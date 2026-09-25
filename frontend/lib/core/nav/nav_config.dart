@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import 'ai/ai_config.dart';
@@ -30,6 +32,12 @@ class NavConfig {
     this.mapMatch = const MapMatchConfig(),
     this.roadFollow = const RoadFollowConfig(),
     this.power = const PowerConfig(),
+    this.turnSpeed = const TurnSpeedConfig(),
+    this.vibrationSpeed = const VibrationSpeedConfig(),
+    this.tunnel = const TunnelConfig(),
+    this.parkingLevel = const ParkingLevelConfig(),
+    this.outageReport = const OutageReportConfig(),
+    this.handHeld = const HandHeldConfig(),
     this.features = const FeatureFlags(),
   });
 
@@ -52,11 +60,17 @@ class NavConfig {
   final MapMatchConfig mapMatch;
   final RoadFollowConfig roadFollow;
   final PowerConfig power;
+  final TurnSpeedConfig turnSpeed;
+  final VibrationSpeedConfig vibrationSpeed;
+  final TunnelConfig tunnel;
+  final ParkingLevelConfig parkingLevel;
+  final OutageReportConfig outageReport;
+  final HandHeldConfig handHeld;
   final FeatureFlags features;
 
   static const NavConfig defaults = NavConfig();
 
-  /// v3.1 phone policy. The model must pass live GNSS validation before any
+  /// Phone policy. The speed model must pass live GNSS validation before any
   /// outage update. Disturbance handling uses the statistical estimator;
   /// proxy-trained neural trust models remain excluded from production fusion.
   /// Real replay evidence: docs/evidence/codex_ai_ablation_*.json.
@@ -79,6 +93,12 @@ class NavConfig {
     MapMatchConfig? mapMatch,
     RoadFollowConfig? roadFollow,
     PowerConfig? power,
+    TurnSpeedConfig? turnSpeed,
+    VibrationSpeedConfig? vibrationSpeed,
+    TunnelConfig? tunnel,
+    ParkingLevelConfig? parkingLevel,
+    OutageReportConfig? outageReport,
+    HandHeldConfig? handHeld,
     FeatureFlags? features,
   }) =>
       NavConfig(
@@ -97,6 +117,12 @@ class NavConfig {
         mapMatch: mapMatch ?? this.mapMatch,
         roadFollow: roadFollow ?? this.roadFollow,
         power: power ?? this.power,
+        turnSpeed: turnSpeed ?? this.turnSpeed,
+        vibrationSpeed: vibrationSpeed ?? this.vibrationSpeed,
+        tunnel: tunnel ?? this.tunnel,
+        parkingLevel: parkingLevel ?? this.parkingLevel,
+        outageReport: outageReport ?? this.outageReport,
+        handHeld: handHeld ?? this.handHeld,
         features: features ?? this.features,
       );
 
@@ -128,6 +154,10 @@ class FeatureFlags {
     this.adaptiveGnssCovariance = true,
     this.gnssVelocity = true,
     this.neuralVelocity = false,
+    this.turnSpeed = false,
+    this.vibrationSpeed = false,
+    this.leanAwareNhc = false,
+    this.handHeldMode = false,
   });
 
   /// Everything off: pure inertial propagation, corrected only by GNSS
@@ -158,6 +188,26 @@ class FeatureFlags {
   /// helps. Mirrors `AiConfig.enabled` (§8, §83).
   final bool neuralVelocity;
 
+  /// Coordinated-turn speed (v = a_lat / yaw rate) as a forward-speed
+  /// measurement during outages. See `TurnSpeedConfig`.
+  final bool turnSpeed;
+
+  /// Tyre-vibration speedometer (speed from the wheel-rate peak of the
+  /// vertical accelerometer spectrum). See `VibrationSpeedConfig`.
+  final bool vibrationSpeed;
+
+  /// Two-wheeler NHC widened by the phone's sideways swing while the bike
+  /// rolls into or out of a lean (mount height × roll rate). Off until a real
+  /// two-wheeler drive shows it helps.
+  final bool leanAwareNhc;
+
+  /// Let the core lead and dead-reckon with no phone-to-vehicle mount at all -
+  /// heading from the orientation-invariant gyro yaw rate, speed held from
+  /// the last GNSS speed with a stop detector, no NHC or forward-axis accel
+  /// integration (see `motion/hand_held_tracker.dart`). Off until a real
+  /// hand-held drive shows it beats hold-last-velocity (§83).
+  final bool handHeldMode;
+
   FeatureFlags copyWith({
     bool? zeroVelocityUpdate,
     bool? zeroAngularRateUpdate,
@@ -167,6 +217,10 @@ class FeatureFlags {
     bool? adaptiveGnssCovariance,
     bool? gnssVelocity,
     bool? neuralVelocity,
+    bool? turnSpeed,
+    bool? vibrationSpeed,
+    bool? leanAwareNhc,
+    bool? handHeldMode,
   }) =>
       FeatureFlags(
         zeroVelocityUpdate: zeroVelocityUpdate ?? this.zeroVelocityUpdate,
@@ -174,13 +228,16 @@ class FeatureFlags {
             zeroAngularRateUpdate ?? this.zeroAngularRateUpdate,
         nonHolonomicConstraint:
             nonHolonomicConstraint ?? this.nonHolonomicConstraint,
-        magnetometerHeading:
-            magnetometerHeading ?? this.magnetometerHeading,
+        magnetometerHeading: magnetometerHeading ?? this.magnetometerHeading,
         mapHeading: mapHeading ?? this.mapHeading,
         adaptiveGnssCovariance:
             adaptiveGnssCovariance ?? this.adaptiveGnssCovariance,
         gnssVelocity: gnssVelocity ?? this.gnssVelocity,
         neuralVelocity: neuralVelocity ?? this.neuralVelocity,
+        turnSpeed: turnSpeed ?? this.turnSpeed,
+        vibrationSpeed: vibrationSpeed ?? this.vibrationSpeed,
+        leanAwareNhc: leanAwareNhc ?? this.leanAwareNhc,
+        handHeldMode: handHeldMode ?? this.handHeldMode,
       );
 
   Map<String, dynamic> toJson() => {
@@ -192,7 +249,124 @@ class FeatureFlags {
         'adaptiveGnss': adaptiveGnssCovariance,
         'gnssVelocity': gnssVelocity,
         'neuralVelocity': neuralVelocity,
+        'turnSpeed': turnSpeed,
+        'vibrationSpeed': vibrationSpeed,
+        'leanAwareNhc': leanAwareNhc,
+        'handHeldMode': handHeldMode,
       };
+}
+
+/// Hand-held mode: dead reckoning with no phone-to-vehicle mount (§ hand-held
+/// mode). Every value here is an engineering prior tuned against three real
+/// Mumbai drives (2026-09-24, git-ignored `field_drives/`), not a measurement
+/// in the sense §70 means for the rest of this file - the real yardstick is
+/// the outage benchmark run on those drives.
+@immutable
+class HandHeldConfig {
+  const HandHeldConfig({
+    this.gravityTauS = 2.0,
+    this.handlingWindow = const Duration(seconds: 1),
+    this.handlingThresholdDeg = 3.0,
+    this.minBearingSpeedMps = 2.0,
+    this.headingSigmaAtFixRad = 0.35,
+    this.speedSigmaAtFixMps = 0.6,
+    this.headingSigmaGrowthRadPerS = 0.09,
+    this.headingSigmaGrowthHandlingRadPerS = 0.175,
+    this.maxHeadingSigmaRad = 3.0,
+    this.speedSigmaGrowthMpsPerS = 0.05,
+    this.stationarySpeedSigmaMps = 0.3,
+    this.stopAccelStd = 0.6,
+    this.stopEnterDelay = const Duration(milliseconds: 800),
+    this.stopExitDelay = const Duration(milliseconds: 250),
+    this.alongTrackErrorFraction = 1.6,
+    this.headingSigmaFromDisplacementRad = 0.5,
+    this.maxCourseFixGapS = 6.0,
+    this.minCourseDisplacementM = 3.0,
+    this.biasMinSpeedMps = 3.0,
+    this.biasStopSpeedMps = 0.3,
+    this.maxBiasRadPerS = 0.15,
+    this.biasStopLearnRate = 0.3,
+    this.biasMovingLearnRate = 0.1,
+  });
+
+  /// Low-pass time constant for the gravity direction used as the
+  /// orientation-invariant vertical. Real drives: gravity direction in the
+  /// phone frame wanders >14 deg for 19-40 % of seconds hand-held; 2 s tames
+  /// that without lagging a genuine reorientation badly.
+  final double gravityTauS;
+
+  /// Window and threshold for the handling flag: the low-passed gravity
+  /// direction moving more than [handlingThresholdDeg] within
+  /// [handlingWindow] means the phone is being handled right now. Measured to
+  /// flag 14-27 % of seconds on the real drives.
+  final Duration handlingWindow;
+  final double handlingThresholdDeg;
+  double get handlingThresholdRad => handlingThresholdDeg * math.pi / 180;
+
+  /// A GNSS bearing is only trusted to seed/correct heading above this speed;
+  /// below it course-over-ground is mostly noise.
+  final double minBearingSpeedMps;
+
+  /// Sigma a fresh fix resets heading/speed uncertainty to.
+  final double headingSigmaAtFixRad;
+  final double speedSigmaAtFixMps;
+
+  /// How fast heading uncertainty grows while riding quietly vs. while being
+  /// handled - measured hand-held median yaw error (10 s windows) 13-15 deg
+  /// outside handling, p90 59-70 deg; handling gets the steeper rate.
+  final double headingSigmaGrowthRadPerS;
+  final double headingSigmaGrowthHandlingRadPerS;
+  final double maxHeadingSigmaRad;
+
+  /// How fast the held-speed's own uncertainty grows - measured 25-38 %
+  /// along-track error over 30/60 s hold-last-speed in Mumbai stop-go
+  /// traffic.
+  final double speedSigmaGrowthMpsPerS;
+  final double stationarySpeedSigmaMps;
+
+  /// Stop detector: std(|a|) per second, orientation-invariant (no vehicle
+  /// frame needed). Measured ~90 % correct hand-held vs ~99 % mounted.
+  final double stopAccelStd;
+  final Duration stopEnterDelay;
+  final Duration stopExitDelay;
+
+  /// `HandHeldTracker.horizontalSigmaM`'s along-track term: this fraction of
+  /// the distance driven since the last fix, honestly reflecting a held
+  /// speed's own error rather than a fixed rate per second (measured 25-38 %
+  /// along-track error over 30/60 s hold-last-speed in Mumbai stop-go
+  /// traffic; 0.30 sits in that band). Tuned against real-drive 3-sigma
+  /// consistency, not argued about - see the CLAUDE.md hand-held section.
+  final double alongTrackErrorFraction;
+
+  /// Heading source when the fix itself carries no bearing (real receivers
+  /// often don't - measured 0/459 fixes on one of the three real drives this
+  /// was built from): the course between this fix and the last one, from
+  /// their raw lat/lon displacement. Noisier than a native bearing (GPS
+  /// jitter on both endpoints, not a Doppler measurement), hence the wider
+  /// sigma; only used within [maxCourseFixGapS] of the previous fix and
+  /// above [minCourseDisplacementM] of travel between them.
+  final double headingSigmaFromDisplacementRad;
+  final double maxCourseFixGapS;
+  final double minCourseDisplacementM;
+
+  /// Gyro bias estimation (§ hand-held mode, part 1): a GNSS-derived course
+  /// rate (from position displacement) is only trusted above this speed, and
+  /// a stretch is only "stopped" for the direct stopped-mean bias measurement
+  /// below this speed.
+  final double biasMinSpeedMps;
+  final double biasStopSpeedMps;
+
+  /// The bias estimate is clamped to this magnitude - past it, something is
+  /// wrong with the estimate itself (a bad fix, a still-settling gravity
+  /// direction), not a genuinely biased gyro.
+  final double maxBiasRadPerS;
+
+  /// EMA learn rates for the two bias evidence sources. Stops are the
+  /// cleanest evidence (true rotation is genuinely ~0), so they get the
+  /// faster rate; the moving estimate is noisier (GNSS position error on top
+  /// of the course-rate differencing) so it is trusted more slowly.
+  final double biasStopLearnRate;
+  final double biasMovingLearnRate;
 }
 
 /// Sampling and time-synchronisation limits (§4).
@@ -502,6 +676,8 @@ class EkfConfig {
     this.zaruSigma = 0.004,
     this.nhcSigmaCar = 0.15,
     this.nhcSigmaTwoWheeler = 0.6,
+    this.nhcLeanGain = 2.0,
+    this.twoWheelerMountHeightM = 1.0,
     this.baroSigma = 1.5,
     this.magYawSigma = 0.25,
     this.covarianceFloor = 1e-12,
@@ -546,6 +722,15 @@ class EkfConfig {
   final double zaruSigma; // rad/s
   final double nhcSigmaCar; // m/s lateral/vertical
   final double nhcSigmaTwoWheeler; // m/s, looser: the bike leans
+
+  /// Two-wheeler NHC sigma grows by this factor times sin(lean).
+  final double nhcLeanGain;
+
+  /// Height of the phone above the tyre contact line on a two-wheeler (m).
+  /// A bike rolling into or out of a lean swings the phone sideways at
+  /// height × roll rate even though the tyres do not slip; with
+  /// `FeatureFlags.leanAwareNhc` that swing widens the lateral sigma.
+  final double twoWheelerMountHeightM;
   final double baroSigma; // m
   final double magYawSigma; // rad
 
@@ -817,6 +1002,10 @@ class RoadFollowConfig {
     this.candidateLimit = 32,
     this.ringMinLengthM = 20.0,
     this.recentEdgeWindowM = 30.0,
+    this.bendRegistration = false,
+    this.bendMinDeg = 30.0,
+    this.bendSearchM = 80.0,
+    this.bendToleranceDeg = 15.0,
   });
 
   /// Metres of perpendicular distance one degree of heading disagreement
@@ -886,6 +1075,17 @@ class RoadFollowConfig {
   /// of slivers becomes a loop.
   final double recentEdgeWindowM;
 
+  /// Bend registration: a bend in the road is a landmark. When the gyro turns
+  /// by what a bend up to [bendSearchM] ahead turns, the marker was behind:
+  /// jump to that bend. When the road bent by at least [bendMinDeg] and the
+  /// gyro only turns later, the marker was ahead: move back to the bend. The
+  /// turns must agree within [bendToleranceDeg]. Off until a real drive shows
+  /// it helps.
+  final bool bendRegistration;
+  final double bendMinDeg;
+  final double bendSearchM;
+  final double bendToleranceDeg;
+
   /// Candidate roads examined per lookup. Bounds the cost in a dense junction.
   final int candidateLimit;
 }
@@ -916,4 +1116,229 @@ class PowerConfig {
 
   final int uiHz;
   final int reducedUiHz;
+}
+
+/// Coordinated-turn speedometer (§17 companion): in a steady turn the
+/// centripetal force is v * omega, so the forward speed is a_lat / omega.
+///
+/// It needs no wheel, no model and no GNSS, and its error does not grow with
+/// time, which is exactly what along-track dead reckoning lacks. It only
+/// speaks in a clear, steady turn; on a straight road the ratio is noise.
+/// Every value here is an engineering prior, not a measurement.
+@immutable
+class TurnSpeedConfig {
+  const TurnSpeedConfig({
+    this.window = const Duration(seconds: 1),
+    this.minWindowFill = 0.8,
+    this.updateInterval = const Duration(seconds: 1),
+    this.minYawRate = 0.10,
+    this.maxYawRate = 1.2,
+    this.maxYawRateCv = 0.35,
+    this.minLateralAccel = 0.6,
+    this.minSpeed = 2.0,
+    this.maxSpeed = 45.0,
+    this.accelSigma = 0.35,
+    this.yawRateSigma = 0.012,
+    this.maxSigma = 2.5,
+    this.validationWindow = 20,
+    this.validationMinPairs = 5,
+    this.validationMaxBias = 1.0,
+    this.validationMaxRms = 2.0,
+    this.validationMaxFixAge = const Duration(milliseconds: 1500),
+  });
+
+  /// Averaging window for a_lat and omega.
+  final Duration window;
+
+  /// Fraction of [window] that must be filled before it may speak.
+  final double minWindowFill;
+
+  /// One observation per interval: overlapping windows are not independent.
+  final Duration updateInterval;
+
+  /// rad/s. Below this the ratio amplifies noise; above it the manoeuvre is
+  /// not a steady turn (U-turn, spin).
+  final double minYawRate;
+  final double maxYawRate;
+
+  /// Largest std/|mean| of omega in the window: a steady turn only.
+  final double maxYawRateCv;
+
+  /// m/s². The centripetal force must clearly exceed accelerometer noise.
+  final double minLateralAccel;
+
+  final double minSpeed;
+  final double maxSpeed;
+
+  /// 1-sigma of the windowed lateral acceleration (noise, bank, residual
+  /// bias) and of the yaw rate (residual gyro bias), for the error model
+  /// sigma_v^2 = (sigma_a / w)^2 + (v * sigma_w / w)^2.
+  final double accelSigma;
+  final double yawRateSigma;
+
+  /// Observations less certain than this are dropped.
+  final double maxSigma;
+
+  /// GNSS comparison: residuals kept, how many before a verdict, and the bias
+  /// and RMS beyond which the turn speed is switched off.
+  final int validationWindow;
+  final int validationMinPairs;
+  final double validationMaxBias;
+  final double validationMaxRms;
+
+  /// A GNSS speed older than this is not compared with.
+  final Duration validationMaxFixAge;
+}
+
+/// When a returning fix is used to score the outage it ends (the recovery
+/// card). Short blips are not outages and would only report fix noise.
+@immutable
+class OutageReportConfig {
+  const OutageReportConfig({
+    this.minOutage = const Duration(seconds: 5),
+    this.minDistanceM = 25,
+    this.driftTargetPct = 10,
+  });
+
+  final Duration minOutage;
+  final double minDistanceM;
+
+  /// SIH26168's dead-reckoning benchmark: drift below 10 % of distance.
+  final double driftTargetPct;
+}
+
+/// Tyre-vibration speedometer: a rolling wheel shakes the car at its rotation
+/// rate (tyre non-uniformity, wheel imbalance), so the dominant peak of the
+/// vertical accelerometer spectrum moves in proportion to speed:
+/// f = v / (2 pi r). The constant 1 / (2 pi r) is learned per vehicle from GNSS
+/// speed while GNSS is healthy, so no wheel size is needed.
+///
+/// Its error does not grow with time. It needs a phone rate well above twice
+/// the wheel rate (a 50 Hz phone sees up to 25 Hz, i.e. ~150 km/h on a 0.3 m
+/// wheel); the IO-VNBD 10 Hz logs cannot test it, so it stays off until a
+/// recorded phone drive shows it helps. Every value here is an engineering
+/// prior, not a measurement.
+@immutable
+class VibrationSpeedConfig {
+  const VibrationSpeedConfig({
+    this.window = const Duration(seconds: 4),
+    this.minWindowFill = 0.9,
+    this.updateInterval = const Duration(seconds: 1),
+    this.minSampleRateHz = 30,
+    this.minHz = 2.0,
+    this.maxHz = 20.0,
+    this.segments = 3,
+    this.minProminence = 12.0,
+    this.minSpeed = 4.0,
+    this.maxSpeed = 45.0,
+    this.calibrationWindow = 40,
+    this.calibrationMinPairs = 12,
+    this.maxRelativeSpread = 0.08,
+    this.minInlierFraction = 0.8,
+    this.minSigma = 0.4,
+    this.maxSigma = 2.5,
+    this.maxSpeedChange = 0.04,
+    this.minGnssPerWindow = 3,
+  });
+
+  /// Spectrum length: longer resolves frequency finer (0.25 Hz at 4 s) but
+  /// smears speed changes.
+  final Duration window;
+
+  /// Fraction of [window] that must be covered before a spectrum is taken.
+  final double minWindowFill;
+
+  /// One observation per interval.
+  final Duration updateInterval;
+
+  /// Below this the wheel band aliases; the estimator stays silent.
+  final double minSampleRateHz;
+
+  /// Search band for the wheel-rate peak, Hz.
+  final double minHz;
+  final double maxHz;
+
+  /// Half-overlapping segments averaged per spectrum (Welch). Averaging tames
+  /// the random peaks of a noise-only spectrum; a real line survives it.
+  final int segments;
+
+  /// Peak power over the band's median power: a real rotation line stands far
+  /// above road noise; a flat spectrum says nothing.
+  final double minProminence;
+
+  /// m/s. Below [minSpeed] the wheel line is under [minHz] or buried.
+  final double minSpeed;
+  final double maxSpeed;
+
+  /// Speed-per-hertz ratios kept and how many before it may speak.
+  final int calibrationWindow;
+  final int calibrationMinPairs;
+
+  /// A ratio within [maxRelativeSpread] of the median is an inlier. Fewer than
+  /// [minInlierFraction] inliers means the peak hops between harmonics and the
+  /// scale is not trustworthy; the inliers' own spread sets the sigma.
+  final double maxRelativeSpread;
+  final double minInlierFraction;
+
+  /// Clamp on the reported 1-sigma, m/s.
+  final double minSigma;
+  final double maxSigma;
+
+  /// A spectrum is only paired with GNSS when the GNSS speed held steady over
+  /// the same window: at least [minGnssPerWindow] fixes, spanning no more than
+  /// [maxSpeedChange] of their mean. A changing speed smears the line.
+  final double maxSpeedChange;
+  final int minGnssPerWindow;
+}
+
+/// Tunnel look-ahead from the offline map's `is_tunnel` roads: warn before the
+/// portal, then report the tunnel still to drive. Engineering priors.
+@immutable
+class TunnelConfig {
+  const TunnelConfig({
+    this.lookaheadM = 2000,
+    this.announceWithinM = 1500,
+    this.bearingToleranceDeg = 35,
+    this.alignToleranceDeg = 50,
+    this.joinM = 8,
+    this.minLengthM = 40,
+    this.insideCorridorM = 25,
+  });
+
+  /// Portals farther than this are not considered.
+  final double lookaheadM;
+
+  /// The UI warns inside this distance.
+  final double announceWithinM;
+
+  /// The portal must lie within this of the heading…
+  final double bearingToleranceDeg;
+
+  /// …and the tunnel must run within this of the heading (not a crossing
+  /// tunnel under the road).
+  final double alignToleranceDeg;
+
+  /// Tunnel pieces whose ends are this close are one tunnel.
+  final double joinM;
+
+  /// Shorter covered stretches (a footbridge shadow) are not tunnels here.
+  final double minLengthM;
+
+  /// Within this of a tunnel's centreline counts as inside it.
+  final double insideCorridorM;
+}
+
+/// Car-park floors from barometric height after GNSS is lost.
+@immutable
+class ParkingLevelConfig {
+  const ParkingLevelConfig({
+    this.floorHeightM = 3.0,
+    this.hysteresis = 0.2,
+  });
+
+  /// Floor-to-floor height of a typical multi-level car park (m).
+  final double floorHeightM;
+
+  /// Extra fraction of a floor, beyond half, before the level changes.
+  final double hysteresis;
 }

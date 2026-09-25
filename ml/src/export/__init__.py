@@ -1,1 +1,1 @@
-"""Model export and quantization utilities."""
+"""Tools that turn model predictions into replay logs for the Dart benchmark."""

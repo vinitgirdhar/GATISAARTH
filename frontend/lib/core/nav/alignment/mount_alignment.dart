@@ -127,6 +127,11 @@ class MountAlignmentEstimator {
   double? _currentDvdt;
   int? _currentDvdtUs;
   int _events = 0;
+
+  // IMU samples since the last fix, averaged before fitting.
+  Vector3 _intervalAccel = Vector3.zero();
+  Vector3 _intervalGyro = Vector3.zero();
+  int _intervalSamples = 0;
   MountAlignment? _alignment;
   final List<String> _notes = [];
 
@@ -166,6 +171,7 @@ class MountAlignmentEstimator {
     _currentDvdt = null;
     _currentDvdtUs = null;
     _events = 0;
+    _clearInterval();
     _alignment = null;
     _notes.clear();
   }
@@ -189,7 +195,12 @@ class MountAlignmentEstimator {
   }) {
     if (!_finite(accelPhone) || !_finite(gyroPhone)) return _alignment;
 
-    _updateSpeedDerivative(gnssSpeedMps, gnssUs ?? monotonicUs);
+    // A new fix closes the interval its speed derivative describes: fit the
+    // IMU samples of *that* interval against it, before this sample opens
+    // the next one.
+    if (_updateSpeedDerivative(gnssSpeedMps, gnssUs ?? monotonicUs)) {
+      _fitClosedInterval();
+    }
     if (hold) return _alignment;
     final dvdt = _applicableDvdt(monotonicUs);
 
@@ -199,50 +210,78 @@ class MountAlignmentEstimator {
     // speed derivative can, and it is already computed. Letting braking leak
     // into the gravity estimate tilts the horizontal plane, and a tilted
     // plane pours gravity straight into the forward axis.
+    //
+    // "Not turning" is judged on the gyro averaged since the last fix, not the
+    // raw sample: a shaking phone never reads under the threshold sample by
+    // sample, which froze gravity at its first second of samples.
+    _intervalAccel += accelPhone;
+    _intervalGyro += gyroPhone;
+    _intervalSamples++;
+    final meanGyro = _intervalGyro / _intervalSamples.toDouble();
     _updateGravity(
       accelPhone,
-      quiescent: dvdt == null &&
-          gyroPhone.length < _config.maxYawRateWhileFitting,
+      quiescent:
+          dvdt == null && meanGyro.length < _config.maxYawRateWhileFitting,
     );
+    return _alignment;
+  }
+
+  /// Regresses the mean horizontal acceleration of the interval that just
+  /// closed on the GNSS speed derivative over the same interval.
+  ///
+  /// Averaging first is what makes a real phone usable: a phone in a car
+  /// cradle shakes by 0.3-2 rad/s and 1-3 m/s^2 sample to sample (measured on
+  /// three real drives, 2026-09-24), so per-sample gates for "going
+  /// straight" and "accelerometer agrees with GNSS" rejected ~99 % of
+  /// samples and the mount never aligned. Vibration is zero-mean and averages
+  /// out over a second; a real turn or a real speed change does not.
+  void _fitClosedInterval() {
+    final n = _intervalSamples;
+    final sumAccel = _intervalAccel;
+    final sumGyro = _intervalGyro;
+    _clearInterval();
+    final dvdt = _currentDvdt;
     final up = upInPhone;
-    if (up == null) return _alignment;
-    if (dvdt == null) return _alignment;
+    if (n == 0 || dvdt == null || up == null) return;
+    final accel = sumAccel / n.toDouble();
+    final gyro = sumGyro / n.toDouble();
 
     // Only straight-line speed changes carry forward-axis information.
-    if (gyroPhone.length > _config.maxYawRateWhileFitting) return _alignment;
+    if (gyro.length > _config.maxYawRateWhileFitting) return;
 
     // Linear acceleration, gravity removed, projected onto the horizontal
     // plane the gravity vector defines.
-    final linear = accelPhone - _gravityPhone!;
+    final linear = accel - _gravityPhone!;
     final horizontal = linear - up * linear.dot(up);
 
-    // Only use samples where the accelerometer and the GNSS derivative are
+    // Only use intervals where the accelerometer and the GNSS derivative are
     // describing the same event — see `dvdtConsistencyMin`.
     final magnitude = horizontal.length;
     final expected = dvdt.abs();
     if (magnitude < expected * _config.dvdtConsistencyMin ||
         magnitude > expected * _config.dvdtConsistencyMax) {
-      return _alignment;
+      return;
     }
 
-    _crossSum += horizontal * dvdt;
-    _dvdtSquaredSum += dvdt * dvdt;
-    _dvdtSum += dvdt;
-    _accelSquaredSum += horizontal.length2;
-    _accepted++;
+    // Weighted by sample count, so `minSamples` keeps its meaning.
+    final w = n.toDouble();
+    _crossSum += horizontal * (dvdt * w);
+    _dvdtSquaredSum += dvdt * dvdt * w;
+    _dvdtSum += dvdt * w;
+    _accelSquaredSum += horizontal.length2 * w;
+    _accepted += n;
     _gravityAtFitStart ??= _gravityPhone!.clone();
 
     // Halves are split at the point the minimum event count is reached, so
     // the comparison is between two comparably sized stretches of the drive.
     if (_events <= _config.minEvents) {
-      _firstHalfCross += horizontal * dvdt;
+      _firstHalfCross += horizontal * (dvdt * w);
       _halfSplitAt = _accepted;
     } else {
-      _secondHalfCross += horizontal * dvdt;
+      _secondHalfCross += horizontal * (dvdt * w);
     }
 
     _alignment = _solve();
-    return _alignment;
   }
 
   void _updateGravity(Vector3 accelPhone, {required bool quiescent}) {
@@ -286,38 +325,53 @@ class MountAlignmentEstimator {
   ///
   /// Never extrapolated from a dead-reckoned speed: feeding the filter's own
   /// output back in would make the regression circular.
-  void _updateSpeedDerivative(double? speed, int us) {
+  ///
+  /// Returns true when a fix closed a valid speed-change interval.
+  bool _updateSpeedDerivative(double? speed, int us) {
     if (speed == null || !speed.isFinite) {
       _lastSpeed = null;
       _lastSpeedUs = null;
       _currentDvdt = null;
       _currentDvdtUs = null;
-      return;
+      _clearInterval();
+      return false;
     }
     final previousUs = _lastSpeedUs;
-    if (previousUs != null && us == previousUs) return; // same fix
+    if (previousUs != null && us == previousUs) return false; // same fix
 
     final previous = _lastSpeed;
     _lastSpeed = speed;
     _lastSpeedUs = us;
-    if (previous == null || previousUs == null) return;
+    if (previous == null || previousUs == null) {
+      _clearInterval();
+      return false;
+    }
 
     final dt = (us - previousUs) / 1e6;
     // A gap longer than a couple of fixes is not a derivative.
     if (dt <= 0 || dt > 3) {
       _currentDvdt = null;
       _currentDvdtUs = null;
-      return;
+      _clearInterval();
+      return false;
     }
     final dvdt = (speed - previous) / dt;
     if (dvdt.abs() < _config.minLongitudinalAccel) {
       _currentDvdt = null;
       _currentDvdtUs = null;
-      return;
+      _clearInterval();
+      return false;
     }
     _currentDvdt = dvdt;
     _currentDvdtUs = us;
     _events++;
+    return true;
+  }
+
+  void _clearInterval() {
+    _intervalAccel = Vector3.zero();
+    _intervalGyro = Vector3.zero();
+    _intervalSamples = 0;
   }
 
   /// The acceleration currently applicable to an IMU sample, or null once the

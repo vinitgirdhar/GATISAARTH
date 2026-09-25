@@ -11,8 +11,15 @@ import 'ins/ins_state.dart';
 import 'map/map_matcher.dart';
 import 'map/road_graph.dart';
 import 'math/nav_math.dart';
+import 'model/correction_explainer.dart';
 import 'model/nav_snapshot.dart';
+import 'model/outage_recovery.dart';
+import 'motion/gyro_bias.dart';
+import 'motion/hand_held_tracker.dart';
 import 'motion/motion_classifier.dart';
+import 'motion/phone_handling.dart';
+import 'motion/turn_speed.dart';
+import 'motion/vibration_speed.dart';
 import 'nav_config.dart';
 import 'sensors/barometer.dart';
 import 'sensors/sensor_fault_detector.dart';
@@ -126,7 +133,13 @@ class NavigationEngine {
         _timeSync = TimeSync(config: config),
         _faults = SensorFaultDetector(config: config),
         _barometer = BarometerProcessor(config: config),
-        _ai = AiFusion(config);
+        _ai = AiFusion(config),
+        _turn = TurnSpeedEstimator(config: config),
+        _vib = VibrationSpeedEstimator(config: config),
+        _handling = PhoneHandlingDetector(config: config),
+        _handHeldStop = HandHeldStopDetector(config: config),
+        _handHeldTracker = HandHeldTracker(config: config),
+        _gyroBias = GyroBiasEstimator(config: config);
 
   final NavConfig _config;
   final NavigationFilter _filter;
@@ -138,6 +151,12 @@ class NavigationEngine {
   final SensorFaultDetector _faults;
   final BarometerProcessor _barometer;
   final AiFusion _ai;
+  final TurnSpeedEstimator _turn;
+  final VibrationSpeedEstimator _vib;
+  final PhoneHandlingDetector _handling;
+  final HandHeldStopDetector _handHeldStop;
+  final HandHeldTracker _handHeldTracker;
+  final GyroBiasEstimator _gyroBias;
   final _ContributionTracker _contribution = _ContributionTracker();
 
   SensorCalibration _calibration;
@@ -146,6 +165,7 @@ class NavigationEngine {
   NavigationSnapshot? _snapshot;
   final List<ModeTransition> _transitions = [];
   final List<MeasurementResult> _recentMeasurements = [];
+  final CorrectionExplainer _explainer = CorrectionExplainer();
 
   int _sequence = 0;
   int? _lastImuUs;
@@ -155,6 +175,9 @@ class NavigationEngine {
   int? _reacquiringUntilUs;
   int? _outageStartedUs;
   double _outageDistanceM = 0;
+  int? _lastAcceptedFixUs;
+  double _sinceFixDistanceM = 0;
+  OutageRecovery? _lastRecovery;
   double? _lastTemperatureC;
   GnssAssessment? _lastAssessment;
 
@@ -176,6 +199,9 @@ class NavigationEngine {
   NavigationFilter get filter => _filter;
   MotionSnapshot get motion => _motion.snapshot;
 
+  /// Diagnostics only - the hand-held gyro bias estimate (§ hand-held mode).
+  double get debugHandHeldBiasRadPerS => _gyroBias.biasRadPerS;
+
   /// Mode transitions, oldest first, each with its trigger (§25, §53).
   List<ModeTransition> get transitions => List.unmodifiable(_transitions);
 
@@ -184,6 +210,17 @@ class NavigationEngine {
       List.unmodifiable(_recentMeasurements);
 
   MapMatchResult? get mapMatch => _matcher.last;
+
+  /// Per source, what the filter last did with its measurements and why, in
+  /// plain words (the "Why" view). Newest first.
+  List<CorrectionExplanation> get corrections =>
+      _explainer.explain(nowUs: _lastImuUs ?? _lastGnssUs ?? 0);
+
+  /// What the coordinated-turn speedometer has seen and done.
+  TurnSpeedDiagnostics get turnSpeedDiagnostics => _turn.diagnostics;
+
+  /// What the tyre-vibration speedometer has seen and done.
+  VibrationSpeedDiagnostics get vibrationSpeedDiagnostics => _vib.diagnostics;
 
   /// Per-sensor fault diagnoses (§29).
   Map<SensorType, SensorDiagnosis> get sensorDiagnoses => _faults.diagnoses;
@@ -316,16 +353,53 @@ class NavigationEngine {
       hold: ai.holdUpdates,
     );
 
+    // Hand-held dead reckoning needs no phone-to-vehicle mount, so it is fed
+    // on every frame regardless of alignment status: that keeps it warm for
+    // an instant handover if the mount later slips and resets (§6).
+    if (_config.features.handHeldMode) {
+      final beforeLat = _handHeldTracker.latitudeDeg;
+      final beforeLon = _handHeldTracker.longitudeDeg;
+      final yawRate = _handling.add(
+        accelPhone: accel,
+        gyroPhone: gyro,
+        monotonicUs: monotonicUs,
+      );
+      final handlingNow = _handling.isHandling;
+      final stationaryNow = _handHeldStop.add(
+        accelMagnitude: accel.length,
+        monotonicUs: monotonicUs,
+      );
+      _gyroBias.observeImu(
+        yawRateRadPerS: yawRate,
+        handling: handlingNow,
+        monotonicUs: monotonicUs,
+      );
+      final freshGnssSpeed = _gnssSpeedForAlignment(monotonicUs);
+      final gnssStopped =
+          freshGnssSpeed != null && freshGnssSpeed < _config.handHeld.biasStopSpeedMps;
+      _gyroBias.observeGnssStop(
+        stationary: gnssStopped,
+        yawRateRadPerS: yawRate,
+        handling: handlingNow,
+      );
+      _handHeldTracker.predict(
+        yawRateRadPerS: yawRate - _gyroBias.biasRadPerS,
+        handling: handlingNow,
+        stationary: stationaryNow,
+        monotonicUs: monotonicUs,
+      );
+      _accumulateHandHeldDistance(beforeLat, beforeLon);
+      _runMapMatchHandHeld(monotonicUs);
+    }
+
     final mount = _alignmentEstimator.alignment;
     if (mount == null) {
-      // Without a phone-to-vehicle transform the body frame is unknown, so
-      // there is nothing meaningful to propagate. Say so rather than
-      // integrating in the wrong frame (§6, §83).
-      _setMode(
-        NavMode.calibrating,
-        'phone-to-vehicle transform not established',
-        monotonicUs,
-      );
+      // Without a phone-to-vehicle transform the vehicle body frame is
+      // unknown, so nothing here can be propagated through the mounted EKF -
+      // say so rather than integrating in the wrong frame (§6, §83).
+      // `_updateMode` routes to the hand-held tracker above when it is on and
+      // has a position to report.
+      _updateMode(monotonicUs);
       return _maybeSnapshot(monotonicUs, force: false);
     }
 
@@ -363,6 +437,8 @@ class NavigationEngine {
         magVehicle: magVehicle,
         ai: ai,
       );
+      _applyTurnSpeed(accelVehicle, gyroVehicle, monotonicUs);
+      _applyVibrationSpeed(accelVehicle, monotonicUs);
       _contribution.decayTo(monotonicUs);
       _runMapMatch(monotonicUs);
     }
@@ -383,6 +459,9 @@ class NavigationEngine {
     _lastAssessment = assessment;
     _lastGnssUs = fix.monotonicUs;
     _lastGnssSpeed = assessment.usable ? fix.speedMps : null;
+    if (_config.features.vibrationSpeed && _lastGnssSpeed != null) {
+      _vib.addGnssSpeed(speedMps: _lastGnssSpeed!, monotonicUs: fix.monotonicUs);
+    }
     if (assessment.usable && assessment.useVelocity && fix.speedMps != null) {
       // The neural speed is graded against the Doppler speed while GNSS speaks.
       _ai.gradeWithGnss(fix.speedMps!, fix.monotonicUs);
@@ -400,6 +479,26 @@ class NavigationEngine {
       // known the GNSS fix *is* the position, and the snapshot says so.
       if (_alignmentEstimator.alignment == null) {
         _lastUnalignedFix = fix;
+        if (_config.features.handHeldMode) {
+          _handHeldTracker.onFix(
+            latitudeDeg: fix.latitudeDeg,
+            longitudeDeg: fix.longitudeDeg,
+            bearingDeg: fix.bearingDeg,
+            speedMps: fix.speedMps,
+            horizontalSigmaM: assessment.horizontalSigmaM,
+            monotonicUs: fix.monotonicUs,
+          );
+          _gyroBias.onFix(
+            latitudeDeg: fix.latitudeDeg,
+            longitudeDeg: fix.longitudeDeg,
+            speedMps: fix.speedMps,
+            handling: _handling.isHandling,
+            monotonicUs: fix.monotonicUs,
+          );
+          _lastAcceptedFixUs = fix.monotonicUs;
+          _sinceFixDistanceM = 0;
+          _endOutage();
+        }
         _updateMode(fix.monotonicUs);
         return _maybeSnapshot(fix.monotonicUs, force: true);
       }
@@ -417,11 +516,16 @@ class NavigationEngine {
       );
       _contribution.decayTo(fix.monotonicUs);
       _endOutage();
+      _lastAcceptedFixUs = fix.monotonicUs;
+      _sinceFixDistanceM = 0;
       _setMode(NavMode.gnssLocked, 'first usable fix', fix.monotonicUs);
       return _maybeSnapshot(fix.monotonicUs, force: true);
     }
 
     final wasDeadReckoning = _mode.isDeadReckoning;
+    final beforeFix = wasDeadReckoning ? _filter.state : null;
+    final sigmaBeforeFix =
+        wasDeadReckoning ? _filter.horizontalPositionSigma : null;
     // With adaptive covariance off, the receiver's own accuracy is taken at
     // face value — which is the behaviour the ablation baseline needs.
     // A model's GNSS trust (P3) divides the measurement variance: sigma is
@@ -445,6 +549,11 @@ class NavigationEngine {
     if (result.accepted) {
       _contribution.decayTo(fix.monotonicUs);
       _contribution.add('gnss', result.positionVarianceReduction);
+      if (beforeFix != null) {
+        _scoreRecovery(beforeFix, sigmaBeforeFix, fix);
+      }
+      _lastAcceptedFixUs = fix.monotonicUs;
+      _sinceFixDistanceM = 0;
       _endOutage();
       _anchorBarometer(fix);
     }
@@ -587,10 +696,17 @@ class NavigationEngine {
     _barometer.reset();
     _contribution.reset();
     _ai.reset();
+    _turn.reset();
+    _vib.reset();
+    _handling.reset();
+    _handHeldStop.reset();
+    _handHeldTracker.reset();
+    _gyroBias.reset();
     _mode = NavMode.boot;
     _snapshot = null;
     _transitions.clear();
     _recentMeasurements.clear();
+    _explainer.reset();
     _sequence = 0;
     _lastImuUs = null;
     _lastGnssUs = null;
@@ -598,6 +714,9 @@ class NavigationEngine {
     _reacquiringUntilUs = null;
     _outageStartedUs = null;
     _outageDistanceM = 0;
+    _lastAcceptedFixUs = null;
+    _sinceFixDistanceM = 0;
+    _lastRecovery = null;
     _lastUnalignedFix = null;
     _lastMatchUs = 0;
     _lastSnapshotUs = 0;
@@ -677,7 +796,9 @@ class NavigationEngine {
       }
     } else if (snapshot.nhcApplicable && features.nonHolonomicConstraint) {
       _recordInertial(_filter.updateNonHolonomic(
-        lateralSigma: _motion.nhcLateralSigma * sigmaScale,
+        lateralSigma: _motion.nhcLateralSigmaFor(
+                rollRateRad: features.leanAwareNhc ? gyroVehicle.x : 0) *
+            sigmaScale,
       ));
     }
 
@@ -774,14 +895,171 @@ class NavigationEngine {
     }
   }
 
+  /// The hand-held path's counterpart to [_runMapMatch]: same matcher, same
+  /// "heading only, never position" rule (§58) - just fed the hand-held
+  /// tracker's own position/heading/speed instead of the EKF state, and
+  /// correcting `HandHeldTracker`'s scalar heading/sigma instead of the
+  /// filter's covariance. This is what bounds the open-loop gyro-bias drift
+  /// a mounted vehicle would otherwise never see uncorrected for so long: on
+  /// a matched road, the yaw rate only breaks the tie at a junction, and the
+  /// road's own heading carries the rest (§ hand-held mode, part 2).
+  ///
+  /// Only runs while the mount has not converged - once it has, the mounted
+  /// path leads and this tracker is background-only.
+  void _runMapMatchHandHeld(int monotonicUs) {
+    if (_alignmentEstimator.alignment != null) return;
+    if (_motion.vehicleClass == VehicleClass.pedestrian) return;
+    if (!_matcher.isAvailable || !_config.features.mapHeading) return;
+    if (monotonicUs - _lastMatchUs < 500000) return;
+    _lastMatchUs = monotonicUs;
+
+    final lat = _handHeldTracker.latitudeDeg;
+    final lon = _handHeldTracker.longitudeDeg;
+    final headingDeg = _handHeldTracker.headingDeg;
+    if (lat == null || lon == null || headingDeg == null) return;
+
+    final result = _matcher.update(
+      lat: lat,
+      lon: lon,
+      sigmaM: _handHeldTracker.horizontalSigmaM,
+      headingRad: headingDeg * NavMath.degToRad,
+      speedMps: _handHeldTracker.speedMps ?? 0,
+    );
+    if (result == null || !result.snapped) return;
+    if (result.confidence < _config.mapMatch.headingFeedbackMinConfidence) {
+      return;
+    }
+    final heading = result.matchedHeadingRad;
+    if (heading == null) return;
+    final sigmaRad = _config.ekf.magYawSigma / result.confidence;
+    _handHeldTracker.applyHeadingMeasurement(
+      headingRad: heading,
+      sigmaRad: sigmaRad,
+    );
+  }
+
+  /// Same accounting as [_accumulateOutageDistance], for the hand-held
+  /// tracker's plain lat/lon instead of a full [InsState].
+  void _accumulateHandHeldDistance(double? beforeLat, double? beforeLon) {
+    if (beforeLat == null || beforeLon == null) return;
+    final afterLat = _handHeldTracker.latitudeDeg;
+    final afterLon = _handHeldTracker.longitudeDeg;
+    if (afterLat == null || afterLon == null) return;
+    final step = NavMath.horizontalDistance(
+      lat0: beforeLat,
+      lon0: beforeLon,
+      lat1: afterLat,
+      lon1: afterLon,
+    );
+    if (_lastAcceptedFixUs != null) _sinceFixDistanceM += step;
+    if (_outageStartedUs != null) _outageDistanceM += step;
+  }
+
   void _accumulateOutageDistance(InsState? before, InsState? after) {
-    if (_outageStartedUs == null || before == null || after == null) return;
-    _outageDistanceM += NavMath.horizontalDistance(
+    if (before == null || after == null) return;
+    final step = NavMath.horizontalDistance(
       lat0: before.latitudeDeg,
       lon0: before.longitudeDeg,
       lat1: after.latitudeDeg,
       lon1: after.longitudeDeg,
     );
+    if (_lastAcceptedFixUs != null) _sinceFixDistanceM += step;
+    if (_outageStartedUs != null) _outageDistanceM += step;
+  }
+
+  /// Scores the outage a returning fix ends: the core's position just
+  /// before the update against the fix, over the span since the last
+  /// accepted fix. Blips below the report thresholds are fix noise, not
+  /// outages, and are not reported.
+  void _scoreRecovery(InsState before, double? sigma, GnssObservation fix) {
+    final lastFix = _lastAcceptedFixUs;
+    if (lastFix == null) return;
+    final report = _config.outageReport;
+    final durationUs = fix.monotonicUs - lastFix;
+    if (durationUs < report.minOutage.inMicroseconds) return;
+    if (_sinceFixDistanceM < report.minDistanceM) return;
+    _lastRecovery = OutageRecovery(
+      durationS: durationUs / 1e6,
+      distanceM: _sinceFixDistanceM,
+      errorM: NavMath.horizontalDistance(
+        lat0: before.latitudeDeg,
+        lon0: before.longitudeDeg,
+        lat1: fix.latitudeDeg,
+        lon1: fix.longitudeDeg,
+      ),
+      fixAccuracyM: fix.accuracyM,
+      predictedSigmaM: sigma,
+      endedAtUs: fix.monotonicUs,
+      coreLed: _snapshot?.canLeadPosition ?? false,
+    );
+  }
+
+  /// Coordinated-turn speed (v = a_lat / omega), taken in the level frame
+  /// through the filter's attitude and biases. Graded against GNSS while
+  /// it is live; applied only in an outage, through the filter's own
+  /// innovation gate, and never once GNSS has disowned it.
+  void _applyTurnSpeed(
+      Vector3 accelVehicle, Vector3 gyroVehicle, int monotonicUs) {
+    if (!_config.features.turnSpeed) return;
+    if (_motion.vehicleClass == VehicleClass.pedestrian) return;
+    final state = _filter.state;
+    if (state == null) return;
+    final level = TurnSpeedEstimator.levelFrame(
+      qBodyToNav: state.qBodyToNav,
+      specificForceBody: accelVehicle - state.accelBias,
+      angularRateBody: gyroVehicle - state.gyroBias,
+    );
+    _turn.add(
+      lateralAccel: level.lateralAccel,
+      yawRate: level.yawRate,
+      monotonicUs: monotonicUs,
+    );
+    final obs = _turn.poll(monotonicUs);
+    if (obs == null) return;
+    final lastGnss = _lastGnssUs;
+    final gnssSpeed = _lastGnssSpeed;
+    if (gnssSpeed != null &&
+        lastGnss != null &&
+        monotonicUs - lastGnss <=
+            _config.turnSpeed.validationMaxFixAge.inMicroseconds) {
+      _turn.grade(obs, gnssSpeedMps: gnssSpeed);
+    }
+    if (_outageStartedUs == null || !_turn.trusted) return;
+    final result = _filter.updateForwardSpeed(
+      speedMps: obs.speedMps,
+      sigma: obs.sigmaMps,
+      name: 'turn_speed',
+    );
+    _recordInertial(result);
+    if (result.outcome != MeasurementOutcome.skipped) {
+      _turn.noteApplied(accepted: result.accepted);
+    }
+  }
+
+  /// Tyre-vibration speed: learned against steady GNSS speed while GNSS is
+  /// live, applied only in an outage and only once the learned scale is
+  /// trusted, through the filter's own innovation gate.
+  void _applyVibrationSpeed(Vector3 accelVehicle, int monotonicUs) {
+    if (!_config.features.vibrationSpeed) return;
+    if (_motion.vehicleClass == VehicleClass.pedestrian) return;
+    _vib.add(verticalAccel: accelVehicle.z, monotonicUs: monotonicUs);
+    final obs = _vib.poll(monotonicUs);
+    if (obs == null) return;
+    if (_outageStartedUs == null) {
+      _vib.learn(obs);
+      return;
+    }
+    final speed = obs.speedMps, sigma = obs.sigmaMps;
+    if (speed == null || sigma == null) return;
+    final result = _filter.updateForwardSpeed(
+      speedMps: speed,
+      sigma: sigma,
+      name: 'vibration_speed',
+    );
+    _recordInertial(result);
+    if (result.outcome != MeasurementOutcome.skipped) {
+      _vib.noteApplied(accepted: result.accepted);
+    }
   }
 
   void _startOutage(int monotonicUs) {
@@ -797,6 +1075,7 @@ class NavigationEngine {
 
   void _record(MeasurementResult result) {
     if (result.outcome == MeasurementOutcome.skipped) return;
+    _explainer.record(result, _lastImuUs ?? _lastGnssUs ?? 0);
     _recentMeasurements.add(result);
     while (_recentMeasurements.length > _maxRecentMeasurements) {
       _recentMeasurements.removeAt(0);
@@ -820,6 +1099,10 @@ class NavigationEngine {
       return;
     }
     if (_alignmentEstimator.alignment == null) {
+      if (_config.features.handHeldMode && _handHeldTracker.hasPosition) {
+        _updateModeHandHeld(monotonicUs);
+        return;
+      }
       _setMode(NavMode.calibrating, 'awaiting phone-to-vehicle alignment',
           monotonicUs);
       return;
@@ -882,6 +1165,26 @@ class NavigationEngine {
     _setMode(NavMode.gnssLocked, 'healthy fix stream', monotonicUs);
   }
 
+  /// Mode dispatch for the hand-held tracker: no mount, so none of the
+  /// mounted checks (filter failure, reacquiring, GNSS quality classes,
+  /// sensor faults) apply to it - only whether a fix is still fresh.
+  void _updateModeHandHeld(int monotonicUs) {
+    final lastGnss = _lastGnssUs;
+    final gnssFresh = lastGnss != null &&
+        monotonicUs - lastGnss <= _config.gnss.staleAfter.inMicroseconds;
+    if (!gnssFresh) {
+      _startOutage(monotonicUs);
+      _setMode(
+        NavMode.deadReckoning,
+        'hand-held: no fix within ${_config.gnss.staleAfter.inSeconds}s',
+        monotonicUs,
+      );
+    } else {
+      _endOutage();
+      _setMode(NavMode.gnssLocked, 'hand-held: healthy fix stream', monotonicUs);
+    }
+  }
+
   void _setMode(NavMode next, String reason, int monotonicUs) {
     if (_mode == next) return;
     _transitions.add(ModeTransition(
@@ -898,7 +1201,20 @@ class NavigationEngine {
 
   NavIntegrity _integrity() {
     if (_filter.hasFailed) return NavIntegrity.invalid;
-    if (!_filter.isInitialised) return NavIntegrity.invalid;
+    if (!_filter.isInitialised) {
+      // Hand-held: honest about what this model is. It never claims better
+      // than medium — there is no known vehicle frame to be more sure of —
+      // and drops further while the phone is actively being handled, or once
+      // its own sigma says it has drifted too far to be worth using.
+      if (_config.features.handHeldMode && _handHeldTracker.hasPosition) {
+        final sigma = _handHeldTracker.horizontalSigmaM;
+        if (!sigma.isFinite) return NavIntegrity.invalid;
+        if (sigma > 150) return NavIntegrity.invalid;
+        if (_handling.isHandling || sigma > 60) return NavIntegrity.low;
+        return NavIntegrity.medium;
+      }
+      return NavIntegrity.invalid;
+    }
     final sigma = _filter.horizontalPositionSigma;
     if (sigma == null || !sigma.isFinite) return NavIntegrity.invalid;
     if (sigma > _config.ekf.maxPositionSigma) return NavIntegrity.invalid;
@@ -924,10 +1240,15 @@ class NavigationEngine {
     _lastSnapshotUs = monotonicUs;
 
     final state = _filter.state;
-    final unaligned = state == null ? _lastUnalignedFix : null;
+    final handHeldActive = state == null &&
+        _config.features.handHeldMode &&
+        _handHeldTracker.hasPosition;
+    final unaligned = (state == null && !handHeldActive) ? _lastUnalignedFix : null;
     final notes = <String>[];
     if (_alignmentEstimator.alignment == null) {
-      notes.add('Phone-to-vehicle alignment not established');
+      notes.add(handHeldActive
+          ? 'Hand-held mode: no phone-to-vehicle mount'
+          : 'Phone-to-vehicle alignment not established');
     } else if (!_alignmentEstimator.isConverged) {
       notes.add('Mount alignment still converging');
     }
@@ -954,15 +1275,22 @@ class NavigationEngine {
       monotonicUs: monotonicUs,
       mode: _mode,
       integrity: _integrity(),
-      latitude: state?.latitudeDeg ?? unaligned?.latitudeDeg,
-      longitude: state?.longitudeDeg ?? unaligned?.longitudeDeg,
+      latitude: state?.latitudeDeg ??
+          (handHeldActive ? _handHeldTracker.latitudeDeg : unaligned?.latitudeDeg),
+      longitude: state?.longitudeDeg ??
+          (handHeldActive ? _handHeldTracker.longitudeDeg : unaligned?.longitudeDeg),
       altitude: state?.altitudeM ?? unaligned?.altitudeM,
-      speedMps: state?.groundSpeed ?? unaligned?.speedMps,
-      headingDeg: state?.headingDeg ?? unaligned?.bearingDeg,
-      horizontalSigmaM: _filter.horizontalPositionSigma,
+      speedMps: state?.groundSpeed ??
+          (handHeldActive ? _handHeldTracker.speedMps : unaligned?.speedMps),
+      headingDeg: state?.headingDeg ??
+          (handHeldActive ? _handHeldTracker.headingDeg : unaligned?.bearingDeg),
+      horizontalSigmaM: _filter.horizontalPositionSigma ??
+          (handHeldActive ? _handHeldTracker.horizontalSigmaM : null),
       verticalSigmaM: _filter.verticalPositionSigma,
-      speedSigmaMps: _filter.speedSigma,
-      headingSigmaDeg: _filter.headingSigmaDeg,
+      speedSigmaMps: _filter.speedSigma ??
+          (handHeldActive ? _handHeldTracker.speedSigmaMps : null),
+      headingSigmaDeg: _filter.headingSigmaDeg ??
+          (handHeldActive ? _handHeldTracker.headingSigmaDeg : null),
       gnss: assessment,
       motion: _motion.snapshot,
       sensorStats: _timeSync.stats,
@@ -980,10 +1308,12 @@ class NavigationEngine {
           ? Duration.zero
           : Duration(microseconds: monotonicUs - _outageStartedUs!),
       outageDistanceM: _outageDistanceM,
-      positionSource: state == null
-          ? (unaligned == null ? DataSource.unavailable : DataSource.real)
-          : (_mode.isDeadReckoning ? DataSource.estimated : DataSource.real),
+      lastRecovery: _lastRecovery,
+      positionSource: (state != null || handHeldActive)
+          ? (_mode.isDeadReckoning ? DataSource.estimated : DataSource.real)
+          : (unaligned == null ? DataSource.unavailable : DataSource.real),
       notes: notes,
+      handHeld: handHeldActive,
     );
     return _snapshot;
   }

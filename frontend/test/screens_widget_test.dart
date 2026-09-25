@@ -229,8 +229,9 @@ void main() {
     await _pumpApp(tester, h);
     await _goLive(tester, h);
 
-    await _scrollTo(tester, find.text('Standalone · backend offline'));
-    expect(find.text('Standalone · backend offline'), findsOneWidget);
+    await _scrollTo(tester, find.text('Core warming up'));
+    expect(find.text('Core warming up'), findsOneWidget);
+    expect(find.textContaining('Backend'), findsNothing);
     expect(find.textContaining('Map match'), findsNothing);
     expect(find.textContaining('MAP MATCH'), findsNothing);
     expect(find.textContaining('LOCUS'), findsNothing);
@@ -243,7 +244,9 @@ void main() {
 
     expect(find.text('Searching for GNSS…'), findsOneWidget);
     expect(find.text('No fix yet'), findsWidgets);
-    expect(find.textContaining('--'), findsOneWidget);
+    // Confidence and road match are unknown, and say so.
+    expect(find.textContaining('--'), findsWidgets);
+    expect(find.text('No offline roads'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

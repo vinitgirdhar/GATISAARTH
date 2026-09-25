@@ -98,6 +98,8 @@ class DriveSimulator {
     this.gyroNoise = 0.002,
     this.gnssAccuracy = 5,
     this.gnssNoise = 2.5,
+    this.wheelVibration = 0,
+    this.wheelRadiusM = 0.31,
     int seed = 42,
   }) : _rng = math.Random(seed);
 
@@ -115,6 +117,12 @@ class DriveSimulator {
 
   final double gnssAccuracy;
   final double gnssNoise;
+
+  /// Vertical shake at the wheel-rotation rate, m/s² amplitude (0 = none):
+  /// what a real tyre does to the car body, for the vibration speedometer.
+  final double wheelVibration;
+  final double wheelRadiusM;
+  double _wheelPhase = 0;
 
   final math.Random _rng;
 
@@ -173,10 +181,11 @@ class DriveSimulator {
     // on the lateral axis exactly as it does in a real vehicle.
     final actualLongitudinal =
         _speed <= 0 && segment.longitudinalAccel < 0 ? 0.0 : segment.longitudinalAccel;
+    _wheelPhase += _speed / wheelRadiusM * dt;
     final specificVehicle = Vector3(
       actualLongitudinal,
       _speed * yawRate,
-      -NavMath.gravity,
+      -NavMath.gravity + wheelVibration * math.sin(_wheelPhase),
     );
     final gyroVehicle = Vector3(0, 0, yawRate);
 

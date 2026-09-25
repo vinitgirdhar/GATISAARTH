@@ -433,7 +433,7 @@ std::string pacedJson(const std::string& name, const Stream& s, const Scenario& 
       << ",\"seconds\":" << r.seconds << ",\"imu_samples\":" << r.samples << ",\"deadline_ms\":" << r.periodMs
       << ",\"deadline_misses\":" << r.misses << ",\"end_to_end_latency_us\":" << quantilesJson(r.endToEndUs)
       << ",\"engine_processing_us\":" << quantilesJson(r.processUs) << ",\"producer_lateness_us\":" << quantilesJson(r.pacerLatenessUs)
-      << ",\"queue_capacity\":" << EdgePipeline::kCapacity - 1 << ",\"max_queue_occupancy\":" << r.pipe.maxOccupancy
+      << ",\"queue_capacity\":" << EdgePipeline::kCapacity << ",\"max_queue_occupancy\":" << r.pipe.maxOccupancy
       << ",\"offered\":" << r.pipe.offered << ",\"dropped\":" << r.pipe.dropped << ",\"processed\":" << r.pipe.processed
       << ",\"recovery_ms_after_stall\":" << r.recoveryMs << ",\"final_position_error_m\":" << r.finalErrorM
       << ",\"injected\":{\"producer_stall_s\":" << sc.producerStallLen << ",\"consumer_stall_s\":" << sc.consumerStallLen << "}}";
@@ -462,7 +462,7 @@ void printFlat(const std::string& name, const Stream& s, const FlatOut& r) {
 void printPaced(const std::string& name, const Paced& r) {
     std::printf("%-28s %8zu samples | e2e us p50 %.0f p99 %.0f max %.0f | misses(>%.1f ms) %zu | queue max %zu/%zu | dropped %llu | recovery %.0f ms | err %.2f m\n",
                 name.c_str(), r.samples, r.endToEndUs.p50, r.endToEndUs.p99, r.endToEndUs.max, r.periodMs, r.misses,
-                r.pipe.maxOccupancy, EdgePipeline::kCapacity - 1, static_cast<unsigned long long>(r.pipe.dropped), r.recoveryMs,
+                r.pipe.maxOccupancy, EdgePipeline::kCapacity, static_cast<unsigned long long>(r.pipe.dropped), r.recoveryMs,
                 r.finalErrorM);
 }
 
@@ -573,7 +573,7 @@ int main(int argc, char** argv) {
          << "\",\"logical_cores\":" << std::thread::hardware_concurrency() << "},\"build\":{\"compiler\":\"" << compilerId()
          << "\",\"config\":\"" << GATI_BUILD_CONFIG << "\",\"flags\":\"" << GATI_CXX_FLAGS << "\",\"cxx_standard\":" << kCxxStandard
          << "},\"settings\":{\"rate_hz\":" << args.rate << ",\"minutes\":" << args.minutes << ",\"paced_seconds\":" << args.pacedSeconds
-         << ",\"white_noise\":" << (args.noise ? "true" : "false") << ",\"queue_capacity_events\":" << EdgePipeline::kCapacity - 1
+         << ",\"white_noise\":" << (args.noise ? "true" : "false") << ",\"queue_capacity_events\":" << EdgePipeline::kCapacity
          << "},\"runs\":[";
     for (std::size_t i = 0; i < runs.size(); ++i) json << (i ? "," : "") << runs[i];
     json << "]}\n";

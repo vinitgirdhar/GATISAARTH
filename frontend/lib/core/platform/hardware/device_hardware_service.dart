@@ -1,122 +1,96 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+
 import 'device_hardware.dart';
 
-/// Real Hardware Device Service
-/// Communicates with Android native layer to read:
-/// 1. Real physical device temperature (from BatteryManager / hardware thermal sensors)
-/// 2. Real physical device vibrator / haptic motor
+/// [DeviceHardware] backed by `MainActivity`'s method channel. Every call is a
+/// no-op off Android, and every failure is logged and swallowed: a missing
+/// temperature or vibration must never take the session down.
 class DeviceHardwareService implements DeviceHardware {
+  factory DeviceHardwareService() => _shared;
+  DeviceHardwareService._();
+  static final DeviceHardwareService _shared = DeviceHardwareService._();
+
   static const MethodChannel _channel =
       MethodChannel('com.gatisaarth.app/device_sensors');
 
-  static final DeviceHardwareService _instance =
-      DeviceHardwareService._internal();
-  factory DeviceHardwareService() => _instance;
-  DeviceHardwareService._internal();
+  /// Battery temperature changes slowly; a poll every few seconds is plenty.
+  static const Duration _pollEvery = Duration(seconds: 2);
 
-  double _currentTemperature = 35.0;
-  bool _isRunning = false;
-  Timer? _tempPollTimer;
-  final StreamController<double> _tempController =
+  final StreamController<double> _temperatures =
       StreamController<double>.broadcast();
+  Timer? _poll;
+  double? _temperature;
+
+  bool get _android => defaultTargetPlatform == TargetPlatform.android;
 
   @override
-  double get currentTemperature => _currentTemperature;
-  @override
-  Stream<double> get temperatureStream => _tempController.stream;
+  double? get currentTemperature => _temperature;
 
-  /// Calculates physical MEMS gyroscope thermal bias correction (deg/s)
-  /// using semiconductor temperature polynomial:
-  /// Bias(T) = Base_Bias + Alpha * (T - 25°C) + Beta * (T - 25°C)^2
   @override
-  double get thermalBiasCorrection {
-    final deltaT = _currentTemperature - 25.0;
-    return 0.0015 + (0.000085 * deltaT) + (0.0000012 * deltaT * deltaT);
-  }
+  Stream<double> get temperatureStream => _temperatures.stream;
 
   @override
   void start() {
-    if (_isRunning) return;
-    _isRunning = true;
-    _pollTemperature();
-    _tempPollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      _pollTemperature();
-    });
-  }
-
-  Future<void> _pollTemperature() async {
-    try {
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        final dynamic result =
-            await _channel.invokeMethod('getDeviceTemperature');
-        if (result != null && result is num) {
-          _currentTemperature = result.toDouble();
-          _tempController.add(_currentTemperature);
-          return;
-        }
-      }
-    } catch (e) {
-      debugPrint('[DeviceHardwareService] Temp read failed, using fallback: $e');
-    }
-    // Fallback baseline temperature for desktop/web simulator
-    _currentTemperature = 35.2;
-    _tempController.add(_currentTemperature);
-  }
-
-  /// One vibration on the phone's motor. A failure is swallowed: a missing
-  /// vibration must never turn into a different, stronger one.
-  @override
-  Future<void> vibrate({int durationMs = 200, int amplitude = 255}) async {
-    try {
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        await _channel.invokeMethod('vibrateDevice', {
-          'durationMs': durationMs,
-          'amplitude': amplitude,
-        });
-      }
-    } catch (e) {
-      debugPrint('[DeviceHardwareService] vibrate failed: $e');
-    }
-  }
-
-  @override
-  Future<void> setKeepScreenOn(bool on) async {
-    try {
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        await _channel.invokeMethod('setKeepScreenOn', {'on': on});
-      }
-    } catch (e) {
-      debugPrint('[DeviceHardwareService] keep-screen-on failed: $e');
-    }
-  }
-
-  @override
-  Future<DeviceInfo?> deviceInfo() async {
-    try {
-      if (defaultTargetPlatform != TargetPlatform.android) return null;
-      final info = await _channel.invokeMapMethod<String, String>('getDeviceInfo');
-      final model = info?['model'];
-      final os = info?['os'];
-      return model == null || os == null
-          ? null
-          : DeviceInfo(model: model, os: os);
-    } catch (e) {
-      debugPrint('[DeviceHardwareService] device info failed: $e');
-      return null;
-    }
+    if (_poll != null) return;
+    unawaited(_readTemperature());
+    _poll = Timer.periodic(_pollEvery, (_) => _readTemperature());
   }
 
   @override
   void stop() {
-    _isRunning = false;
-    _tempPollTimer?.cancel();
-    _tempPollTimer = null;
+    _poll?.cancel();
+    _poll = null;
+  }
+
+  Future<void> _readTemperature() async {
+    if (!_android) return;
+    try {
+      final value = await _channel.invokeMethod<num>('getDeviceTemperature');
+      if (value == null) return;
+      _temperature = value.toDouble();
+      if (!_temperatures.isClosed) _temperatures.add(_temperature!);
+    } catch (e) {
+      debugPrint('[DeviceHardwareService] temperature unavailable: $e');
+    }
+  }
+
+  @override
+  Future<void> vibrate({int durationMs = 200, int amplitude = 255}) =>
+      _call('vibrateDevice', {'durationMs': durationMs, 'amplitude': amplitude});
+
+  @override
+  Future<void> setKeepScreenOn(bool on) => _call('setKeepScreenOn', {'on': on});
+
+  @override
+  Future<DeviceInfo?> deviceInfo() async {
+    if (!_android) return null;
+    try {
+      final info =
+          await _channel.invokeMapMethod<String, String>('getDeviceInfo');
+      final model = info?['model'], os = info?['os'];
+      return model == null || os == null
+          ? null
+          : DeviceInfo(model: model, os: os);
+    } catch (e) {
+      debugPrint('[DeviceHardwareService] device info unavailable: $e');
+      return null;
+    }
+  }
+
+  Future<void> _call(String method, Map<String, Object> args) async {
+    if (!_android) return;
+    try {
+      await _channel.invokeMethod<void>(method, args);
+    } catch (e) {
+      debugPrint('[DeviceHardwareService] $method failed: $e');
+    }
   }
 
   void dispose() {
     stop();
-    _tempController.close();
+    _temperatures.close();
   }
 }

@@ -60,3 +60,9 @@ apks/
 
 # Legacy archive directory
 SIH_DEAD_RECKONING-main/
+
+# SIH submission prep documents (PPT pack, research PDF): local only
+docs/sih2026/
+
+# Real recorded drives: full location traces, never committed
+field_drives/

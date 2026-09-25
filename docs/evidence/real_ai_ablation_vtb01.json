@@ -1,0 +1,92 @@
+{
+  "off": [
+    {
+      "seconds": 10,
+      "windows": 12,
+      "median_drift_pct": 12.57252829363892,
+      "median_error_m": 21.053290437422856,
+      "p95_error_m": 1219.3739164040455
+    },
+    {
+      "seconds": 30,
+      "windows": 12,
+      "median_drift_pct": 17.253148542973822,
+      "median_error_m": 61.65164278831214,
+      "p95_error_m": 1700.7897839439263
+    },
+    {
+      "seconds": 60,
+      "windows": 12,
+      "median_drift_pct": 23.234564378304263,
+      "median_error_m": 163.4410621635691,
+      "p95_error_m": 2445.6902742437355
+    },
+    {
+      "seconds": 120,
+      "windows": 12,
+      "median_drift_pct": 30.06804345918838,
+      "median_error_m": 423.23904604394914,
+      "p95_error_m": 3963.8520489172083
+    }
+  ],
+  "on": [
+    {
+      "seconds": 10,
+      "windows": 12,
+      "median_drift_pct": 12.54127561440051,
+      "median_error_m": 20.94839475115738,
+      "p95_error_m": 1219.9502157274028
+    },
+    {
+      "seconds": 30,
+      "windows": 12,
+      "median_drift_pct": 17.205923887323568,
+      "median_error_m": 61.44467684185587,
+      "p95_error_m": 1701.3345762390734
+    },
+    {
+      "seconds": 60,
+      "windows": 12,
+      "median_drift_pct": 28.496306473073865,
+      "median_error_m": 161.34068079626914,
+      "p95_error_m": 2445.3243610028094
+    },
+    {
+      "seconds": 120,
+      "windows": 12,
+      "median_drift_pct": 34.09060768993653,
+      "median_error_m": 460.0806021884348,
+      "p95_error_m": 3959.9294360229665
+    }
+  ],
+  "on_calibrated": [
+    {
+      "seconds": 10,
+      "windows": 12,
+      "median_drift_pct": 12.54127561440051,
+      "median_error_m": 20.94839475115738,
+      "p95_error_m": 1219.9502157274028
+    },
+    {
+      "seconds": 30,
+      "windows": 12,
+      "median_drift_pct": 17.205923887323568,
+      "median_error_m": 61.44467684185587,
+      "p95_error_m": 1701.3345762390734
+    },
+    {
+      "seconds": 60,
+      "windows": 12,
+      "median_drift_pct": 28.496306473073865,
+      "median_error_m": 161.34068079626914,
+      "p95_error_m": 2445.3243610028094
+    },
+    {
+      "seconds": 120,
+      "windows": 12,
+      "median_drift_pct": 34.09060768993653,
+      "median_error_m": 460.0806021884348,
+      "p95_error_m": 3959.9294360229665
+    }
+  ]
+}

@@ -27,6 +27,7 @@ class EngineStatusCard extends StatelessWidget {
     this.onStartRecording,
     this.onStopRecording,
     this.onMarkEvent,
+    this.onMarkBump,
     this.compact = false,
     this.onToggleDetails,
   });
@@ -47,6 +48,10 @@ class EngineStatusCard extends StatelessWidget {
   final VoidCallback? onStartRecording;
   final VoidCallback? onStopRecording;
   final VoidCallback? onMarkEvent;
+
+  /// Labels a bump or pothole in the recording: supervised labels for a
+  /// future vibration classifier.
+  final VoidCallback? onMarkBump;
   final bool compact;
   final VoidCallback? onToggleDetails;
 
@@ -203,7 +208,16 @@ class EngineStatusCard extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: _ActionButton(
-                label: 'Mark event',
+                label: 'Bump',
+                icon: Icons.warning_amber_rounded,
+                color: AppColors.warning,
+                onTap: onMarkBump,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _ActionButton(
+                label: 'Mark',
                 icon: Icons.flag_outlined,
                 color: AppColors.cyan,
                 onTap: onMarkEvent,

@@ -1,6 +1,8 @@
 {
-  "model_version": "v3.1.0",
-  "status": "Real IO-VNBD checkpoint exported and deployed; GNSS-gated experimental speed aid",
+  "model_version": "v4.0.0",
+  "status": "Trained from scratch on real IO-VNBD windows by ml/src/training/train_speed_v4.py; GNSS-gated experimental speed aid",
+  "architecture": "residual dilated causal TCN (1/2/4) + mean/newest pooling, beta-NLL; trained from scratch",
+  "params": 48770,
   "sampling_rate_hz": 10.0,
   "window_size_samples": 20,
   "input_features": 13,
@@ -50,10 +52,9 @@
     0.11615898590782375,
     0.13036863357032644
   ],
-  "checkpoint": "ml/models/speed_estimator/checkpoints/speed_model_best.pth",
-  "onnx_export_status": "exported and parity verified",
+  "training_script": "ml/src/training/train_speed_v4.py",
   "tflite": "speed_estimator.tflite",
-  "training_data": "341,736 windows of 43 trips (19.01 h, real IO-VNBD, VBOX speed labels)",
+  "training_data": "341,736 windows of real IO-VNBD trips, VBOX speed labels",
   "held_out_test_trips": [
     "M",
     "Vtb01",
@@ -62,21 +63,14 @@
     "Vtb05",
     "Y1"
   ],
-  "speed_mae_m_s": 3.228,
-  "speed_mae_km_h": 11.62,
-  "speed_rmse_m_s": 4.627,
-  "speed_r2_score": 0.5794,
-  "drift_median_pct_model_vbox_heading": {
-    "30s": 14.082447376808275,
-    "60s": 12.164058750111039,
-    "1000m": 10.359015370766887
-  },
-  "vibration_f1_score_proxy": 0.9962,
-  "avg_cpu_latency_ms": 0.8035000064410269,
-  "throughput_hz": 265.3,
-  "parity_status": "PASSED: real held-out IO-VNBD windows; max abs difference 0.0000248",
+  "speed_mae_m_s": 3.332,
+  "speed_mae_km_h": 12.0,
+  "speed_rmse_m_s": 4.609,
+  "speed_r2_score": 0.5828,
+  "coverage_1sigma_pct": 61.2,
+  "coverage_2sigma_pct": 87.5,
+  "parity_status": "PASSED: TFLite vs Keras on held-out windows, max abs difference 9.5e-06",
   "quantization": "FP32",
-  "sha256": "d51995f8a12540cbffcf10c488a50b2c24d18af07b406c4ebd6b0538de1cfddf",
-  "auxiliary_models": "Proxy labels only; not enabled in navigation",
-  "uncertainty_note": "Under-calibrated on held-out trips. GNSS validation gate is required."
+  "sha256": "d17988c24eb0450a4521d3bab1eebe35698c1814917d3df176e64dd8486aeff6",
+  "uncertainty_note": "Better calibrated than v3.1 (61 % of held-out errors inside 1 sigma vs 34 %), still over-confident. The GNSS validation gate decides whether it is used."
 }

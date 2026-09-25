@@ -1,1 +1,1 @@
-"""Training and export pipeline for dead-reckoning models."""
+"""GatiSaarth ML: IO-VNBD data pipeline and the speed-model training script."""

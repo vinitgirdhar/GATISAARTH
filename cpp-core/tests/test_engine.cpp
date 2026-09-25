@@ -7,7 +7,7 @@
 #include "engine/geo.h"
 #include "engine/nav_engine.h"
 #include "engine/synthetic.h"
-#include "ins/earth_model.h"
+#include "engine/earth.h"
 
 using namespace gati;
 
@@ -61,9 +61,9 @@ SyntheticConfig baseDrive(double rateHz) {
 }
 
 void gravityMatchesKnownValue() {
-    CHECK_NEAR(calculateSomiglianaGravity(52.4, 0.0), 9.8128, 0.002);   // 52.4 deg N, sea level
-    CHECK_NEAR(calculateSomiglianaGravity(0.0, 0.0), 9.7803, 0.001);    // equator
-    CHECK_NEAR(calculateSomiglianaGravity(90.0, 0.0), 9.8322, 0.001);   // pole
+    CHECK_NEAR(normalGravity(52.4, 0.0), 9.8128, 0.002);   // 52.4 deg N, sea level
+    CHECK_NEAR(normalGravity(0.0, 0.0), 9.7803, 0.001);    // equator
+    CHECK_NEAR(normalGravity(90.0, 0.0), 9.8322, 0.001);   // pole
 }
 
 void straightLineOutageStaysOnTrack() {

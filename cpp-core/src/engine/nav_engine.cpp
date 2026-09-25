@@ -5,8 +5,7 @@
 
 #include "engine/geo.h"
 #include "engine/kalman_update.h"
-#include "ins/earth_model.h"
-#include "ins/mechanization.h"
+#include "engine/earth.h"
 
 namespace gati {
 
@@ -169,14 +168,14 @@ void NavEngine::predict(const ImuSample& s, double dt) {
     // Attitude: body rate relative to the navigation frame, in the body frame.
     const Vector3d wnb = w - transposed(dcmFromQuat(x_.q)) * (wie + wen);
     Quaterniond qMid = x_.q;
-    updateAttitudeQuaternion(qMid, wnb, 0.5 * dt);
+    propagateAttitude(qMid, wnb, 0.5 * dt);
     Quaterniond qNext = x_.q;
-    updateAttitudeQuaternion(qNext, wnb, dt);
+    propagateAttitude(qNext, wnb, dt);
 
     // Velocity: specific force rotated with the mid-step attitude, gravity, Coriolis.
-    const Vector3d fn = transformAccelToNavFrame(f, qMid);
-    const Vector3d gravity{0.0, 0.0, calculateSomiglianaGravity(latDeg, x_.h)};
-    const Vector3d accel = fn + gravity + computeCoriolisCorrection(x_.v, latDeg) - cross(wen, x_.v);
+    const Vector3d fn = bodyToNav(f, qMid);
+    const Vector3d gravity{0.0, 0.0, normalGravity(latDeg, x_.h)};
+    const Vector3d accel = fn + gravity + coriolisAccel(x_.v, latDeg) - cross(wen, x_.v);
     const Vector3d vNext = x_.v + accel * dt;
     const Vector3d vMean = (x_.v + vNext) * 0.5;
 

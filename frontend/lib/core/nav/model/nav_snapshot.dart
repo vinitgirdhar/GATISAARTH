@@ -7,6 +7,7 @@ import '../motion/motion_classifier.dart';
 import '../sensors/barometer.dart';
 import '../sensors/sensor_fault_detector.dart';
 import '../sensors/sensor_sample.dart';
+import 'outage_recovery.dart';
 
 /// Navigation mode (§25). Every transition has an explicit condition and is
 /// logged with its reason — see `NavigationEngine.transitions`.
@@ -205,8 +206,10 @@ class NavigationSnapshot {
     this.mapMatchResult,
     this.outageDuration = Duration.zero,
     this.outageDistanceM = 0,
+    this.lastRecovery,
     this.positionSource = DataSource.unavailable,
     this.notes = const [],
+    this.handHeld = false,
   });
 
   /// Monotonic counter. A consumer that sees a lower sequence than it already
@@ -278,8 +281,19 @@ class NavigationSnapshot {
   final Duration outageDuration;
   final double outageDistanceM;
 
+  /// The last outage the core lived through, scored against the fix that
+  /// ended it. Null until one has happened (§83: no made-up numbers).
+  final OutageRecovery? lastRecovery;
+
   final DataSource positionSource;
   final List<String> notes;
+
+  /// True when the position, speed and heading above come from the hand-held
+  /// tracker (no phone-to-vehicle mount) rather than the full EKF (§ hand-held
+  /// mode). A clearly weaker model than the mounted one - see
+  /// `motion/hand_held_tracker.dart` - so the UI and the outage benchmark can
+  /// tell the two apart.
+  final bool handHeld;
 
   bool get hasPosition => latitude != null && longitude != null;
 
@@ -289,11 +303,16 @@ class NavigationSnapshot {
   /// Whether this solution is healthy enough to drive the position the user
   /// sees. The app hands over to the core on exactly this test, and the outage
   /// benchmark scores the core only while it holds — so both must share it.
+  ///
+  /// In hand-held mode the mount is never calibrated by definition, so the
+  /// integrity and sigma checks alone decide - `NavigationEngine` never
+  /// reports better than `NavIntegrity.medium` for a hand-held solution.
   bool get canLeadPosition {
     if (!hasPosition || mode == NavMode.sensorFailure) return false;
-    if (integrity == NavIntegrity.invalid || !isMountCalibrated) return false;
+    if (integrity == NavIntegrity.invalid) return false;
     final sigma = horizontalSigmaM;
-    return sigma != null && sigma.isFinite;
+    if (sigma == null || !sigma.isFinite) return false;
+    return handHeld || isMountCalibrated;
   }
 
   double? get speedKmh => speedMps == null ? null : speedMps! * 3.6;

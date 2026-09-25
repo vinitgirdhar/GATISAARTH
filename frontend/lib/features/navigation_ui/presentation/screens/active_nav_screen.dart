@@ -135,7 +135,7 @@ class _ImuStrip extends StatelessWidget {
                 '${s.magZ.toStringAsFixed(0)} µT',
             AppColors.cyan,
           ),
-          _stat('Temp', '${s.temperature.toStringAsFixed(1)}°C',
+          _stat('Temp', '${s.temperature?.toStringAsFixed(1) ?? '--'}°C',
               AppColors.textPrimary),
           _stat(
             'Altitude',

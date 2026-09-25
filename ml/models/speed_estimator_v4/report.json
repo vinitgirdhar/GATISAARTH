@@ -1,0 +1,41 @@
+{
+  "model_version": "v4.0.0",
+  "architecture": "residual dilated causal TCN (1/2/4) + mean/newest pooling, beta-NLL; trained from scratch",
+  "script": "ml/src/training/train_speed_v4.py",
+  "params": 48770,
+  "epochs_run": 15,
+  "train_seconds": 280,
+  "train_windows": 341736,
+  "val": {
+    "windows": 40718,
+    "speed_mae_m_s": 4.09,
+    "speed_rmse_m_s": 6.021,
+    "speed_r2": 0.4813,
+    "bias_m_s": -1.831,
+    "coverage_1sigma_pct": 53.4,
+    "coverage_2sigma_pct": 77.4,
+    "coverage_3sigma_pct": 88.4
+  },
+  "held_out_test": {
+    "windows": 138885,
+    "speed_mae_m_s": 3.332,
+    "speed_rmse_m_s": 4.609,
+    "speed_r2": 0.5828,
+    "bias_m_s": -0.564,
+    "coverage_1sigma_pct": 61.2,
+    "coverage_2sigma_pct": 87.5,
+    "coverage_3sigma_pct": 95.4
+  },
+  "held_out_test_trips": [
+    "M",
+    "Vtb01",
+    "Vtb02",
+    "Vtb03",
+    "Vtb05",
+    "Y1"
+  ],
+  "tflite_bytes": 209088,
+  "tflite_sha256": "d17988c24eb0450a4521d3bab1eebe35698c1814917d3df176e64dd8486aeff6",
+  "tflite_parity_max_abs": 9.5367431640625e-06,
+  "quantization": "FP32"
+}

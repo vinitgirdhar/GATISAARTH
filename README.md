@@ -56,7 +56,7 @@ GatiSaarth turns **ordinary, off-the-shelf consumer smartphones** into high-grad
 10. [Testing & Field Validation](#testing--field-validation)
 11. [Known Limits & Engineering Disclosures](#known-limits--engineering-disclosures)
 12. [Repository Layout](#repository-layout)
-13. [Optional Backend & Tooling](#optional-backend--tooling)
+13. [Features added in September 2026](#features-added-in-september-2026)
 14. [Privacy & Security](#privacy--security)
 15. [Acknowledgements & Data Licences](#acknowledgements--data-licences)
 
@@ -159,8 +159,8 @@ Every satellite fix passes through a multi-stage integrity gate before reaching 
 - Null-island and mocked-location traps
 Anomalies are labelled truthfully as *"GNSS integrity anomaly detected"* rather than making unverified claims of spoofing.
 
-### 6. Edge AI Speed Estimator (BiGRU)
-An on-device neural network (`speed_estimator.tflite`, 351 KB float32) trained on 10 Hz IMU acceleration windows runs locally. It acts as an **advisory safety gate**: it can trigger stillness clamping when vehicle vibration drops, but never blindly overrides the physics-based EKF state.
+### 6. Edge AI Speed Estimator (TCN, v4)
+An on-device network (`speed_estimator.tflite`, 209 KB float32, 48.8 k parameters) runs locally: a dilated causal temporal-convolution network trained from scratch on real IO-VNBD windows by `ml/src/training/train_speed_v4.py`. It predicts speed and its uncertainty. On held-out trips its speed error is 3.33 m/s MAE and its uncertainty is far better calibrated than the previous model (61 % of errors inside 1-sigma vs 34 %). It is **gated**: it may only touch the filter after agreeing with GNSS Doppler speed on the same drive (RMS <= 1 m/s), which on the held-out IO-VNBD trips it does not reach, so it stays advisory there.
 
 ### 7. Pure-Dart Offline Vector Maps (PMTiles v3)
 Rather than raster images, GatiSaarth uses OpenStreetMap vector tiles packed into PMTiles v3 archives. It renders streets, building footprints, and labels on-device with custom vector shaders. Map packs can be downloaded on-demand directly on the phone via HTTP range requests from planet builds, saving 99% of cellular bandwidth.
@@ -198,7 +198,7 @@ flowchart TD
     end
 
     subgraph AI["On-Device Edge AI"]
-        TFLITE["BiGRU Speed Estimator (TFLite Float32, 351 KB)"]
+        TFLITE["TCN Speed Estimator v4 (TFLite Float32, 209 KB)"]
         STILL_GATE["Rule-Based Stillness & Vibration Classifier"]
     end
 
@@ -382,7 +382,7 @@ GatiSaarth features a fully offline vector basemap powered by **OpenStreetMap** 
 - **Zero-Copy APK Asset Streaming:** The bundled Delhi NCR map is stored uncompressed inside the APK (`noCompress += ["pmtiles"]`). The native Android layer accesses it directly via `AssetManager.openFd` and memory-mapped offsets (`OffsetFileAt`), consuming **zero duplicate storage** on the phone.
 - **On-Device HTTP Range Request Extraction:** When downloading new regions (e.g., Pune 17 MB), the app does not download gigabytes of raw data. It executes HTTP range requests against the Protomaps planet build, extracting **only the necessary spatial bounding box**.
 - **Fail-Safe Atomicity:** Map files are written as `.part` files, verified with checksums, and atomically renamed. The map engine never loads a corrupted or partial file.
-- **Fallback Hierarchy:** Installed PMTiles Vector Maps $\rightarrow$ Bundled Local Raster Tiles $\rightarrow$ Disk-Cached Tiles $\rightarrow$ Online Stadia / OSM Raster Tiles (with circuit breakers).
+- **Fallback Hierarchy:** Installed PMTiles Vector Maps $\rightarrow$ Disk-Cached Tiles $\rightarrow$ Online Stadia / OSM Raster Tiles (with circuit breakers).
 
 ---
 
@@ -468,7 +468,7 @@ cd frontend
 # Run static analysis
 flutter analyze
 
-# Run headless automated test suite (662+ passing tests)
+# Run headless automated test suite (1,150+ passing tests)
 flutter test
 ```
 
@@ -500,9 +500,9 @@ In the interest of rigorous engineering integrity and technical transparency, th
 1. **Simulated vs. Real-World Field Benchmarks:** The headline drift benchmarks (1.36% drift at 60s) were measured using simulated vehicle trajectories with realistic sensor noise models. While the filter is mathematically proven, field accuracy on real vehicles depends on vehicle suspension, road vibrations, and specific phone IMU quality.
 2. **Mount Alignment Calibration Period:** Dynamic yaw alignment requires approximately 40 seconds of straight-line driving with at least 20 accelerate/brake events ($> 0.5\text{ m/s}^2$). Until alignment converges, the system runs on its kinematic fallback pipeline.
 3. **Long Outage Degradation:** Without external velocity references or magnetic anchors, consumer MEMS gyroscopes drift over time. In 120-second outages, error expands significantly (~281 m median).
-4. **Advisory Neural Speed Model:** The bundled TFLite speed model (`speed_estimator.tflite`, 351 KB float32) acts as an advisory stillness check. It does not set vehicle speed directly.
-5. **Road Graph Map Matching:** The HMM map matcher (`frontend/lib/core/nav/map/`) is fully implemented, but ships with an empty road graph (`maps/processed_graphs/road_edges.json`). To enable road snapping, compile an OSM graph using `python -m maps.tools.graph_builder`.
-6. **Satellite Constellation & NavIC Panels:** The satellite grid displays realistic telemetry patterns, but direct Android raw `GnssStatus` hardware binding is scheduled for the next release.
+4. **Gated Neural Speed Model:** The speed model (`speed_estimator.tflite`, v4) only enters the filter after passing live GNSS validation; on the held-out IO-VNBD trips it does not pass, so navigation there is the same with or without it.
+5. **Road Graph Map Matching:** The phone builds its road graph from the installed offline map packs (maxZoom >= 13); outside them map matching reports unavailable.
+6. **Off-by-default features:** turn speedometer, tyre-vibration speedometer, per-vehicle AI speed calibration, lean-aware two-wheeler constraint and bend registration are implemented and tested but stay off until a real recorded drive shows they help (see "Features added in September 2026").
 
 ---
 
@@ -535,12 +535,10 @@ gathisarthi/
 │   │       ├── about/            # Navigation Engine technical specs & model cards
 │   │       └── ai_motion/        # TFLite speed estimator integration
 │   ├── assets/                   # Offline maps (Delhi NCR PMTiles), TFLite models, icons
-│   └── test/                     # 660+ Automated unit, widget, and EKF tests
-├── backend/                      # Optional Services: FastAPI (Python) & EKF Engine (TypeScript)
-├── ml/                           # PyTorch training pipeline, ONNX exports & TFLite converters
-├── cpp-core/                     # Standalone C++17 SINS/UKF library (standalone reference)
-├── maps/                         # OSM ingestion & road graph compilation tooling
-├── simulation/                   # Outage injection & scenario replay scripts
+│   └── test/                     # 1,150+ automated unit, widget, and EKF tests
+├── ml/                           # IO-VNBD data pipeline and the v4 speed-model training script
+├── cpp-core/                     # C++17 edge engine (ES-EKF, SPSC pipeline, CSV/UDP input)
+├── maps/                         # Overpass JSON -> road-graph JSON builder
 ├── tools/                        # Offline map cutting scripts (PMTiles CLI wrapper)
 ├── docs/                         # Architecture specifications & evolution audit plans
 └── CLAUDE.md                     # Engineering notes, clock traps, and developer gotchas
@@ -548,26 +546,25 @@ gathisarthi/
 
 ---
 
-## Optional Backend & Tooling
+## Features added in September 2026
 
-The mobile application is **entirely self-contained** and does not require the backend to function. For development and fleet telemetry research, optional services are provided:
+Every item has tests; the ones marked *off* stay off until a real recorded drive shows they help (the rule in `frontend/lib/core/nav/CLAUDE.md`).
 
-```bash
-# 1. Start Python FastAPI Telemetry Hub (Port 8000)
-cd backend
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python -m uvicorn app.main:app --port 8000
-
-# 2. Start TypeScript EKF Server (Port 8080)
-cd backend
-npm install
-npm run dev
-
-# 3. Start Full Development Stack (PostGIS, Redis, MinIO)
-docker compose up -d
-```
+| Feature | Where | Status and evidence |
+|---|---|---|
+| Error-at-recovery card | Map tab | On. Scores each outage the moment GNSS returns: duration, distance, error, drift %. |
+| Outage log | Profile > Outage Log | On. Every scored outage this session, CSV copy/share. |
+| Tunnel look-ahead | Map tab | On. "Tunnel ahead · 1.2 km", then metres to the exit, from the offline map's tunnel roads. |
+| Parking level | Map tab | On. Car-park floor (B1, B2, L1) from the barometer after GNSS is lost. |
+| Share my position | Map tab | On. Last trusted position with its radius and time since GNSS loss. |
+| Why the position moved | Diagnostics | On. Per correction source: used or refused, and why. |
+| Bump label | Recording controls | On. Labels bumps in a recording for a future vibration classifier. |
+| Turn speedometer (v = a_lat / yaw rate) | Core | *Off.* Real IO-VNBD A/B on 21 trips: no drift reduction (`docs/evidence/iovnbd_turn_speed_ab.json`). |
+| Tyre-vibration speedometer | Core | *Off.* Needs >= 30 Hz phone data; simulated 85 s outage 722 m -> 16 m. IO-VNBD (10 Hz) cannot test it. |
+| Per-vehicle AI speed calibration | Core | *Off.* No change on held-out IO-VNBD trips. |
+| Lean-aware two-wheeler constraint | Core | *Off.* No real two-wheeler drive yet. |
+| Bend registration (road-locked DR) | Road follower | *Off.* Synthetic L-road: along-track error cut by more than 40 %. |
+| External IMU over UDP | `cpp-core` | `replay_external_imu --input udp:5005`; identical to file replay on a real trip (`docs/evidence/edge_udp_external_imu.json`). |
 
 ---
 
@@ -584,5 +581,5 @@ docker compose up -d
 
 - **Map Data:** © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, provided under the Open Database License (ODbL).
 - **Vector Tiles:** Cut from [Protomaps](https://protomaps.com) daily builds using the Protomaps basemap schema.
-- **Raster Fallback:** © [Stadia Maps](https://stadiamaps.com), © OpenMapTiles, © OpenStreetMap contributors.
+- **Raster Fallback (only in builds made with a `STADIA_API_KEY`):** © [Stadia Maps](https://stadiamaps.com), © OpenMapTiles, © OpenStreetMap contributors.
 - **Core Dependencies:** Built with [Flutter](https://flutter.dev), [flutter_map](https://pub.dev/packages/flutter_map), [vector_map_tiles](https://pub.dev/packages/vector_map_tiles), [pmtiles](https://pub.dev/packages/pmtiles), [geolocator](https://pub.dev/packages/geolocator), [sensors_plus](https://pub.dev/packages/sensors_plus), and [tflite_flutter](https://pub.dev/packages/tflite_flutter).

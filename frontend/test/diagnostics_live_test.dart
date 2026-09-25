@@ -89,14 +89,11 @@ void main() {
     await controller.start();
     await pump(tester);
 
-    expect(
-      find.textContaining('GnssStatus not wired'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining('illustrative demo data'),
-      findsOneWidget,
-    );
+    // No receiver status has arrived: nothing is counted, nothing invented.
+    expect(find.textContaining('no Android GNSS status yet'), findsOneWidget);
+    expect(find.textContaining('Waiting for Android GNSS status'),
+        findsOneWidget);
+    expect(find.textContaining('demo'), findsNothing);
   });
 
   testWidgets('reports the neural model and map honestly', (tester) async {

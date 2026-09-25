@@ -24,7 +24,7 @@ This is a **status and endpoint document**, not an implementation roadmap. It in
 >    - *Requirement*: 10 s outage passes at 5.6% median drift; however, 30 s median is currently **10.7%** (exceeds 10% target). Must optimize EKF/AI along-track gating to consistently achieve $<10\%$ drift across 30 s and 60 s outages.
 > 3. 🟡 **Task 3: Physical FOG-Specific 200 Hz IMU Stream Validation** (`codex_edge_200hz.json`)
 >    - *Status*: **ENGINE CAPABILITY PROVEN / FOG STREAM PENDING (`[-]`)**
->    - *Requirement*: C++ engine executes 480k updates/s (P99 < 2.5 µs), but test was run with resampled IMU data. Needs validation against an actual Fiber Optic Gyro (FOG) IMU log stream.
+>    - *Requirement*: C++ engine (our ES-EKF) processes ≈305k samples/s (P99 7.3 µs, desktop CPU), but test was run with resampled IMU data. Needs validation against an actual Fiber Optic Gyro (FOG) IMU log stream.
 > 4. 🟡 **Task 4: External IMU Hardware Interface Bench Test** (`codex_external_imu_replay.json`)
 >    - *Status*: **SOFTWARE COMPATIBILITY PROVEN / HARDWARE PENDING (`[-]`)**
 >    - *Requirement*: IO-VNBD ESP/CAN external IMU software replay passes cleanly; physical hardware bench integration (USB/CAN to edge engine) remains open.
@@ -58,7 +58,7 @@ This is a **status and endpoint document**, not an implementation roadmap. It in
 | Real vehicle validation | ❌ **OPEN / PENDING** | Operational field-testing protocol & in-app logging tooling established in `docs/field_testing_protocol.md`; physical drive pending |
 | Real quantitative drift evidence (<10% drift) | ⚠️ **PARTIALLY SATISFIED** | Demonstrated on 10 s outages (5.6% median) and cruising runs; 30 s median is 10.7% (slightly exceeds 10% target); consistent <10% across 30–60 s outages remains open (`docs/evidence/iovnbd_outage_benchmark.json`) |
 | External IMU validation | ⚠️ **ALGORITHM COMPATIBILITY DONE / HARDWARE PENDING** | Replayed through engine using vehicle ESP/CAN IMU proxy (`docs/evidence/codex_external_imu_replay.json`); physical external IMU hardware bench pending |
-| ~200 Hz edge validation | ⚠️ **ENGINE CAPABILITY DONE / FOG STREAM PENDING** | Standalone C++ engine benchmarked at ~480k updates/s with P99 < 2.5 µs (`docs/evidence/codex_edge_200hz.json`); physical FOG-specific IMU stream validation remains open |
+| ~200 Hz edge validation | ⚠️ **ENGINE CAPABILITY DONE / FOG STREAM PENDING** | Standalone C++ ES-EKF benchmarked at ≈305k samples/s with P99 7.3 µs on a desktop CPU (`docs/evidence/edge_200hz_own_engine.json`); external IMU over UDP works (`docs/evidence/edge_udp_external_imu.json`); physical FOG-specific IMU stream validation remains open |
 | C++ edge engine architecture | **DONE (v3.1)** | Standalone C++17 engine with CMake build, ring buffers, and test suite in `cpp-core/` |
 | On-device TFLite inference infrastructure | **DONE (v3.1)** | TFLite models executed locally on Android device with fallback and diagnostics |
 
@@ -288,7 +288,7 @@ Demonstrated and verified using IO-VNBD vehicle ESP/CAN 10 Hz external IMU data 
 
 Standalone C++17 engine benchmarked with a high-rate 200 Hz stream in `docs/evidence/codex_edge_200hz.json`:
 - **Throughput**: ~480,000 updates/second.
-- **P99 Latency**: < 2.5 µs per update.
+- **P99 Latency**: 7.3 µs per sample (desktop CPU, `edge_200hz_own_engine.json`).
 - Zero buffer overflow or memory instability.
 - *Note*: While the engine's compute capability easily handles 200 Hz, validating a physical stream specifically from a Fiber Optic Gyro (FOG) IMU remains open.
 
@@ -324,7 +324,7 @@ IMU -> TimeSync -> Alignment -> AI/ML Processing
                               |
                               v
                     GNSS + INS Fusion
-                         (ESKF/UKF)
+                         (ES-EKF)
                               |
                  +------------+------------+
                  |                         |
@@ -411,7 +411,7 @@ The following items are the only remaining tasks required to reach the full SIH2
   3. Re-run `iovnbd_eval.py` to bring 30 s median drift consistently below 10.0%.
 
 #### 3. 🟡 Task 3: Physical FOG-Specific 200 Hz IMU Stream Validation (Medium Priority)
-- **Problem**: The C++ engine benchmark (`codex_edge_200hz.json`) achieved 480k updates/s with resampled vehicle data, but lacks validation on a genuine Fiber Optic Gyro (FOG) IMU data stream.
+- **Problem**: The C++ engine benchmark (`codex_edge_200hz.json`) achieved ≈305k samples/s with resampled vehicle data, but lacks validation on a genuine Fiber Optic Gyro (FOG) IMU data stream.
 - **Target Files**:
   - [`cpp-core/tools/bench_200hz.cpp`](file:///c:/Users/vidhy/Downloads/gathisarthi/cpp-core/tools/bench_200hz.cpp)
   - [`cpp-core/tools/replay_external_imu.cpp`](file:///c:/Users/vidhy/Downloads/gathisarthi/cpp-core/tools/replay_external_imu.cpp)

@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -193,11 +194,24 @@ class RoadFollower {
   /// against turning it never reported: a real gyroscope never reads 0.0.
   bool _trackYaw = false;
 
+  /// A road bend passed without the gyro turning yet (the marker may be ahead
+  /// of the vehicle), for bend registration.
+  ({int edgeId, bool forward, double along, double turnDeg})? _pendingBend;
+  int _bendRegistrations = 0;
+
+  /// Gyro yaw summed over every advance, and (odometer, that sum) after each
+  /// one: where along the drive the vehicle was half-way through a turn.
+  double _yawTotal = 0;
+  final Queue<({double odo, double yaw})> _yawTrail = Queue();
+
   RoadGraph? get graph => _graph;
   bool get isLocked => _geom != null;
 
   /// Vehicle turning the road has not explained yet (deg, right = +).
   double get unexplainedYawDeg => _unexplained;
+
+  /// How many times a road bend re-registered the along-road position.
+  int get bendRegistrations => _bendRegistrations;
 
   /// Swaps the graph under a locked follower, e.g. when tiles load. Edge ids
   /// may mean different roads now, so re-lock on the same spot; if the road is
@@ -238,6 +252,8 @@ class RoadFollower {
   void release() {
     _geom = null;
     _unexplained = 0;
+    _pendingBend = null;
+    _yawTrail.clear();
     _visited.clear();
   }
 
@@ -300,11 +316,23 @@ class RoadFollower {
     _trackYaw = yawDeg.isFinite && yawDeg != 0;
     if (_trackYaw) {
       _unexplained = NavMath.angleDiffDeg(_unexplained + yawDeg, 0);
+      _yawTotal += yawDeg;
     }
     if (!meters.isFinite || meters <= 0) return 0;
     final travelled = _walk(meters, reverseAtDeadEnd);
     _unexplained *= math.exp(-travelled / config.yawLeakMeters);
+    if (config.bendRegistration && _trackYaw) {
+      _yawTrail.addLast((odo: _odometerM, yaw: _yawTotal));
+      final keepFrom = _odometerM - 2 * config.bendSearchM;
+      while (_yawTrail.length > 2 && _yawTrail.first.odo < keepFrom) {
+        _yawTrail.removeFirst();
+      }
+    }
+    final edgeBefore = _geom?.edge.id;
     _relockAfterTurn();
+    if (config.bendRegistration && _trackYaw && _geom?.edge.id == edgeBefore) {
+      _registerBend();
+    }
     return travelled;
   }
 
@@ -376,16 +404,107 @@ class RoadFollower {
     _along = math.min(math.max(target, 0.0), g.length);
     while (_seg < g.lastSeg && _along >= g.cum[_seg + 1]) {
       if (charge) {
-        _charge(NavMath.angleDiffDeg(g.bearing[_seg + 1], g.bearing[_seg]));
+        _chargeBend(g, g.cum[_seg + 1],
+            NavMath.angleDiffDeg(g.bearing[_seg + 1], g.bearing[_seg]));
       }
       _seg++;
     }
     while (_seg > 0 && _along < g.cum[_seg]) {
       if (charge) {
-        _charge(NavMath.angleDiffDeg(g.bearing[_seg - 1], g.bearing[_seg]));
+        _chargeBend(g, g.cum[_seg],
+            NavMath.angleDiffDeg(g.bearing[_seg - 1], g.bearing[_seg]));
       }
       _seg--;
     }
+  }
+
+  /// Charges a road bend at [atM] and, when the gyro has not turned with it,
+  /// remembers where it was (see [RoadFollowConfig.bendRegistration]).
+  void _chargeBend(_Geom g, double atM, double roadTurnDeg) {
+    _charge(roadTurnDeg);
+    if (!config.bendRegistration || !_trackYaw) return;
+    // Already in the driving sense (see _seek).
+    final turn = roadTurnDeg;
+    if (turn.abs() >= config.bendMinDeg &&
+        _unexplained.abs() >= config.bendMinDeg &&
+        _unexplained.sign == -turn.sign) {
+      _pendingBend =
+          (edgeId: g.edge.id, forward: _forward, along: atM, turnDeg: turn);
+    }
+  }
+
+  /// Bend registration (see [RoadFollowConfig.bendRegistration]).
+  ///
+  /// A bend in the road is where the vehicle was half-way through the gyro's
+  /// turn, so once the turn is complete the vehicle is at that bend plus the
+  /// distance driven since the turn's midpoint. Spread-out turns and exact
+  /// odometers therefore leave the marker where it is.
+  void _registerBend() {
+    final g = _geom;
+    if (g == null) return;
+    final pending = _pendingBend;
+    if (pending != null) {
+      if (pending.edgeId != g.edge.id ||
+          pending.forward != _forward ||
+          (_along - pending.along).abs() > config.bendSearchM) {
+        _pendingBend = null;
+      } else if (_unexplained.abs() <= config.bendToleranceDeg) {
+        // The gyro has now made the turn the road made earlier.
+        _pendingBend = null;
+        // Unexplained = turned so far - the road's turn: the turn ends at
+        // total - unexplained.
+        final since = _sinceTurnMidpoint(
+            pending.turnDeg, _yawTotal - _unexplained);
+        if (since == null) return;
+        _seek(pending.along + (_forward ? since : -since), charge: false);
+        _bendRegistrations++;
+        return;
+      }
+    }
+    if (_unexplained.abs() < config.bendMinDeg) return;
+    // The gyro turned and the road has not yet: the bend ahead that turns the
+    // same way by the same amount.
+    var cum = 0.0;
+    var k = _seg;
+    while (true) {
+      final next = _forward ? k + 1 : k - 1;
+      if (next < 0 || next > g.lastSeg) return;
+      final vertexAlong = _forward ? g.cum[next] : g.cum[k];
+      if ((vertexAlong - _along).abs() > config.bendSearchM) return;
+      cum += NavMath.angleDiffDeg(g.bearing[next], g.bearing[k]); // driving sense
+      if (cum.sign == _unexplained.sign &&
+          (cum - _unexplained).abs() <= config.bendToleranceDeg) {
+        // The road has not charged yet: turned so far = unexplained.
+        final since =
+            _sinceTurnMidpoint(cum, _yawTotal + (cum - _unexplained));
+        if (since == null) return;
+        final target = vertexAlong + (_forward ? since : -since);
+        _seek(target, charge: true);
+        _bendRegistrations++;
+        return;
+      }
+      k = next;
+    }
+  }
+
+  /// Metres driven since the gyro was half-way through the [turnDeg] turn
+  /// that ends at summed yaw [yawEnd], or null when the trail does not reach
+  /// back that far.
+  double? _sinceTurnMidpoint(double turnDeg, double yawEnd) {
+    final target = yawEnd - turnDeg / 2;
+    ({double odo, double yaw})? later;
+    for (final e in _yawTrail.toList().reversed) {
+      final crossed = turnDeg > 0 ? e.yaw <= target : e.yaw >= target;
+      if (crossed) {
+        if (later == null) return 0;
+        final span = later.yaw - e.yaw;
+        final f = span == 0 ? 0.0 : (target - e.yaw) / span;
+        final odo = e.odo + f * (later.odo - e.odo);
+        return math.max(0.0, _odometerM - odo);
+      }
+      later = e;
+    }
+    return null;
   }
 
   void _charge(double roadTurnDeg) {
