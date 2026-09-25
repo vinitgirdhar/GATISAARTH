@@ -135,6 +135,11 @@ class GnssTelemetrySnapshot {
     this.rawMeasurementCount = 0,
     this.adrMeasurementCount = 0,
     this.recordedAt,
+    this.clockDiscontinuityCount,
+    this.clockBiasNanos,
+    this.clockDriftNanosPerSecond,
+    this.multipathDetectedCount,
+    this.meanAutomaticGainControlDb,
   });
 
   factory GnssTelemetrySnapshot.fromPlatformMap(Map<Object?, Object?> map) {
@@ -159,6 +164,14 @@ class GnssTelemetrySnapshot {
       recordedAt: timestampMs == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(timestampMs),
+      // Optional receiver-clock and per-measurement evidence: absent (null)
+      // on older devices/API levels rather than a misleading default.
+      clockDiscontinuityCount: _finiteInt(map['clockDiscontinuityCount']),
+      clockBiasNanos: _finiteDouble(map['clockBiasNanos']),
+      clockDriftNanosPerSecond: _finiteDouble(map['clockDriftNanosPerSecond']),
+      multipathDetectedCount: _finiteInt(map['multipathDetectedCount']),
+      meanAutomaticGainControlDb:
+          _finiteDouble(map['meanAutomaticGainControlDb']),
     );
   }
 
@@ -172,6 +185,20 @@ class GnssTelemetrySnapshot {
   final int adrMeasurementCount;
   final List<GnssSatellite> satellites;
   final DateTime? recordedAt;
+
+  /// `GnssClock.hardwareClockDiscontinuityCount`. Null on hosts/tests that
+  /// never populated it (old maps without the key still parse).
+  final int? clockDiscontinuityCount;
+  final double? clockBiasNanos;
+  final double? clockDriftNanosPerSecond;
+
+  /// Count of measurements with `MULTIPATH_INDICATOR_DETECTED` (API 26+).
+  /// Null, not zero, when the platform cannot say.
+  final int? multipathDetectedCount;
+
+  /// Mean `automaticGainControlLevelDb` across measurements that report it
+  /// (API 30+). Null when unsupported.
+  final double? meanAutomaticGainControlDb;
 
   bool get hasRealStatus => permissionGranted && statusSupported;
   int get visibleCount => satellites.length;

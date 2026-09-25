@@ -40,11 +40,16 @@ class OutageLog {
       ? null
       : _entries.map((r) => r.driftPct).reduce(math.max);
 
-  /// One row per outage, for a spreadsheet.
+  /// One row per outage, for a spreadsheet. `along_track_m`, `cross_track_m`,
+  /// `peak_sigma_m` and `recovery_jump_m` are blank where the entry has no
+  /// value for them (an ordinary real-outage row, or a run too short to
+  /// sample) — never a made-up number. `simulated` is `true` only for a
+  /// driver-triggered "Simulate GNSS loss" run, never a real outage.
   String toCsv(double targetPct) {
     final b = StringBuffer(
         'outage,duration_s,distance_m,error_m,drift_pct,fix_accuracy_m,'
-        'core_led,under_${targetPct.toStringAsFixed(0)}_pct\n');
+        'core_led,under_${targetPct.toStringAsFixed(0)}_pct,along_track_m,'
+        'cross_track_m,peak_sigma_m,recovery_jump_m,simulated\n');
     for (var i = 0; i < _entries.length; i++) {
       final r = _entries[i];
       b.writeln([
@@ -56,6 +61,11 @@ class OutageLog {
         r.fixAccuracyM.toStringAsFixed(1),
         r.coreLed,
         r.meetsTarget(targetPct),
+        r.alongTrackM?.toStringAsFixed(1) ?? '',
+        r.crossTrackM?.toStringAsFixed(1) ?? '',
+        r.peakSigmaM?.toStringAsFixed(1) ?? '',
+        r.recoveryJumpM?.toStringAsFixed(1) ?? '',
+        r.isSimulated,
       ].join(','));
     }
     return b.toString();

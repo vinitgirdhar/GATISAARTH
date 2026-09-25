@@ -134,9 +134,15 @@ class MountAlignmentEstimator {
   int _intervalSamples = 0;
   MountAlignment? _alignment;
   final List<String> _notes = [];
+  int _mountChangeEvents = 0;
 
   /// Latest estimate, or null while nothing can honestly be published.
   MountAlignment? get alignment => _alignment;
+
+  /// Bumped every time a gravity-drift reset fires (§6, mount-change
+  /// detection): a caller diffing this against its last-seen value can tell a
+  /// genuine "the phone moved in its mount" event from ordinary re-fitting.
+  int get mountChangeEvents => _mountChangeEvents;
 
   /// True only once the estimate is good enough to call the mount calibrated.
   bool get isConverged =>
@@ -174,6 +180,7 @@ class MountAlignmentEstimator {
     _clearInterval();
     _alignment = null;
     _notes.clear();
+    _mountChangeEvents = 0;
   }
 
   /// Feeds one raw, calibrated sample in the **phone** frame.
@@ -317,6 +324,7 @@ class MountAlignmentEstimator {
         _gravityPhone = accelPhone.clone();
         _gravitySamples = 1;
         _notes.add('Mount moved; alignment restarted');
+        _mountChangeEvents++;
       }
     }
   }

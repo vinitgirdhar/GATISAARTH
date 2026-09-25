@@ -38,6 +38,11 @@ class NavConfig {
     this.parkingLevel = const ParkingLevelConfig(),
     this.outageReport = const OutageReportConfig(),
     this.handHeld = const HandHeldConfig(),
+    this.gnssHealth = const GnssHealthConfig(),
+    this.sensorHealth = const SensorHealthConfig(),
+    this.mountQuality = const MountQualityConfig(),
+    this.faultMonitor = const FaultMonitorConfig(),
+    this.gnssLossPreparation = const GnssLossPreparationConfig(),
     this.features = const FeatureFlags(),
   });
 
@@ -66,6 +71,11 @@ class NavConfig {
   final ParkingLevelConfig parkingLevel;
   final OutageReportConfig outageReport;
   final HandHeldConfig handHeld;
+  final GnssHealthConfig gnssHealth;
+  final SensorHealthConfig sensorHealth;
+  final MountQualityConfig mountQuality;
+  final FaultMonitorConfig faultMonitor;
+  final GnssLossPreparationConfig gnssLossPreparation;
   final FeatureFlags features;
 
   static const NavConfig defaults = NavConfig();
@@ -99,6 +109,11 @@ class NavConfig {
     ParkingLevelConfig? parkingLevel,
     OutageReportConfig? outageReport,
     HandHeldConfig? handHeld,
+    GnssHealthConfig? gnssHealth,
+    SensorHealthConfig? sensorHealth,
+    MountQualityConfig? mountQuality,
+    FaultMonitorConfig? faultMonitor,
+    GnssLossPreparationConfig? gnssLossPreparation,
     FeatureFlags? features,
   }) =>
       NavConfig(
@@ -123,6 +138,12 @@ class NavConfig {
         parkingLevel: parkingLevel ?? this.parkingLevel,
         outageReport: outageReport ?? this.outageReport,
         handHeld: handHeld ?? this.handHeld,
+        gnssHealth: gnssHealth ?? this.gnssHealth,
+        sensorHealth: sensorHealth ?? this.sensorHealth,
+        mountQuality: mountQuality ?? this.mountQuality,
+        faultMonitor: faultMonitor ?? this.faultMonitor,
+        gnssLossPreparation:
+            gnssLossPreparation ?? this.gnssLossPreparation,
         features: features ?? this.features,
       );
 
@@ -1341,4 +1362,262 @@ class ParkingLevelConfig {
 
   /// Extra fraction of a floor, beyond half, before the level changes.
   final double hysteresis;
+}
+
+/// Thresholds for `GnssHealthClassifier` (driver-facing GNSS HEALTH state:
+/// NORMAL / DEGRADED / MULTIPATH SUSPECTED / INTERFERENCE SUSPECTED /
+/// OUTAGE). Engineering priors, not measured — see `core/nav/gnss/gnss_health.dart`.
+@immutable
+class GnssHealthConfig {
+  const GnssHealthConfig({
+    this.staleFixSeconds = 6,
+    this.fewSatellitesUsed = 6,
+    this.weakMeanCn0DbHz = 22,
+    this.strongMeanCn0DbHz = 30,
+    this.broadbandCn0DropDbHz = 8,
+    this.broadbandMinConstellations = 2,
+    this.broadbandMinSatellites = 6,
+    this.sharpAgcDropDb = 6,
+    this.multipathManyMeasurements = 3,
+    this.highCn0VarianceDbHz = 36,
+    this.lowElevationDegrees = 20,
+    this.lowElevationDominanceRatio = 0.6,
+    this.rejectWindowSeconds = 60,
+    this.jumpRejectsForMultipath = 2,
+    this.leaveCleanSeconds = 10,
+  });
+
+  /// OUTAGE: no accepted fix for longer than this. Matches the app-wide
+  /// "live" freshness window (`LiveLocationService`/root CLAUDE.md).
+  final double staleFixSeconds;
+
+  /// DEGRADED: fewer used satellites than this.
+  final int fewSatellitesUsed;
+
+  /// DEGRADED: mean C/N0 below this is weak.
+  final double weakMeanCn0DbHz;
+
+  /// A mean C/N0 at or above this is "otherwise fine" for the multipath rule.
+  final double strongMeanCn0DbHz;
+
+  /// INTERFERENCE: a broadband C/N0 drop of at least this, seen across many
+  /// satellites and constellations at once (elevation-independent).
+  final double broadbandCn0DropDbHz;
+  final int broadbandMinConstellations;
+  final int broadbandMinSatellites;
+
+  /// INTERFERENCE: AGC level dropping by at least this many dB is a receiver
+  /// gain response consistent with broadband interference.
+  final double sharpAgcDropDb;
+
+  /// MULTIPATH: at least this many measurements flagged
+  /// `MULTIPATH_INDICATOR_DETECTED`.
+  final int multipathManyMeasurements;
+
+  /// MULTIPATH: C/N0 spread (max-min) at or above this, dominated by
+  /// low-elevation satellites, is a multipath signature.
+  final double highCn0VarianceDbHz;
+  final double lowElevationDegrees;
+  final double lowElevationDominanceRatio;
+
+  /// Reject-reason counts (position/velocity/heading jumps) are windowed over
+  /// this many seconds of fixes.
+  final double rejectWindowSeconds;
+
+  /// MULTIPATH: this many position/heading jump rejects within the window,
+  /// while C/N0 stays healthy, points at multipath rather than interference.
+  final int jumpRejectsForMultipath;
+
+  /// Hysteresis: a worse state is reported the moment it is detected (enter
+  /// fast), but recovering to a better state needs this many seconds of
+  /// continuously clean (NORMAL) samples first (leave slow, so a momentary
+  /// clean reading between real drops does not flicker the UI).
+  final double leaveCleanSeconds;
+}
+
+/// Sensor health monitor thresholds (§ Navigation Hardware Check). Most of the
+/// per-sensor checks reuse the timing (`TimeSync`) and fault
+/// (`SensorFaultDetector`) numbers already computed for other reasons; this
+/// only adds the two things nothing else measures: gyro-bias drift between
+/// stationary windows, and GNSS fix cadence.
+@immutable
+class SensorHealthConfig {
+  const SensorHealthConfig({
+    this.minGoodHz = 30,
+    this.minAcceptableHz = 15,
+    this.gyroBiasWindow = const Duration(seconds: 3),
+    this.orientationWobbleDegradedDeg = 8.0,
+    this.orientationWobbleFailDeg = 20.0,
+    this.gnssGapFactor = 2.5,
+    this.gnssStaleAfter = const Duration(seconds: 12),
+  });
+
+  /// Measured accel/gyro rate below [minGoodHz] is DEGRADED, below
+  /// [minAcceptableHz] is FAIL.
+  final double minGoodHz;
+  final double minAcceptableHz;
+
+  /// How long a stationary stretch must run before its mean gyro counts as one
+  /// bias sample; the drift between two such samples is the bias-stability
+  /// check ("--" until a second stationary window has been seen).
+  final Duration gyroBiasWindow;
+
+  /// Gravity-direction wobble (deg), measured the same way as
+  /// `PhoneHandlingDetector.isHandling`, beyond which the mount counts as
+  /// unstable.
+  final double orientationWobbleDegradedDeg;
+  final double orientationWobbleFailDeg;
+
+  /// A GNSS interval more than this many times the running mean is a gap.
+  final double gnssGapFactor;
+
+  /// No fix at all for this long is a FAIL, not just DEGRADED.
+  final Duration gnssStaleAfter;
+}
+
+/// Mount-quality scoring (§ Dynamic Mount Quality Score): one 0-100 number
+/// built from four sub-scores that are already computed elsewhere for other
+/// reasons (orientation wobble, the AI vibration estimate, the magnetometer
+/// field magnitude and the mount estimator's own confidence) — nothing here
+/// measures anything new.
+@immutable
+class MountQualityConfig {
+  const MountQualityConfig({
+    this.excellentScore = 85,
+    this.goodScore = 65,
+    this.fairScore = 40,
+    this.unstableWobbleDeg = 8.0,
+    this.alignmentKnownScore = 50,
+  });
+
+  /// Alignment sub-score below this means the vehicle frame is still being
+  /// learned; the overall label is then held at FAIR at best.
+  final double alignmentKnownScore;
+
+  final double excellentScore;
+  final double goodScore;
+  final double fairScore;
+
+  /// Wobble (or active handling) at or beyond this marks the mount unstable.
+  final double unstableWobbleDeg;
+}
+
+/// Thresholds for `FaultMonitor` (§ Fault Injection Lab): read-only,
+/// sliding-window detectors fed from data the engine already computes each
+/// step (gyro/accel samples, the filter's own predicted state, its own
+/// gyro-bias estimate). None of this feeds back into the filter — it only
+/// raises `NavigationSnapshot.faultFlags` for the driver and the lab.
+/// Engineering priors, tuned so the bundled clean reference drive raises
+/// zero flags (see `test/nav/fault_lab_matrix_test.dart`).
+@immutable
+class FaultMonitorConfig {
+  const FaultMonitorConfig({
+    this.courseMinSpeedMps = 3.0,
+    this.gyroResidualWindow = 20,
+    this.gyroResidualThresholdDegPerS = 0.35,
+    this.gyroResidualMinFraction = 0.7,
+    this.accelResidualWindow = 10,
+    this.accelResidualThresholdMps = 0.15,
+    this.accelResidualMinFraction = 0.7,
+    this.integrityCusumSlack = 0.5,
+    this.integrityCusumThreshold = 15.0,
+    this.timestampDelayWindow = 10,
+    this.timestampDelayThresholdS = 0.3,
+    this.timestampDelayMinSpeedMps = 3.0,
+    this.timestampDelayMinFraction = 0.7,
+    this.timestampDelayMaxCrossTrackFraction = 0.4,
+    this.timestampDelayMinSigmaMultiple = 3.0,
+    this.filterGyroBiasJumpRadPerS = 0.03,
+  });
+
+  /// A GNSS bearing is only trusted as a course reading above this speed
+  /// (matches the jitter floor `GnssQualityEngine` itself uses).
+  final double courseMinSpeedMps;
+
+  /// Gyro-bias detector: how many (gyro rate - GNSS course rate) residuals
+  /// are kept, the mean magnitude that counts as a persistent bias, and the
+  /// fraction of the window that must agree in sign (rather than cancel out
+  /// as noise) before it is flagged.
+  final int gyroResidualWindow;
+  final double gyroResidualThresholdDegPerS;
+  final double gyroResidualMinFraction;
+
+  /// Accelerometer-bias detector: same shape as the gyro one, but reads the
+  /// EKF's own forward-axis (vehicle x) accel-bias state estimate directly
+  /// (m/s²) rather than re-deriving it - see `FaultMonitor._checkAccelBias`.
+  final int accelResidualWindow;
+  final double accelResidualThresholdMps;
+  final double accelResidualMinFraction;
+
+  /// GNSS integrity anomaly (innovation CUSUM): each accepted fix contributes
+  /// `max(0, z - slack)` to a running sum, where `z` is the predicted-vs-fix
+  /// separation in filter+GNSS sigmas; the slack absorbs ordinary noise so
+  /// only a sustained one-sided drift accumulates. Flags once the sum passes
+  /// the threshold.
+  final double integrityCusumSlack;
+  final double integrityCusumThreshold;
+
+  /// Timestamp-delay detector: how many along-track implied-delay samples
+  /// are kept, the mean delay that counts as suspicious, the minimum speed
+  /// for the implied delay to be meaningful, the fraction of the window that
+  /// must agree, and how small the cross-track residual must stay relative
+  /// to the along-track one (a real delay is almost pure along-track; a
+  /// wrong-direction bias is not).
+  final int timestampDelayWindow;
+  final double timestampDelayThresholdS;
+  final double timestampDelayMinSpeedMps;
+  final double timestampDelayMinFraction;
+  final double timestampDelayMaxCrossTrackFraction;
+
+  /// The along-track offset must clear this many filter+GNSS sigmas before
+  /// it counts as evidence at all, so a long clean drive's own accumulated
+  /// uncertainty does not read as a delay by chance.
+  final double timestampDelayMinSigmaMultiple;
+
+  /// The EKF's own gyro-bias estimate (already tracked for the filter, read
+  /// here only) jumping by more than this between consecutive accepted fixes
+  /// is flagged — a sudden re-estimate, not the slow Gauss-Markov drift the
+  /// filter expects.
+  final double filterGyroBiasJumpRadPerS;
+}
+
+/// Tunables for the visible "Simulate GNSS loss" demo control (a driver-
+/// triggered bottom sheet — not the hidden tunnel/canyon test hooks): how
+/// often the uncertainty-growth series is sampled while it runs, and which
+/// durations the sheet offers.
+@immutable
+class SimulatedOutageConfig {
+  const SimulatedOutageConfig({
+    this.sigmaSampleInterval = const Duration(seconds: 1),
+    this.offeredDurations = const [
+      Duration(seconds: 10),
+      Duration(seconds: 20),
+      Duration(seconds: 30),
+      Duration(seconds: 45),
+      Duration(seconds: 60),
+    ],
+  });
+
+  final Duration sigmaSampleInterval;
+  final List<Duration> offeredDurations;
+
+  static const SimulatedOutageConfig standard = SimulatedOutageConfig();
+}
+
+/// "GNSS Loss Preparation Mode" (§ Tunnel-aware pre-lock): how far ahead of a
+/// mapped tunnel to arm, and how old a captured pre-lock reading may be before
+/// it is too stale to seed dead reckoning with.
+@immutable
+class GnssLossPreparationConfig {
+  const GnssLossPreparationConfig({
+    this.prepareDistanceM = 600,
+    this.maxSeedAge = const Duration(seconds: 8),
+  });
+
+  /// Arm Preparation Mode once the tunnel is within this distance ahead.
+  final double prepareDistanceM;
+
+  /// A pre-lock reading older than this at outage start is not used; the
+  /// last real fix is trusted instead.
+  final Duration maxSeedAge;
 }

@@ -6,6 +6,7 @@ import '../../../core/nav/motion/motion_classifier.dart' show VehicleClass;
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/standard_card.dart';
 import '../data/benchmark_backend.dart';
+import '../data/benchmark_report_exporter.dart';
 
 /// Replays a drive with GNSS switched off and scores where each method thought
 /// the car was against the fix it was denied (§39, §76).
@@ -243,6 +244,7 @@ class _OutageBenchmarkScreenState extends State<OutageBenchmarkScreen> {
         ),
       ),
       for (final d in report.durations) _DurationCard(result: d),
+      if (report.durations.isNotEmpty) _ReportCard(report: report),
       _AboutCard(report: report, simulated: _simulated),
       Row(
         children: [
@@ -280,7 +282,96 @@ class _OutageBenchmarkScreenState extends State<OutageBenchmarkScreen> {
           ],
         ],
       ),
+      if (_reportSource != null && report.durations.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: SizedBox(
+            width: double.infinity,
+            child: PopupMenuButton<ReportFormat>(
+              tooltip: 'Export report',
+              onSelected: (format) async {
+                try {
+                  await widget.backend
+                      .shareReport(_reportSource!, report, format);
+                } catch (e) {
+                  if (mounted) {
+                    setState(() => _error = 'Could not export the report: $e');
+                  }
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: ReportFormat.json, child: Text('JSON')),
+                PopupMenuItem(value: ReportFormat.csv, child: Text('CSV')),
+                PopupMenuItem(value: ReportFormat.pdf, child: Text('PDF')),
+              ],
+              child: OutlinedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.ios_share_rounded),
+                label: const Text('Export report'),
+              ),
+            ),
+          ),
+        ),
     ];
+  }
+}
+
+/// Headline numbers at a glance, plus the PASS/FAIL chip against the SIH
+/// drift target - the same numbers `report.toText()`'s verdict line reports,
+/// read at arm's length instead of grepped from the copied text.
+class _ReportCard extends StatelessWidget {
+  const _ReportCard({required this.report});
+
+  final OutageReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = report.durations.last;
+    final passed = d.passed(report.driftTargetPct);
+    return StandardCard(
+      titleText: 'REPORT',
+      trailing: _VerdictChip(passed: passed),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'At ${d.durationS} s: ${d.engine.medianDriftPct.toStringAsFixed(1)}% '
+            'drift, cross-track ${d.medianCrossTrackM.isFinite ? d.medianCrossTrackM.toStringAsFixed(1) : '--'} m, '
+            'along-track ${d.medianAlongTrackM.isFinite ? d.medianAlongTrackM.toStringAsFixed(1) : '--'} m, '
+            'max uncertainty ${d.medianMaxSigmaM.isFinite ? d.medianMaxSigmaM.toStringAsFixed(1) : '--'} m.',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Against the SIH26168 target of under '
+            '${report.driftTargetPct.toStringAsFixed(0)}% drift.',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerdictChip extends StatelessWidget {
+  const _VerdictChip({required this.passed});
+
+  final bool passed;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = passed ? AppColors.success : AppColors.boardError;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        passed ? 'PASS' : 'FAIL',
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
+      ),
+    );
   }
 }
 

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gatisaarth/core/nav/benchmark/outage_benchmark.dart';
 import 'package:gatisaarth/core/nav/benchmark/outage_report.dart';
@@ -96,6 +98,17 @@ void main() {
       expect(report.durations, isNotEmpty);
     });
 
+    test('a walk recorded as a pedestrian is not replayed as a car', () {
+      final walk = simulateDriveLog(
+        setup: calibrationDrive(),
+        segments: const [DriveSegment(seconds: 60)],
+        vehicle: 'pedestrian',
+      );
+      final report = _run(walk);
+      expect(report.vehicleClass, VehicleClass.pedestrian);
+      expect(report.toText(), contains('pedestrian settings'));
+    });
+
     test('a log that does not say what it was recorded on is replayed as a car',
         () {
       expect(cityReport.vehicleClass, VehicleClass.car);
@@ -141,6 +154,47 @@ void main() {
       expect(p.gnssHz, closeTo(1, 0.1));
       expect(p.medianTruthAccuracyM, 5);
       expect(p.deviceModel, 'simulator');
+    });
+
+    test('reports along/cross-track error, max sigma and a verdict', () {
+      final r = cityReport.forDuration(30)!;
+      // The drive turns, so a direction of travel is always available and
+      // every window should decompose cleanly.
+      expect(r.medianAlongTrackM, isNonNegative);
+      expect(r.medianCrossTrackM, isNonNegative);
+      expect(r.medianMaxSigmaM, greaterThan(0));
+      // Along + cross should reconstruct roughly the same magnitude as the
+      // plain radial error (Pythagoras on the decomposition).
+      final radial = math.sqrt(r.medianAlongTrackM * r.medianAlongTrackM +
+          r.medianCrossTrackM * r.medianCrossTrackM);
+      expect(radial, closeTo(r.engine.medianM, r.engine.medianM * 0.6 + 5));
+      expect(cityReport.driftTargetPct, 10);
+      expect(cityReport.passed, isNotNull);
+      expect(cityReport.toText(), contains('Verdict:'));
+    });
+
+    test('the verdict is PASS only when every scored duration clears the '
+        'target', () {
+      const samples = [
+        OutageSample(
+            startUs: 0,
+            holdErrorM: 100,
+            engineErrorM: 5,
+            engineSigmaM: 3,
+            distanceM: 100),
+      ];
+      final good = DurationResult.of(30, samples);
+      expect(good.passed(10), isTrue);
+      const bad = [
+        OutageSample(
+            startUs: 0,
+            holdErrorM: 100,
+            engineErrorM: 40,
+            engineSigmaM: 3,
+            distanceM: 100),
+      ];
+      final failing = DurationResult.of(30, bad);
+      expect(failing.passed(10), isFalse);
     });
   });
 }

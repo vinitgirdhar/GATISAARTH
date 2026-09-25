@@ -1,11 +1,14 @@
 import 'package:flutter/foundation.dart';
 
 import '../ai/ai_types.dart';
+import '../alignment/mount_quality.dart';
 import '../gnss/gnss_quality.dart';
 import '../map/map_matcher.dart';
+import '../monitor/fault_monitor.dart';
 import '../motion/motion_classifier.dart';
 import '../sensors/barometer.dart';
 import '../sensors/sensor_fault_detector.dart';
+import '../sensors/sensor_health.dart';
 import '../sensors/sensor_sample.dart';
 import 'outage_recovery.dart';
 
@@ -210,6 +213,10 @@ class NavigationSnapshot {
     this.positionSource = DataSource.unavailable,
     this.notes = const [],
     this.handHeld = false,
+    this.sensorHealth = SensorHealthReport.pending,
+    this.mountQuality = MountQuality.unknown,
+    this.recalibratingMount = false,
+    this.faultFlags = const [],
   });
 
   /// Monotonic counter. A consumer that sees a lower sequence than it already
@@ -294,6 +301,22 @@ class NavigationSnapshot {
   /// `motion/hand_held_tracker.dart` - so the UI and the outage benchmark can
   /// tell the two apart.
   final bool handHeld;
+
+  /// The Navigation Hardware Check (§ sensor health monitor).
+  final SensorHealthReport sensorHealth;
+
+  /// The Dynamic Mount Quality Score (§ mount quality).
+  final MountQuality mountQuality;
+
+  /// True while the mount has just been detected as moved and the vehicle
+  /// frame is being re-learned — distinct from never having converged at all
+  /// (§ mount-change detection). See `notes` for the user-facing message.
+  final bool recalibratingMount;
+
+  /// What `FaultMonitor`'s read-only detectors currently see (§ Fault
+  /// Injection Lab). Empty means nothing outside the existing GNSS/sensor
+  /// gates has been noticed — never inferred from silence elsewhere.
+  final List<FaultFlag> faultFlags;
 
   bool get hasPosition => latitude != null && longitude != null;
 

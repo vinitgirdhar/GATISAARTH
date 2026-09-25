@@ -37,9 +37,11 @@ void main() {
       ..add(_r(30, 75));
     final lines = log.toCsv(10).trim().split('\n');
     expect(lines.first, startsWith('outage,duration_s'));
+    expect(lines.first, contains('along_track_m,cross_track_m,'
+        'peak_sigma_m,recovery_jump_m,simulated'));
     expect(lines, hasLength(3));
-    expect(lines[1], '1,30.0,500.0,20.0,4.00,5.0,true,true');
-    expect(lines[2], endsWith(',false'));
+    expect(lines[1], '1,30.0,500.0,20.0,4.00,5.0,true,true,,,,,false');
+    expect(lines[2], endsWith(',false,,,,,false'));
   });
 
   test('keeps only the newest entries past its capacity', () {

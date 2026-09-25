@@ -13,6 +13,7 @@
   <img alt="Dart 3.13" src="https://img.shields.io/badge/Dart-3.13-0175C2?logo=dart&logoColor=white">
   <img alt="Architecture: 15-State ES-EKF" src="https://img.shields.io/badge/Filter-15--State%20ES--EKF-blue">
   <img alt="Maps: Offline PMTiles" src="https://img.shields.io/badge/Maps-Offline%20PMTiles%20v3-green">
+  <img alt="Version 4.5.0" src="https://img.shields.io/badge/Version-4.5.0%20(build%2047)-blueviolet">
   <img alt="Status: Pre-release" src="https://img.shields.io/badge/Status-Pre--release-orange">
 </p>
 
@@ -56,9 +57,10 @@ GatiSaarth turns **ordinary, off-the-shelf consumer smartphones** into high-grad
 10. [Testing & Field Validation](#testing--field-validation)
 11. [Known Limits & Engineering Disclosures](#known-limits--engineering-disclosures)
 12. [Repository Layout](#repository-layout)
-13. [Features added in September 2026](#features-added-in-september-2026)
-14. [Privacy & Security](#privacy--security)
-15. [Acknowledgements & Data Licences](#acknowledgements--data-licences)
+13. [What's new in v4.5](#whats-new-in-v45)
+14. [Features added in September 2026](#features-added-in-september-2026)
+15. [Privacy & Security](#privacy--security)
+16. [Acknowledgements & Data Licences](#acknowledgements--data-licences)
 
 ---
 
@@ -127,6 +129,18 @@ To evaluate or pitch GatiSaarth in a presentation or hackathon judging session (
   - Select the recorded drive or the bundled reference drive.
   - Run the benchmark directly on-device in a background isolate.
   - The system systematically withholds GNSS across multiple time windows and computes real median and P95 drift metrics against the ground truth, proving filter performance scientifically.
+  - The **Report** card gives a PASS/FAIL verdict against the SIH <10 % drift target, with cross-track, along-track, max uncertainty and recovery jump. **Export report** shares it as JSON, CSV or PDF, stamped with a SHA-256 hash and an Android Keystore signature.
+
+### Step 8: Simulate GNSS Loss on a Live Drive (v4.5)
+- In the **Map** tab, tap the crossed-out location button → **Simulate GNSS loss**.
+- The sheet first shows a **Dead-reckoning readiness** checklist (alignment, IMU, road lock, velocity, GNSS quality). Pick **10 / 20 / 30 / 45 / 60 s** and press **Start**.
+- Real GPS keeps arriving but is withheld from the navigation engine, so the app runs exactly as in a real outage. The withheld fixes are kept as ground truth.
+- When the timer ends you get a scorecard: *"GNSS blackout simulated at 14:32:18 · 30 s — Travelled 312 m · DR error 24.8 m (7.9 %) — Along-track … · Cross-track … — Uncertainty grew 5 m → 31 m · Recovery jump 1.6 m — PASS vs SIH <10 % target"* (illustrative numbers). It is also saved in **Profile > Outage Log** (marked `sim`).
+
+### Step 9: Trust, Health and Faults (v4.5)
+- The **safety badge** on Home/Map says how far to trust the position: **GREEN** reliable, **AMBER** dead reckoning, **ORANGE** high uncertainty, **RED** unreliable. In RED the app enters **Limited Navigation Mode**: no exact coordinates, guidance paused, "Follow road signs".
+- **Sensors** tab: **Navigation Hardware Check** (PASS/DEGRADED/FAIL for every sensor, rates, timestamp jitter, gyro bias stability, magnetic interference), **Mount quality** score, and **GNSS HEALTH** (NORMAL / DEGRADED / MULTIPATH SUSPECTED / INTERFERENCE SUSPECTED / OUTAGE, with constellation mix, NavIC, clock and multipath evidence).
+- **Profile > Fault Injection Lab**: inject a GNSS jump, integrity anomaly, gyro/accel bias, magnetometer disturbance, sensor dropout or timestamp delay into a replayed drive and see *Injected / Detected / Action*.
 
 ---
 
@@ -441,15 +455,20 @@ adb emu geo fix 73.8570 18.5210
 adb emu geo fix 73.8575 18.5220
 ```
 
+Emulator tips (v4.5):
+- Send fixes **several times a second** from a clock (e.g. every 250 ms) rather than once a second: at 1 Hz the emulator sometimes repeats a fix and then jumps two steps, and the GNSS gate correctly rejects that as an impossible acceleration.
+- If the emulator closes itself while the vector map is drawing, start it with software rendering: `emulator -avd Pixel_9 -gpu swiftshader_indirect`.
+- The emulator's IMU never moves, so dead reckoning there stops after a few seconds and the mount never calibrates. Judge DR accuracy only on a real phone in a vehicle.
+
 ### Production & Release Builds
 
 ```bash
 cd frontend
 
-# Build release APK (fat binary, ~77 MB including Delhi map)
+# Build release APK (fat binary, includes the Delhi and Mumbai map packs)
 flutter build apk --release
 
-# Build split APKs per CPU architecture (~58 MB per device)
+# Build split APKs per CPU architecture (smaller download per device)
 flutter build apk --release --split-per-abi
 
 # Build Android App Bundle (for Google Play Distribution)
@@ -468,7 +487,7 @@ cd frontend
 # Run static analysis
 flutter analyze
 
-# Run headless automated test suite (1,150+ passing tests)
+# Run headless automated test suite (1,260+ passing tests)
 flutter test
 ```
 
@@ -502,7 +521,8 @@ In the interest of rigorous engineering integrity and technical transparency, th
 3. **Long Outage Degradation:** Without external velocity references or magnetic anchors, consumer MEMS gyroscopes drift over time. In 120-second outages, error expands significantly (~281 m median).
 4. **Gated Neural Speed Model:** The speed model (`speed_estimator.tflite`, v4) only enters the filter after passing live GNSS validation; on the held-out IO-VNBD trips it does not pass, so navigation there is the same with or without it.
 5. **Road Graph Map Matching:** The phone builds its road graph from the installed offline map packs (maxZoom >= 13); outside them map matching reports unavailable.
-6. **Off-by-default features:** turn speedometer, tyre-vibration speedometer, per-vehicle AI speed calibration, lean-aware two-wheeler constraint and bend registration are implemented and tested but stay off until a real recorded drive shows they help (see "Features added in September 2026").
+6. **Fault detection limits (v4.5):** the Fault Injection Lab reports what is really detected. A 0.3 m/s² accelerometer bias is not detected (the filter's own bias estimate wanders 0.06–0.09 m/s² on clean drives), and the read-only fault monitor raises some flags on one of the three real drives recorded so far.
+7. **Off-by-default features:** turn speedometer, tyre-vibration speedometer, per-vehicle AI speed calibration, lean-aware two-wheeler constraint and bend registration are implemented and tested but stay off until a real recorded drive shows they help (see "Features added in September 2026").
 
 ---
 
@@ -526,16 +546,19 @@ gathisarthi/
 │   │   │   │   ├── sensors/      # TimeSync (k-way merge) & fault detection
 │   │   │   │   ├── map/          # HMM road matcher (Newson-Krumm)
 │   │   │   │   ├── replay/       # Bit-exact deterministic drive replayer
-│   │   │   │   └── benchmark/    # Headless outage benchmark engine
+│   │   │   │   ├── monitor/      # Read-only fault monitor (gyro/accel bias, integrity, latency)
+│   │   │   │   ├── outage/       # GNSS loss preparation (tunnel pre-lock)
+│   │   │   │   └── benchmark/    # Outage benchmark, fault injection lab, report data
 │   │   │   └── platform/         # Hardware drivers, PMTiles vector maps, storage
 │   │   └── features/             # UI Presentation & State Management
 │   │       ├── navigation_ui/    # LiveSessionController, Home, Map, Sensors tabs
 │   │       ├── offline_maps/     # Offline map manager & HTTP range downloader
-│   │       ├── benchmark/        # On-device Outage Benchmark runner
+│   │       ├── benchmark/        # On-device Outage Benchmark runner and report export
+│   │       ├── fault_lab/        # Fault Injection Lab screen
 │   │       ├── about/            # Navigation Engine technical specs & model cards
 │   │       └── ai_motion/        # TFLite speed estimator integration
 │   ├── assets/                   # Offline maps (Delhi NCR PMTiles), TFLite models, icons
-│   └── test/                     # 1,150+ automated unit, widget, and EKF tests
+│   └── test/                     # 1,260+ automated unit, widget, and EKF tests
 ├── ml/                           # IO-VNBD data pipeline and the v4 speed-model training script
 ├── cpp-core/                     # C++17 edge engine (ES-EKF, SPSC pipeline, CSV/UDP input)
 ├── maps/                         # Overpass JSON -> road-graph JSON builder
@@ -545,6 +568,24 @@ gathisarthi/
 ```
 
 ---
+
+## What's new in v4.5
+
+Version 4.5.0 (build 47) adds nine features that let a judge (or a driver) see how the navigation engine behaves when GNSS fails and how far it should be trusted. Nothing in this table claims field accuracy: numbers from the simulated reference drive, the Fault Lab or an emulator are simulated.
+
+| Feature | Where | What it does |
+|---|---|---|
+| GNSS Outage Simulator | Map tab → Simulate GNSS loss | Withholds live GNSS for 10–60 s and scores dead reckoning against the withheld fixes: distance, endpoint error, along/cross-track, drift %, uncertainty growth, recovery jump, PASS vs <10 %. |
+| Tunnel-aware pre-lock | Tunnel card (Map tab), Simulate sheet | Within 600 m of a mapped tunnel: "GNSS loss preparation", a 5-row readiness checklist, and a saved known-good speed/course that seeds DR at the portal. |
+| Navigation Safety Controller | Home, Map, fullscreen nav | GREEN / AMBER / ORANGE / RED with hysteresis; RED = Limited Navigation Mode (no fake precision, guidance paused). |
+| Navigation Hardware Check | Sensors tab | Per-sensor PASS/DEGRADED/FAIL: accelerometer, gyroscope, magnetometer, GNSS rate, sampling rate, timestamp jitter, mount stability, magnetic interference, gyro bias stability. |
+| Mount-change detection | Sensors tab, engine notes | A moved phone invalidates the calibration and shows "Mount change detected · Recalibrating vehicle frame…". |
+| Mount quality score | Sensors tab | Stability, vibration, magnetic field and alignment sub-scores, overall EXCELLENT/GOOD/FAIR/POOR (FAIR at best until alignment is learned), "Mount unstable" warning. |
+| GNSS Health | Sensors tab, Home chip | NORMAL / DEGRADED / MULTIPATH SUSPECTED / INTERFERENCE SUSPECTED / OUTAGE from C/N0, constellation mix, NavIC, jump rejects, accuracy trend, and Android GnssClock / AGC / multipath indicators where the phone reports them. Says "GNSS integrity anomaly", never "spoofing". |
+| Fault Injection Lab | Profile → Fault Injection Lab | Replays a drive clean and faulted. Detected on the reference drive: GNSS jump, integrity-anomaly ramp, gyro bias, timestamp delay, sensor dropout. Not detected: 0.3 m/s² accel bias; magnetometer faults can't be tested on it (it has no magnetometer data). |
+| Benchmark report export | Profile → Outage Benchmark | PASS/FAIL verdict, cross/along-track, max uncertainty, recovery jump; JSON / CSV / PDF with SHA-256 and a Keystore signature. |
+
+Also in v4.5: the dead-reckoning uncertainty now covers travel the last GNSS speed implies but the IMU did not register (a smooth cruise the stationary gate took for a stop), so the margin never claims precision it does not have.
 
 ## Features added in September 2026
 

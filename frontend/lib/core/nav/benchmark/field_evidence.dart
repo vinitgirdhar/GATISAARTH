@@ -63,8 +63,32 @@ class FieldEvidenceBuilder {
     required bool simulated,
     DateTime? generatedAt,
   }) async {
+    final payload = buildPayload(
+      report: report,
+      driveLog: driveLog,
+      simulated: simulated,
+      generatedAt: generatedAt,
+    );
+    final payloadText = jsonEncode(payload);
+    final signature = await signer.sign(payloadText);
+    return SignedFieldEvidence(
+      payload: payload,
+      payloadText: payloadText,
+      signature: signature,
+    );
+  }
+
+  /// The unsigned payload alone, so an exporter that wants to add its own
+  /// fields (e.g. a report's along/cross-track diagnostics) before signing
+  /// does not have to re-derive it.
+  static Map<String, Object?> buildPayload({
+    required OutageReport report,
+    required String driveLog,
+    required bool simulated,
+    DateTime? generatedAt,
+  }) {
     final receiver = _ReceiverEvidence.fromLog(driveLog);
-    final payload = <String, Object?>{
+    return <String, Object?>{
       'generatedAt': (generatedAt ?? DateTime.now().toUtc()).toIso8601String(),
       'fieldMeasurement': !simulated,
       'source': report.source,
@@ -75,13 +99,6 @@ class FieldEvidenceBuilder {
       'receiverEvidence': receiver.toJson(),
       'benchmark': _benchmarkJson(report),
     };
-    final payloadText = jsonEncode(payload);
-    final signature = await signer.sign(payloadText);
-    return SignedFieldEvidence(
-      payload: payload,
-      payloadText: payloadText,
-      signature: signature,
-    );
   }
 
   static Map<String, Object?> _benchmarkJson(OutageReport report) => {
@@ -115,11 +132,20 @@ class FieldEvidenceBuilder {
               'coreMedianDriftPercent': _finite(result.engine.medianDriftPct),
               'coreCloser': result.engineWins,
               'threeSigmaCovered': result.engineCovered,
+              'alongTrackMedianM': _finite(result.medianAlongTrackM),
+              'crossTrackMedianM': _finite(result.medianCrossTrackM),
+              'maxSigmaMedianM': _finite(result.medianMaxSigmaM),
+              'recoveryJumpMedianM': _finite(result.medianRecoveryJumpM),
+              'passed': result.passed(report.driftTargetPct),
             },
         ],
         'skipped': {
           for (final entry in report.skipped.entries)
             entry.key.name: entry.value,
+        },
+        'verdict': {
+          'driftTargetPercent': report.driftTargetPct,
+          'passed': report.passed,
         },
       };
 

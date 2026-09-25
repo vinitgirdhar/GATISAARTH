@@ -217,6 +217,14 @@ class ProfileTab extends StatelessWidget {
               ),
               const Divider(height: 1),
               _ProfileMenuTile(
+                icon: Icons.science_outlined,
+                title: 'Fault Injection Lab',
+                subtitle: 'Developer · replay with injected faults',
+                trailing: const Icon(Icons.chevron_right_rounded, size: 22),
+                onTap: () => Navigator.pushNamed(context, '/fault-lab'),
+              ),
+              const Divider(height: 1),
+              _ProfileMenuTile(
                 icon: Icons.bug_report_rounded,
                 title: 'Diagnostics Console',
                 subtitle: 'Internal telemetry and replay logs',

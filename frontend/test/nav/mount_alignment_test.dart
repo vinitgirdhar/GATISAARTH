@@ -348,6 +348,9 @@ void main() {
       }
       expect(e.isConverged, isFalse,
           reason: 'a moved mount must not keep claiming to be calibrated');
+      expect(e.mountChangeEvents, greaterThanOrEqualTo(1),
+          reason: 'a caller needs to be able to tell this apart from never '
+              'having converged at all');
     });
 
     test('reset clears everything', () {

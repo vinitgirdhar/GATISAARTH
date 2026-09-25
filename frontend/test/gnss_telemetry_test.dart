@@ -68,6 +68,44 @@ void main() {
       expect(snapshot.meanCn0For(GnssConstellation.gps), isNull);
     });
 
+    test('old maps without the new receiver-clock/multipath keys still parse',
+        () {
+      final snapshot = GnssTelemetrySnapshot.fromPlatformMap({
+        'permissionGranted': true,
+        'statusSupported': true,
+        'rawMeasurementsSupported': true,
+        'satellites': [
+          {'svid': 3, 'constellation': 1, 'cn0DbHz': 40, 'usedInFix': true},
+        ],
+      });
+
+      expect(snapshot.clockDiscontinuityCount, isNull);
+      expect(snapshot.clockBiasNanos, isNull);
+      expect(snapshot.clockDriftNanosPerSecond, isNull);
+      expect(snapshot.multipathDetectedCount, isNull);
+      expect(snapshot.meanAutomaticGainControlDb, isNull);
+    });
+
+    test('parses the optional receiver-clock/multipath/AGC evidence', () {
+      final snapshot = GnssTelemetrySnapshot.fromPlatformMap({
+        'permissionGranted': true,
+        'statusSupported': true,
+        'rawMeasurementsSupported': true,
+        'satellites': [],
+        'clockDiscontinuityCount': 2,
+        'clockBiasNanos': 1234.5,
+        'clockDriftNanosPerSecond': -0.75,
+        'multipathDetectedCount': 3,
+        'meanAutomaticGainControlDb': 21.4,
+      });
+
+      expect(snapshot.clockDiscontinuityCount, 2);
+      expect(snapshot.clockBiasNanos, closeTo(1234.5, 0.001));
+      expect(snapshot.clockDriftNanosPerSecond, closeTo(-0.75, 0.001));
+      expect(snapshot.multipathDetectedCount, 3);
+      expect(snapshot.meanAutomaticGainControlDb, closeTo(21.4, 0.001));
+    });
+
     test('maps every Android constellation code used by modern phones', () {
       expect(GnssConstellation.fromAndroidType(1), GnssConstellation.gps);
       expect(GnssConstellation.fromAndroidType(3), GnssConstellation.glonass);

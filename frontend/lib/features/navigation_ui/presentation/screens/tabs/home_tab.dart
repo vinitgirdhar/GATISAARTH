@@ -4,14 +4,17 @@ import 'package:flutter/material.dart';
 import '../../../../../core/constants/dr_constants.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../navigation_engine/domain/entities/navigation_state.dart';
+import '../../../../navigation_engine/domain/navigation_safety.dart' show TrustLevel;
 import '../../controllers/live_session_controller.dart';
 import '../../controllers/live_session_scope.dart';
+import '../../../../../core/nav/gnss/gnss_health.dart';
 import '../../../../../core/nav/map/map_matcher.dart';
 import 'sensors_tab.dart' show sensorRows;
 import '../../widgets/ai_inference_panel.dart';
 import '../../widgets/dashboard_header.dart';
 import '../../widgets/fusion_mode_badge.dart';
 import '../../widgets/location_status_banner.dart';
+import '../../widgets/nav_safety_badge.dart';
 import '../../widgets/road_anomaly_ticker.dart';
 import '../../widgets/session_status_card.dart';
 import '../../widgets/thermal_compensation_card.dart';
@@ -50,6 +53,19 @@ class HomeTab extends StatelessWidget {
       children: [
         LocationStatusBanner(location: session.location),
         DashboardHeader(session: session),
+        // Nothing to show before the first fix — the sync capsule already
+        // says "searching"; a "Waiting" badge here is just noise.
+        if (session.trust.level != TrustLevel.waiting) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: NavSafetyBadge(assessment: session.trust),
+          ),
+          if (session.trust.limited) ...[
+            const SizedBox(height: AppSpacing.sm),
+            const NavSafetyLimitedBanner(),
+          ],
+        ],
         const SizedBox(height: AppSpacing.md),
         SessionStatusCard(session: session),
         const SizedBox(height: AppSpacing.md),
@@ -449,6 +465,22 @@ class _SystemStatusCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (session.gnssHealth.state != GnssHealthState.waiting &&
+                session.gnssHealth.state != GnssHealthState.normal) ...[
+              const SizedBox(height: 8),
+              StatusChip(
+                color: switch (session.gnssHealth.state) {
+                  GnssHealthState.degraded ||
+                  GnssHealthState.multipathSuspected =>
+                    AppColors.warning,
+                  GnssHealthState.interferenceSuspected ||
+                  GnssHealthState.outage =>
+                    AppColors.error,
+                  _ => AppColors.disabled,
+                },
+                label: 'GNSS ${session.gnssHealth.state.label}',
+              ),
+            ],
           ],
         ),
       ),

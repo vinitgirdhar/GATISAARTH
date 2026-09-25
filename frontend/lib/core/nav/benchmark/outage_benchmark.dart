@@ -27,6 +27,15 @@ import 'outage_report.dart';
 ///    what a product with no inertial filter does, so it is the bar to clear;
 ///  * **the navigation core** - only while it is healthy enough to lead, on the
 ///    same test the app uses ([NavigationSnapshot.canLeadPosition]).
+/// The vehicle settings a log asks to be replayed with, from its header's
+/// `veh` (`VehicleProfile.name`). Unknown or missing means car, the default
+/// the app records with.
+VehicleClass vehicleClassFromLog(String? vehicle) => switch (vehicle) {
+      'twoWheeler' => VehicleClass.twoWheeler,
+      'pedestrian' => VehicleClass.pedestrian,
+      _ => VehicleClass.car,
+    };
+
 class OutageBenchmark {
   const OutageBenchmark._();
 
@@ -52,9 +61,7 @@ class OutageBenchmark {
     final byDuration = {for (final d in config.durationsS) d: <OutageSample>[]};
 
     final profile = _profile(records, truth);
-    final vehicleClass = profile.vehicle == 'twoWheeler'
-        ? VehicleClass.twoWheeler
-        : VehicleClass.car;
+    final vehicleClass = vehicleClassFromLog(profile.vehicle);
     final leadUs =
         truth.isEmpty ? null : _firstLeadUs(records, vehicleClass, engineConfig, roadGraph);
     var windows = 0;
@@ -86,6 +93,7 @@ class OutageBenchmark {
           leadUs == null ? null : (leadUs - _firstSensorUs(records)) / 1e6,
       runtimeMs: watch.elapsedMilliseconds,
       vehicleClass: vehicleClass,
+      driftTargetPct: engineConfig.outageReport.driftTargetPct,
     );
   }
 
@@ -155,6 +163,12 @@ class OutageBenchmark {
 
     engine.onGnssLost(startUs);
     final marks = <_Mark>[];
+    final sigmaTrack = <(int, double)>[];
+    void trackSigma(int us) {
+      final sigma = engine.snapshot?.horizontalSigmaM;
+      if (sigma != null && sigma.isFinite) sigmaTrack.add((us, sigma));
+    }
+
     final endUs = startUs + durations.reduce(math.max) * 1000000;
     for (; i < records.length && records[i].monotonicUs <= endUs; i++) {
       final record = records[i];
@@ -162,6 +176,7 @@ class OutageBenchmark {
         case DriveRecordType.imu:
         case DriveRecordType.ai:
           _feed(engine, record);
+          trackSigma(record.monotonicUs);
         case DriveRecordType.gnss:
           // Withheld from the core. Trusted fixes are kept as truth, and each
           // one keeps the core in outage the way a receiver-lost stream would.
@@ -170,10 +185,37 @@ class OutageBenchmark {
           final estimate = _estimate(engine, fix.us);
           if (estimate != null) marks.add(_Mark(fix, estimate));
           engine.onGnssLost(fix.us);
+          trackSigma(fix.us);
         case DriveRecordType.gnssLost:
           engine.onGnssLost(record.monotonicUs);
         default:
           break;
+      }
+    }
+
+    // Recovery jump: how far the fused position snaps when the very next real
+    // fix after this window is finally let through, next to where dead
+    // reckoning alone believed it was a moment before. Only cheaply available
+    // when the log actually has such a fix; null otherwise.
+    double? recoveryJumpM;
+    for (; i < records.length; i++) {
+      final record = records[i];
+      if (record.type == DriveRecordType.imu ||
+          record.type == DriveRecordType.ai) {
+        _feed(engine, record);
+      } else if (record.type == DriveRecordType.gnssLost) {
+        engine.onGnssLost(record.monotonicUs);
+      } else if (record.type == DriveRecordType.gnss) {
+        final fix = _asFix(record.fix!, config);
+        if (fix == null) continue;
+        final before = _estimate(engine, fix.us);
+        engine.onGnss(record.fix!);
+        final after = engine.snapshot;
+        if (before != null && after != null && after.hasPosition) {
+          recoveryJumpM =
+              _metres(before.position, after.latitude!, after.longitude!);
+        }
+        break;
       }
     }
 
@@ -192,14 +234,57 @@ class OutageBenchmark {
       }
       final m = marks[k];
       final held = hold.at(m.truth.us);
+      final prevTruth = k > 0 ? marks[k - 1].truth : origin;
+      final bearing = _travelBearingDeg(prevTruth, m.truth);
+      final (along, cross) = bearing == null
+          ? (double.nan, double.nan)
+          : _decompose(m.truth, m.estimate.position, bearing);
+      final maxSigma = [
+        for (final s in sigmaTrack)
+          if (s.$1 <= target) s.$2,
+      ];
       out[duration]!.add(OutageSample(
         startUs: startUs,
         holdErrorM: _metres(held, m.truth.lat, m.truth.lon),
         engineErrorM: _metres(m.estimate.position, m.truth.lat, m.truth.lon),
         engineSigmaM: m.estimate.sigmaM,
         distanceM: distance,
+        alongTrackErrorM: along,
+        crossTrackErrorM: cross,
+        maxSigmaM: maxSigma.isEmpty
+            ? double.nan
+            : maxSigma.reduce(math.max),
+        recoveryJumpM: recoveryJumpM,
       ));
     }
+  }
+
+  /// Compass course of travel between two truth fixes, or [at]'s own reported
+  /// bearing when they are too close together to say (below walking pace, a
+  /// displacement course is noise).
+  static double? _travelBearingDeg(_Fix prev, _Fix at) {
+    final d = NavMath.nedBetween(
+        lat0: prev.lat, lon0: prev.lon, alt0: 0, lat1: at.lat, lon1: at.lon, alt1: 0);
+    final moved = math.sqrt(d.x * d.x + d.y * d.y);
+    if (moved > 3) return NavMath.wrap360(math.atan2(d.y, d.x) * NavMath.radToDeg);
+    return at.bearingDeg;
+  }
+
+  /// The error vector from [truth] to [estimate], decomposed against
+  /// [bearingDeg]: along the direction of travel, and across it.
+  static (double, double) _decompose(
+      _Fix truth, (double, double) estimate, double bearingDeg) {
+    final d = NavMath.nedBetween(
+        lat0: truth.lat,
+        lon0: truth.lon,
+        alt0: 0,
+        lat1: estimate.$1,
+        lon1: estimate.$2,
+        alt1: 0);
+    final rad = bearingDeg * NavMath.degToRad;
+    final along = d.x * math.cos(rad) + d.y * math.sin(rad);
+    final cross = -d.x * math.sin(rad) + d.y * math.cos(rad);
+    return (along, cross);
   }
 
   /// First moment the core is healthy enough to lead, replaying without any

@@ -73,6 +73,11 @@ class MainActivity: FlutterActivity() {
     private var rawMeasurementsObserved = false
     private var rawMeasurementCount = 0
     private var adrMeasurementCount = 0
+    private var clockDiscontinuityCount: Int? = null
+    private var clockBiasNanos: Double? = null
+    private var clockDriftNanosPerSecond: Double? = null
+    private var multipathDetectedCount: Int? = null
+    private var meanAutomaticGainControlDb: Double? = null
     private var textToSpeech: TextToSpeech? = null
     private var pendingGuidance: String? = null
 
@@ -96,6 +101,32 @@ class MainActivity: FlutterActivity() {
                 measurement.accumulatedDeltaRangeState and
                     GnssMeasurement.ADR_STATE_VALID != 0
             }
+
+            val clock = eventArgs.clock
+            clockDiscontinuityCount = clock.hardwareClockDiscontinuityCount
+            clockBiasNanos = if (clock.hasBiasNanos()) clock.biasNanos else null
+            clockDriftNanosPerSecond =
+                if (clock.hasDriftNanosPerSecond()) clock.driftNanosPerSecond else null
+
+            multipathDetectedCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                eventArgs.measurements.count { measurement ->
+                    measurement.multipathIndicator ==
+                        GnssMeasurement.MULTIPATH_INDICATOR_DETECTED
+                }
+            } else {
+                null
+            }
+
+            meanAutomaticGainControlDb =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val agcValues = eventArgs.measurements
+                        .filter { it.hasAutomaticGainControlLevelDb() }
+                        .map { it.automaticGainControlLevelDb }
+                    if (agcValues.isNotEmpty()) agcValues.average() else null
+                } else {
+                    null
+                }
+
             emitGnssSnapshot(gnssStatus)
         }
     }
@@ -509,6 +540,11 @@ class MainActivity: FlutterActivity() {
         gnssStatusRegistered = false
         rawMeasurementsRegistered = false
         gnssStatus = null
+        clockDiscontinuityCount = null
+        clockBiasNanos = null
+        clockDriftNanosPerSecond = null
+        multipathDetectedCount = null
+        meanAutomaticGainControlDb = null
     }
 
     private fun emitGnssSnapshot(status: GnssStatus?) {
@@ -540,18 +576,22 @@ class MainActivity: FlutterActivity() {
                 satellites.add(item)
             }
         }
-        gnssEventSink?.success(
-            mapOf(
-                "timestampMs" to System.currentTimeMillis(),
-                "permissionGranted" to hasFineLocationPermission(),
-                "statusSupported" to
-                    packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS),
-                "rawMeasurementsSupported" to rawMeasurementsSupported,
-                "rawMeasurementCount" to rawMeasurementCount,
-                "adrMeasurementCount" to adrMeasurementCount,
-                "satellites" to satellites
-            )
+        val snapshot = mutableMapOf<String, Any>(
+            "timestampMs" to System.currentTimeMillis(),
+            "permissionGranted" to hasFineLocationPermission(),
+            "statusSupported" to
+                packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS),
+            "rawMeasurementsSupported" to rawMeasurementsSupported,
+            "rawMeasurementCount" to rawMeasurementCount,
+            "adrMeasurementCount" to adrMeasurementCount,
+            "satellites" to satellites
         )
+        clockDiscontinuityCount?.let { snapshot["clockDiscontinuityCount"] = it }
+        clockBiasNanos?.let { snapshot["clockBiasNanos"] = it }
+        clockDriftNanosPerSecond?.let { snapshot["clockDriftNanosPerSecond"] = it }
+        multipathDetectedCount?.let { snapshot["multipathDetectedCount"] = it }
+        meanAutomaticGainControlDb?.let { snapshot["meanAutomaticGainControlDb"] = it }
+        gnssEventSink?.success(snapshot)
     }
 
     override fun onDestroy() {

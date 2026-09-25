@@ -26,6 +26,7 @@ class PhoneHandlingDetector {
   final List<_TimedVector> _recentDirection = [];
   int? _lastUs;
   bool _handling = false;
+  double _wobbleRad = 0;
 
   /// Low-passed gravity direction in the phone frame ("up"), or null before
   /// the first sample.
@@ -39,11 +40,17 @@ class PhoneHandlingDetector {
   /// turned over, gestured with) right now, not just riding quietly.
   bool get isHandling => _handling;
 
+  /// How far the low-passed gravity direction has moved over the handling
+  /// window, in degrees — the same measurement [isHandling] thresholds,
+  /// exposed as a number for the mount-stability check (§ hardware check).
+  double get wobbleDeg => _wobbleRad * NavMath.radToDeg;
+
   void reset() {
     _gravity = null;
     _recentDirection.clear();
     _lastUs = null;
     _handling = false;
+    _wobbleRad = 0;
   }
 
   /// Feeds one raw, calibrated accelerometer+gyro sample (phone frame).
@@ -85,6 +92,7 @@ class PhoneHandlingDetector {
     if (_recentDirection.length > 1 && direction != null) {
       final oldest = _recentDirection.first.value;
       final angle = _angleBetween(oldest, direction);
+      _wobbleRad = angle;
       _handling = angle > _config.handlingThresholdRad;
     }
 

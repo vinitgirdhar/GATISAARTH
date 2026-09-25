@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,7 @@ import '../../../core/nav/benchmark/field_evidence.dart';
 import '../../../core/nav/benchmark/outage_report.dart';
 import '../../../core/platform/evidence/android_evidence_signer.dart';
 import '../../../core/platform/storage/drive_log_store.dart';
+import 'benchmark_report_exporter.dart';
 
 /// A drive the benchmark can be run on.
 @immutable
@@ -73,6 +75,15 @@ abstract class BenchmarkBackend {
   /// route stays out of the report; only reproducibility metadata and metrics
   /// are included.
   Future<void> shareEvidence(BenchmarkSource source, OutageReport report);
+
+  /// Builds one exportable report (JSON, CSV or PDF - see [ReportFormat]) from
+  /// an already-run [report] and hands it to the share sheet. Like
+  /// [shareEvidence], the raw route stays out of it.
+  Future<void> shareReport(
+    BenchmarkSource source,
+    OutageReport report,
+    ReportFormat format,
+  );
 
   /// Deletes a recorded drive from this phone. False when there was nothing to
   /// delete or it failed.
@@ -169,6 +180,54 @@ class DeviceBenchmarkBackend implements BenchmarkBackend {
       text: source.simulated
           ? 'Signed GatiSaarth simulated benchmark evidence'
           : 'Signed GatiSaarth field-validation evidence',
+    ));
+  }
+
+  @override
+  Future<void> shareReport(
+    BenchmarkSource source,
+    OutageReport report,
+    ReportFormat format,
+  ) async {
+    final log = source.asset != null
+        ? await rootBundle.loadString(source.asset!)
+        : await File(source.path!).readAsString();
+    const exporter = BenchmarkReportExporter();
+    final exported = await exporter.build(
+      report: report,
+      driveLog: log,
+      simulated: source.simulated,
+    );
+    final cache = await getTemporaryDirectory();
+    final safeName = (source.path == null
+            ? 'reference-drive'
+            : File(source.path!).uri.pathSegments.last)
+        .replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final (suffix, mime, bytes) = switch (format) {
+      ReportFormat.json => (
+          'report.json',
+          'application/json',
+          utf8.encode(exported.toJsonText()),
+        ),
+      ReportFormat.csv => (
+          'report.csv',
+          'text/csv',
+          utf8.encode(exporter.toCsv(report, simulated: source.simulated)),
+        ),
+      ReportFormat.pdf => (
+          'report.pdf',
+          'application/pdf',
+          await exporter.toPdfBytes(report,
+              simulated: source.simulated, exported: exported),
+        ),
+    };
+    final file = File('${cache.path}/$safeName.$suffix');
+    await file.writeAsBytes(bytes, flush: true);
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(file.path, mimeType: mime)],
+      subject: 'GatiSaarth benchmark report',
+      text: 'GatiSaarth benchmark report ($suffix), SHA-256 '
+          '${exported.sha256Short}...',
     ));
   }
 

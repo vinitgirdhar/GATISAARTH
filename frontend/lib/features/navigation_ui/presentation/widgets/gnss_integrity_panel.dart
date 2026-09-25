@@ -2,36 +2,50 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/nav/gnss/gnss_health.dart';
 import '../../../../core/platform/gnss/gnss_integrity_monitor.dart';
 import '../../../../core/platform/gnss/gnss_telemetry.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/standard_card.dart';
 
+/// GNSS HEALTH card: the driver-facing state from `GnssHealthClassifier`
+/// (big label + reasons + metric grid) plus the sky plot and C/N0 trend the
+/// receiver telemetry has always driven. `assessment`/`cn0History` are the
+/// older single-anomaly-bucket monitor's output, kept only for the C/N0
+/// trend chart below.
 class GnssIntegrityPanel extends StatelessWidget {
   const GnssIntegrityPanel({
     super.key,
     required this.telemetry,
     required this.assessment,
     required this.cn0History,
+    required this.health,
   });
 
   final GnssTelemetrySnapshot? telemetry;
   final GnssIntegrityAssessment assessment;
   final List<double> cn0History;
+  final GnssHealthAssessment health;
+
+  static Color _stateColor(GnssHealthState state) => switch (state) {
+        GnssHealthState.waiting => AppColors.textSecondary,
+        GnssHealthState.normal => AppColors.success,
+        GnssHealthState.degraded => AppColors.warning,
+        GnssHealthState.multipathSuspected => AppColors.warning,
+        GnssHealthState.interferenceSuspected => AppColors.error,
+        GnssHealthState.outage => AppColors.error,
+      };
 
   @override
   Widget build(BuildContext context) {
     final snapshot = telemetry;
-    final color = switch (assessment.state) {
-      GnssSignalState.healthy => AppColors.success,
-      GnssSignalState.degraded => AppColors.warning,
-      GnssSignalState.anomaly => AppColors.error,
-      GnssSignalState.unavailable => AppColors.textSecondary,
-    };
+    final color = _stateColor(health.state);
     return StandardCard(
-      titleText: 'GNSS INTEGRITY LAB',
+      titleText: 'GNSS HEALTH',
       trailing: Text(
-        assessment.state.name.toUpperCase(),
+        health.state == GnssHealthState.waiting
+            ? '--'
+            : health.state.label.toUpperCase(),
         style: TextStyle(
           color: color,
           fontSize: 11,
@@ -42,9 +56,27 @@ class GnssIntegrityPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            assessment.reason,
-            style: TextStyle(color: color, fontWeight: FontWeight.w600),
+            health.state == GnssHealthState.waiting
+                ? 'Waiting'
+                : health.state.label.toUpperCase(),
+            style: TextStyle(
+              color: color,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
           ),
+          const SizedBox(height: 4),
+          for (final reason in health.reasons)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                reason,
+                style:
+                    TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 12),
+          _MetricGrid(metrics: health.metrics),
           const SizedBox(height: 12),
           if (snapshot == null || !snapshot.hasRealStatus)
             Text(
@@ -119,6 +151,86 @@ class GnssIntegrityPanel extends StatelessWidget {
                   color: AppColors.textSecondary,
                   fontSize: 10,
                 )),
+          ],
+        ),
+      );
+}
+
+/// Compact metric tiles for the GNSS HEALTH card. `--` (never a guessed
+/// number) whenever the platform/API level did not report a field.
+class _MetricGrid extends StatelessWidget {
+  const _MetricGrid({required this.metrics});
+
+  final GnssHealthMetrics metrics;
+
+  static const _constellationOrder = [
+    (GnssHealthConstellation.gps, 'GPS'),
+    (GnssHealthConstellation.glonass, 'GLONASS'),
+    (GnssHealthConstellation.galileo, 'Galileo'),
+    (GnssHealthConstellation.beidou, 'BeiDou'),
+    (GnssHealthConstellation.navic, 'NavIC'),
+    (GnssHealthConstellation.qzss, 'QZSS'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final mixLabel = _constellationOrder
+        .map((entry) =>
+            '${entry.$2} ${metrics.constellationUsed[entry.$1] ?? 0}/'
+            '${metrics.constellationVisible[entry.$1] ?? 0}')
+        .join(' · ');
+    return Wrap(
+      spacing: 16,
+      runSpacing: 10,
+      children: [
+        _tile('${metrics.satellitesUsed}/${metrics.satellitesVisible}',
+            'Satellites used/visible'),
+        _tile(
+          metrics.meanCn0DbHz == null
+              ? '--'
+              : '${metrics.meanCn0DbHz!.toStringAsFixed(1)} dBHz',
+          'Mean C/N₀',
+        ),
+        _tile('${metrics.navicUsed}/${metrics.navicVisible}',
+            'NavIC used/visible'),
+        _tile(mixLabel, 'Constellation mix (used/visible)'),
+        _tile('${metrics.positionJumpRejects}', 'Position-jump rejects (60s)'),
+        _tile('${metrics.accelerationJumpRejects}',
+            'Velocity-jump rejects (60s)'),
+        _tile('${metrics.headingInconsistencies}', 'Heading inconsistencies'),
+        _tile(metrics.accuracyWorsening ? 'Worsening' : 'Stable',
+            'Accuracy trend'),
+        _tile(
+          metrics.clockDiscontinuityCount?.toString() ?? '--',
+          'Clock anomalies',
+        ),
+        _tile(
+          metrics.multipathDetectedCount?.toString() ?? '--',
+          'Multipath indicators',
+        ),
+        _tile(
+          metrics.meanAutomaticGainControlDb == null
+              ? '--'
+              : '${metrics.meanAutomaticGainControlDb!.toStringAsFixed(1)} dB',
+          'AGC',
+        ),
+      ],
+    );
+  }
+
+  static Widget _tile(String value, String label) => SizedBox(
+        width: 132,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value,
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                )),
+            Text(label,
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 10)),
           ],
         ),
       );

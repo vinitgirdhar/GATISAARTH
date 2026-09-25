@@ -7,6 +7,8 @@ import '../controllers/live_session_scope.dart';
 import '../widgets/fusion_mode_badge.dart';
 import '../widgets/location_status_banner.dart';
 import '../widgets/mission_guidance_card.dart';
+import '../../../navigation_engine/domain/navigation_safety.dart' show TrustLevel;
+import '../widgets/nav_safety_badge.dart';
 import '../widgets/navigation_map.dart';
 import '../widgets/session_status_card.dart';
 import '../widgets/telemetry_card.dart';
@@ -20,6 +22,7 @@ class NavigationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = LiveSessionScope.of(context);
     final estimate = session.uncertainty;
+    final trust = session.trust;
     final mapHeight =
         (MediaQuery.sizeOf(context).height * 0.36).clamp(240.0, 420.0);
 
@@ -35,16 +38,31 @@ class NavigationScreen extends StatelessWidget {
             AppSpacing.lg,
           ),
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FusionModeBadge(fusionMode: session.fusionMode),
+            Row(
+              children: [
+                FusionModeBadge(fusionMode: session.fusionMode),
+                // Nothing to show before the first fix — the badge would
+                // just repeat "waiting" the mode badge already conveys.
+                if (trust.level != TrustLevel.waiting) ...[
+                  const SizedBox(width: AppSpacing.sm),
+                  Flexible(child: NavSafetyBadge(assessment: trust)),
+                ],
+              ],
             ),
+            if (trust.limited) ...[
+              const SizedBox(height: AppSpacing.sm),
+              const NavSafetyLimitedBanner(),
+            ],
             const SizedBox(height: AppSpacing.md),
             LocationStatusBanner(location: session.location),
             FadeSlideIn(
               child: SessionStatusCard(session: session, showAlignment: false),
             ),
-            if (session.missionGuidance != null)
+            // No fake precision: turn/road guidance built from a position the
+            // controller itself has flagged RED is paused, not shown.
+            if (trust.limited)
+              const MissionGuidancePausedNotice()
+            else if (session.missionGuidance != null)
               MissionGuidanceCard(decision: session.missionGuidance!),
             const SizedBox(height: AppSpacing.md),
             _ImuStrip(session: session),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'ai/ai_fusion.dart';
 import 'ai/ai_types.dart';
 import 'alignment/mount_alignment.dart';
+import 'alignment/mount_quality.dart';
 import 'anchors/portal_anchor.dart';
 import 'calibration/sensor_calibration.dart';
 import 'ekf/navigation_filter.dart';
@@ -14,6 +15,7 @@ import 'math/nav_math.dart';
 import 'model/correction_explainer.dart';
 import 'model/nav_snapshot.dart';
 import 'model/outage_recovery.dart';
+import 'monitor/fault_monitor.dart';
 import 'motion/gyro_bias.dart';
 import 'motion/hand_held_tracker.dart';
 import 'motion/motion_classifier.dart';
@@ -23,6 +25,7 @@ import 'motion/vibration_speed.dart';
 import 'nav_config.dart';
 import 'sensors/barometer.dart';
 import 'sensors/sensor_fault_detector.dart';
+import 'sensors/sensor_health.dart';
 import 'sensors/sensor_sample.dart';
 import 'sensors/time_sync.dart';
 
@@ -139,7 +142,10 @@ class NavigationEngine {
         _handling = PhoneHandlingDetector(config: config),
         _handHeldStop = HandHeldStopDetector(config: config),
         _handHeldTracker = HandHeldTracker(config: config),
-        _gyroBias = GyroBiasEstimator(config: config);
+        _gyroBias = GyroBiasEstimator(config: config),
+        _health = SensorHealthMonitor(config: config),
+        _mountQualityEstimator = MountQualityEstimator(config: config),
+        _faultMonitor = FaultMonitor(config: config);
 
   final NavConfig _config;
   final NavigationFilter _filter;
@@ -157,6 +163,9 @@ class NavigationEngine {
   final HandHeldStopDetector _handHeldStop;
   final HandHeldTracker _handHeldTracker;
   final GyroBiasEstimator _gyroBias;
+  final SensorHealthMonitor _health;
+  final MountQualityEstimator _mountQualityEstimator;
+  final FaultMonitor _faultMonitor;
   final _ContributionTracker _contribution = _ContributionTracker();
 
   SensorCalibration _calibration;
@@ -185,6 +194,14 @@ class NavigationEngine {
   /// reported position during calibration.
   GnssObservation? _lastUnalignedFix;
   int _lastSnapshotUs = 0;
+
+  /// Mount-change detection (§ mount-change detection): bumped whenever
+  /// `MountAlignmentEstimator` resets from a gravity-drift event, so the
+  /// engine can tell "just moved, recalibrating" apart from "never
+  /// converged" — the snapshot note differs and this clears once the fit has
+  /// converged again.
+  int _lastMountChangeEventsSeen = 0;
+  int? _mountChangedAtUs;
 
   static const int _maxTransitions = 200;
   static const int _maxRecentMeasurements = 50;
@@ -308,6 +325,16 @@ class NavigationEngine {
     }
     _faults.checkStaleness(monotonicUs);
 
+    // Navigation Hardware Check + mount quality: raw phone-frame samples, fed
+    // unconditionally so they stay warm whether or not hand-held mode or the
+    // mount transform is ready (§ hardware check, § mount quality).
+    _health.observeImu(
+      accelPhone: accelPhone,
+      gyroPhone: gyroPhone,
+      magPhone: magPhone,
+      monotonicUs: monotonicUs,
+    );
+
     // Push through the time sync so drops and rates are measured even when the
     // engine consumes the samples directly (§4, §64).
     _timeSync.add(SensorSample(
@@ -352,6 +379,15 @@ class NavigationEngine {
       gnssUs: _lastGnssUs,
       hold: ai.holdUpdates,
     );
+
+    final mountChangeEvents = _alignmentEstimator.mountChangeEvents;
+    if (mountChangeEvents != _lastMountChangeEventsSeen) {
+      _lastMountChangeEventsSeen = mountChangeEvents;
+      _mountChangedAtUs = monotonicUs;
+    }
+    if (_mountChangedAtUs != null && _alignmentEstimator.isConverged) {
+      _mountChangedAtUs = null;
+    }
 
     // Hand-held dead reckoning needs no phone-to-vehicle mount, so it is fed
     // on every frame regardless of alignment status: that keeps it warm for
@@ -407,6 +443,11 @@ class NavigationEngine {
     final gyroVehicle = mount.toVehicle(gyro);
     final magVehicle = mag == null ? null : mount.toVehicle(mag);
 
+    _faultMonitor.onImuStep(
+      monotonicUs: monotonicUs,
+      yawRateVehicleRadPerS: gyroVehicle.z,
+    );
+
     final dt = _stepSeconds(monotonicUs);
     _lastImuUs = monotonicUs;
 
@@ -451,13 +492,22 @@ class NavigationEngine {
   /// engine needs the rejected ones to judge the source (§13).
   NavigationSnapshot? onGnss(GnssObservation fix) {
     final state = _filter.state;
+    final predictedHorizontalSigmaM = _filter.horizontalPositionSigma;
     final assessment = _gnssQuality.assess(
       fix,
       inertialHeadingDeg: state?.headingDeg,
       inertialSpeedMps: state?.groundSpeed,
     );
+    _faultMonitor.onGnssStep(
+      fix: fix,
+      assessment: assessment,
+      predictedState: state,
+      predictedHorizontalSigmaM: predictedHorizontalSigmaM,
+      filterGyroBiasRadPerS: state?.gyroBias,
+    );
     _lastAssessment = assessment;
     _lastGnssUs = fix.monotonicUs;
+    _health.observeGnssFix(fix.monotonicUs);
     _lastGnssSpeed = assessment.usable ? fix.speedMps : null;
     if (_config.features.vibrationSpeed && _lastGnssSpeed != null) {
       _vib.addGnssSpeed(speedMps: _lastGnssSpeed!, monotonicUs: fix.monotonicUs);
@@ -702,6 +752,7 @@ class NavigationEngine {
     _handHeldStop.reset();
     _handHeldTracker.reset();
     _gyroBias.reset();
+    _faultMonitor.reset();
     _mode = NavMode.boot;
     _snapshot = null;
     _transitions.clear();
@@ -1244,8 +1295,12 @@ class NavigationEngine {
         _config.features.handHeldMode &&
         _handHeldTracker.hasPosition;
     final unaligned = (state == null && !handHeldActive) ? _lastUnalignedFix : null;
+    final recalibratingMount = _mountChangedAtUs != null;
     final notes = <String>[];
-    if (_alignmentEstimator.alignment == null) {
+    if (recalibratingMount) {
+      notes.add('Mount change detected — previous calibration '
+          'invalidated. Recalibrating vehicle frame…');
+    } else if (_alignmentEstimator.alignment == null) {
       notes.add(handHeldActive
           ? 'Hand-held mode: no phone-to-vehicle mount'
           : 'Phone-to-vehicle alignment not established');
@@ -1269,6 +1324,16 @@ class NavigationEngine {
         notes.add('${diagnosis.type.label}: ${diagnosis.fault.label}');
       }
     }
+
+    final healthReport = _health.evaluate(monotonicUs: monotonicUs);
+    final mountQuality = _mountQualityEstimator.evaluate(
+      orientationWobbleDeg: _health.orientationWobbleDeg,
+      handling: _health.isHandling,
+      vibrationScore: _ai.effectiveDisturbance(monotonicUs).vibrationScore,
+      magneticFieldMicroTesla:
+          _faults.diagnoses[SensorType.magnetometer]?.magnitude,
+      alignmentConfidence: _alignmentEstimator.alignment?.confidence,
+    );
 
     _snapshot = NavigationSnapshot(
       sequence: ++_sequence,
@@ -1314,6 +1379,10 @@ class NavigationEngine {
           : (unaligned == null ? DataSource.unavailable : DataSource.real),
       notes: notes,
       handHeld: handHeldActive,
+      sensorHealth: healthReport,
+      mountQuality: mountQuality,
+      recalibratingMount: recalibratingMount,
+      faultFlags: _faultMonitor.flags,
     );
     return _snapshot;
   }

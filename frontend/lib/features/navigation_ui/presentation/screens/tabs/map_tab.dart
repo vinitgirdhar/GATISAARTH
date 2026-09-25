@@ -6,6 +6,7 @@ import '../../controllers/live_session_scope.dart';
 import '../../widgets/fusion_confidence_badge.dart';
 import '../../widgets/engine_status_card.dart';
 import '../../widgets/map_controls.dart';
+import '../../widgets/nav_safety_badge.dart';
 import '../../widgets/navigation_map.dart';
 import '../../widgets/outage_recovery_card.dart';
 import '../../controllers/position_share.dart';
@@ -13,7 +14,9 @@ import '../../widgets/parking_level_card.dart';
 import '../../widgets/tunnel_ahead_card.dart';
 import '../../widgets/mission_guidance_card.dart';
 import '../../widgets/session_controls.dart';
+import '../../widgets/simulated_outage_sheet.dart';
 import '../../widgets/telemetry_card.dart';
+import '../../../../navigation_engine/domain/navigation_safety.dart';
 
 const double _sheetRadius = 22;
 
@@ -33,11 +36,37 @@ class _MapTabState extends State<MapTab> {
     final estimate = session.uncertainty;
     final margin = estimate?.marginMeters;
     final isDark = AppColors.isDark;
+    final trust = session.trust;
 
     return ColoredBox(
       color: AppColors.background,
       child: Column(
         children: [
+          // Nothing to show before the first fix — the location card below
+          // and the sync capsule already say "searching"; a "Waiting" badge
+          // here would only crowd the smallest screens for no new information.
+          if (trust.level != TrustLevel.waiting)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: NavSafetyBadge(assessment: trust),
+                  ),
+                  if (trust.limited) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    const NavSafetyLimitedBanner(),
+                  ],
+                ],
+              ),
+            ),
           // 1. Top Exact Location Card (replaces mock 300 m guidance)
           Container(
             margin: const EdgeInsets.fromLTRB(
@@ -90,9 +119,11 @@ class _MapTabState extends State<MapTab> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              session.inOutage
-                                  ? 'Estimated road corridor'
-                                  : 'Exact Location',
+                              trust.limited
+                                  ? 'Approximate area'
+                                  : session.inOutage
+                                      ? 'Estimated road corridor'
+                                      : 'Exact Location',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -127,7 +158,11 @@ class _MapTabState extends State<MapTab> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${formatLatitude(session.latitude)}, ${formatLongitude(session.longitude)}${margin != null ? ' · ±${margin.round()} m' : ''}',
+                        // No fake precision: RED/Limited mode never prints a
+                        // coordinate, only the trust badge's own reason.
+                        trust.limited
+                            ? trust.reason
+                            : '${formatLatitude(session.latitude)}, ${formatLongitude(session.longitude)}${margin != null ? ' · ${formatUncertainty(trust, margin)}' : ''}',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
@@ -225,8 +260,16 @@ class _MapTabState extends State<MapTab> {
             ),
           ),
 
+          // No fake precision: RED/Limited mode pauses turn/road guidance
+          // outright, ahead of the recovery/parking/tunnel/mission chain
+          // below, all of which are built from the position it distrusts.
+          if (trust.limited)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: MissionGuidancePausedNotice(),
+            )
           // A just-ended outage is scored first; guidance returns after.
-          if (session.recentRecovery != null)
+          else if (session.recentRecovery != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: GestureDetector(
@@ -245,6 +288,9 @@ class _MapTabState extends State<MapTab> {
               child: TunnelAheadCard(
                 tunnel: session.tunnelAhead!,
                 speedAidValidated: session.isSpeedAidValidated,
+                readiness: session.isPreparingForGnssLoss
+                    ? session.drReadiness
+                    : null,
               ),
             )
           else if (session.missionGuidance != null)
@@ -300,6 +346,18 @@ class _MapTabState extends State<MapTab> {
                         ),
                       MapControlButton(
                         icon: Icon(
+                          Icons.gps_off_rounded,
+                          size: 22,
+                          color: session.isSimulatingOutage
+                              ? AppColors.warning
+                              : AppColors.textPrimary,
+                        ),
+                        active: session.isSimulatingOutage,
+                        semanticLabel: 'Simulate GNSS loss',
+                        onTap: () => showSimulatedOutageSheet(context, session),
+                      ),
+                      MapControlButton(
+                        icon: Icon(
                           Icons.fullscreen_rounded,
                           size: 22,
                           color: AppColors.textPrimary,
@@ -352,12 +410,18 @@ class _MapTabState extends State<MapTab> {
                     const SizedBox(width: 8),
                     TelemetryCard(
                       label: 'Accuracy',
-                      value: margin == null ? '—' : '±${margin.round()}',
+                      // No fake precision: once Limited, "> N m" replaces the
+                      // usual "± N m" — same rule as the location card above.
+                      value: margin == null
+                          ? '—'
+                          : formatUncertainty(trust, margin)
+                              .replaceAll(' m', ''),
                       unit: margin == null ? null : 'm',
                       subtitle:
                           session.inOutage ? 'Dead reckoning' : 'GNSS fix',
-                      accentColor:
-                          FusionConfidenceBadge.colorFor(estimate?.confidence),
+                      accentColor: trust.limited
+                          ? NavSafetyBadge.colorFor(trust.level)
+                          : FusionConfidenceBadge.colorFor(estimate?.confidence),
                     ),
                   ],
                 ),

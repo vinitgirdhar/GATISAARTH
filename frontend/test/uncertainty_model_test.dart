@@ -72,6 +72,44 @@ void main() {
     });
   });
 
+  group('unexplained travel', () {
+    test('dead reckoning that stops while the last GNSS speed says moving '
+        'keeps the margin wide enough to cover the missed travel', () {
+      // Emulator/smooth-cruise case: 12 m/s at loss, DR integrated 0 m in
+      // 20 s. The vehicle may be 240 m on, so the margin must say so.
+      final e = UncertaintyModel.deadReckoning(
+        accuracyAtLossMeters: 5,
+        distanceSinceLossMeters: 0,
+        sinceLoss: const Duration(seconds: 20),
+        speedAtLossMps: 12,
+      );
+      expect(e.marginMeters, greaterThanOrEqualTo(240));
+    });
+
+    test('dead reckoning that keeps up with the loss speed adds nothing', () {
+      final kept = UncertaintyModel.deadReckoning(
+        accuracyAtLossMeters: 5,
+        distanceSinceLossMeters: 240,
+        sinceLoss: const Duration(seconds: 20),
+        speedAtLossMps: 12,
+      );
+      final plain = UncertaintyModel.deadReckoning(
+        accuracyAtLossMeters: 5,
+        distanceSinceLossMeters: 240,
+        sinceLoss: const Duration(seconds: 20),
+      );
+      expect(kept.marginMeters, plain.marginMeters);
+    });
+
+    test('the tracker carries the speed at loss into its estimate', () {
+      final t0 = DateTime(2026, 9, 25, 12);
+      final tracker = OutageTracker()
+        ..update(outage: true, now: t0, accuracyMeters: 5, speedMps: 10);
+      final e = tracker.estimate(t0.add(const Duration(seconds: 10)));
+      expect(e.marginMeters, greaterThanOrEqualTo(100));
+    });
+  });
+
   group('OutageTracker', () {
     final t0 = DateTime(2026, 9, 18, 12);
 

@@ -90,6 +90,12 @@ class AppColors {
   static const Color warning = Color(0xFFFF9500);
   static const Color error = Color(0xFFFF3B30);
 
+  /// Navigation-safety ORANGE ("high uncertainty") — deliberately a deeper,
+  /// redder orange than [warning] (used for AMBER/"dead reckoning active")
+  /// so the two are visually distinct at a glance, not just by label. A
+  /// plain const, not a getter, so it needs no dark/light variant.
+  static const Color highUncertainty = Color(0xFFE8590C);
+
   static const Color lightDisabled = Color(0xFFC7C7CC);
   static const Color darkDisabled = Color(0xFF48484A);
   static Color get disabled => isDark ? darkDisabled : lightDisabled;

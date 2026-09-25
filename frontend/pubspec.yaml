@@ -1,7 +1,7 @@
 name: gatisaarth
 description: "GatiSaarth - High-Precision Vehicle Navigation System using Dead Reckoning, Multi-GNSS/NavIC, and Edge AI"
 publish_to: 'none'
-version: 4.4.0+46
+version: 4.5.0+47
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -19,6 +19,9 @@ dependencies:
   shared_preferences: ^2.3.3
   latlong2: ^0.9.1
   path_provider: ^2.1.0
+  # Already resolved transitively (via share_plus et al.); declared directly so
+  # the benchmark report exporter can hash its canonical JSON payload.
+  crypto: ^3.0.7
   # Bundled with Flutter already (transitive); declared so the navigation core
   # can use its Quaternion/Matrix3 instead of hand-rolled rotation maths.
   vector_math: ^2.4.0
@@ -37,6 +40,7 @@ dependencies:
   vector_tile: ^2.0.1
 
   vector_tile_renderer: any
+  pdf: ^3.12.0
 dev_dependencies:
   integration_test:
     sdk: flutter

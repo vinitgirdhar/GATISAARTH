@@ -10,6 +10,8 @@ import '../../../../core/nav/anchors/portal_anchor.dart';
 import '../../../../core/nav/anchors/radio_anchor.dart';
 import '../../../../core/nav/anchors/visual_landmark_matcher.dart';
 import '../../../../core/nav/anchors/visual_relocalization.dart';
+import '../../../../core/nav/gnss/gnss_health.dart';
+import '../../../../core/nav/alignment/mount_quality.dart';
 import '../../../../core/nav/gnss/gnss_quality.dart';
 import '../../../../core/nav/guidance/mission_guidance.dart';
 import '../../../../core/nav/map/tunnel_lookahead.dart';
@@ -18,6 +20,8 @@ import '../../../../core/nav/model/correction_explainer.dart';
 import '../../../../core/nav/model/nav_snapshot.dart';
 import '../../../../core/nav/model/outage_log.dart';
 import '../../../../core/nav/model/outage_recovery.dart';
+import '../../../../core/nav/model/simulated_outage.dart';
+import '../../../../core/nav/outage/gnss_loss_preparation.dart';
 import '../../../../core/nav/motion/activity_mode.dart';
 import '../../../../core/nav/motion/motion_classifier.dart' show VehicleClass;
 import '../../../../core/nav/navigation_engine.dart';
@@ -30,6 +34,7 @@ import '../../../../core/platform/activity/activity_mode_source.dart';
 import '../../../../core/platform/radio/wifi_rtt_anchor_source.dart';
 import '../../../../core/nav/replay/drive_recorder.dart';
 import '../../../../core/nav/sensors/parking_level.dart';
+import '../../../../core/nav/sensors/sensor_health.dart';
 import '../../../../core/nav/sensors/sensor_sample.dart';
 import '../../../../core/platform/storage/drive_log_store.dart';
 import '../../../../core/platform/hardware/device_hardware.dart';
@@ -43,7 +48,9 @@ import '../../../../core/platform/maps/pack_road_source.dart'
 import '../../../../core/platform/network/telemetry_sink.dart';
 import '../../../ai_motion/domain/speed_estimator.dart';
 import '../../../ai_motion/domain/ai_engine_feed.dart';
+import '../../../navigation_engine/domain/dr_readiness.dart';
 import '../../../navigation_engine/domain/entities/navigation_state.dart';
+import '../../../navigation_engine/domain/navigation_safety.dart';
 import '../../../navigation_engine/domain/uncertainty_model.dart';
 import 'road_constraint.dart';
 import 'sync_status.dart';
@@ -62,6 +69,9 @@ const Duration _reacquireWindow = Duration(seconds: 3);
 const Duration _sensorFresh = Duration(milliseconds: 500);
 const Duration _cacheEvery = Duration(seconds: 15);
 const double _easeTauSeconds = 0.6;
+/// Matches `RoadConstraint`'s own lock radius (the "Road lock available"
+/// readiness row asks the same question the outage lock will ask).
+const double _roadLockRadiusM = 40;
 const double _snapDistanceMeters = 1000;
 
 /// What the two demo buttons drive at when the phone itself is standing still:
@@ -186,6 +196,8 @@ class LiveSessionController extends ChangeNotifier {
   AnchorPack? _anchorPack;
   PortalAnchorPolicy? _portalAnchorPolicy;
   final GnssIntegrityMonitor _gnssIntegrity = GnssIntegrityMonitor();
+  final GnssHealthClassifier _gnssHealth =
+      GnssHealthClassifier(config: NavConfig.live);
   final MissionGuidancePolicy _missionPolicy = MissionGuidancePolicy();
   MissionGuidanceDecision? _missionGuidance;
   bool _voiceGuidanceEnabled = true;
@@ -257,6 +269,13 @@ class LiveSessionController extends ChangeNotifier {
   final RoadConstraint _road;
   final TunnelLookahead _tunnelLook = TunnelLookahead(config: NavConfig.live);
   TunnelAhead? _tunnelAhead;
+
+  /// "GNSS Loss Preparation Mode": armed ahead of a mapped tunnel so an
+  /// outage there seeds dead reckoning from the last known-good GNSS reading
+  /// rather than one already degrading at the tunnel mouth (see class doc).
+  final GnssLossPreparation _prep = GnssLossPreparation(config: NavConfig.live);
+  final SpeedStdWindow _speedStdWindow = SpeedStdWindow();
+  bool _roadAvailable = false;
   final OutageLog _outageLog = OutageLog();
   final ParkingLevelTracker _parking =
       ParkingLevelTracker(config: NavConfig.live);
@@ -273,11 +292,36 @@ class LiveSessionController extends ChangeNotifier {
 
   bool _simTunnel = false;
   bool _simCanyon = false;
+
+  /// The driver-triggered "Simulate GNSS loss" run in progress, or null.
+  /// While set, real fixes are withheld from both the engine and the
+  /// heuristic pipeline (see `_onLocationChanged`) and kept as truth in
+  /// [SimulatedOutageSession.truthFixes] instead — the app runs the same
+  /// dead-reckoning path a real outage would, not a synthetic cruise.
+  SimulatedOutageSession? _simOutage;
+  SimulatedOutageResult? _lastSimResult;
+
+  /// A finished blackout waiting for its first restored fix to be fused, so
+  /// the recovery jump (last DR position to the first fused position) can be
+  /// measured; committed to the outage log only then.
+  ({double drLat, double drLon, int fixCount, DateTime endedAt})?
+      _simAwaitingRestore;
+
+  /// The engine's recovery of a simulated blackout, never logged twice.
+  int? _simRecoveryEndedAtUs;
   VehicleProfile _vehicleProfile = VehicleProfile.car;
   LocationStatus _previousStatus = LocationStatus.initializing;
   DateTime? _reacquiringUntil;
   final OutageTracker _outage = OutageTracker();
   final List<AnomalyEventModel> _anomalies = [];
+
+  // A5 Navigation Safety Controller: classifies driver-facing trust level
+  // (GREEN/AMBER/ORANGE/RED) from the same state everything else on this
+  // controller already tracks. Recomputed once per `tick()`; see `trust`.
+  final NavigationSafetyController _safety = NavigationSafetyController();
+  TrustAssessment _trust = TrustAssessment.waitingForFix;
+  double? _lastUncertaintyM;
+  DateTime? _lastUncertaintyAt;
 
   /// The new navigation core (`lib/core/nav/`), running alongside the
   /// pipeline above rather than replacing it.
@@ -360,6 +404,10 @@ class LiveSessionController extends ChangeNotifier {
       (snapshot) {
         _gnssTelemetry = snapshot;
         _gnssIntegrity.add(snapshot);
+        _gnssHealth.addReceiverSample(
+          _toHealthReceiverSample(snapshot),
+          nowSeconds: _clock().millisecondsSinceEpoch / 1000.0,
+        );
         final us = _engineNowUs;
         if (us != null) {
           _recorder?.recordGnssReceiver(monotonicUs: us, snapshot: snapshot);
@@ -522,6 +570,7 @@ class LiveSessionController extends ChangeNotifier {
   /// App went to the background: stop every radio and sensor.
   Future<void> pause() async {
     if (!_running || _disposed) return;
+    if (_simOutage != null) cancelSimulatedOutage();
     _running = false;
     _lastFrameT = 0;
     _mlClock = 0;
@@ -758,6 +807,87 @@ class LiveSessionController extends ChangeNotifier {
     _touch();
   }
 
+  /// Starts a driver-triggered "Simulate GNSS loss" run: real fixes keep
+  /// arriving but are withheld from both the engine and the heuristic
+  /// pipeline for [plannedDuration] (see `_onLocationChanged`), so the app
+  /// runs the same dead-reckoning path a real outage would. Returns a reason
+  /// and does nothing when there is no live fix to withhold, or another
+  /// simulation is already running; null once started.
+  String? startSimulatedOutage(Duration plannedDuration) {
+    if (_simOutage != null) return 'A blackout is already running.';
+    if (_simTunnel || _simCanyon) return 'Stop the other simulation first.';
+    if (!location.isLive) return 'Waiting for a live GNSS fix.';
+    _simOutage = SimulatedOutageSession(
+      plannedDuration: plannedDuration,
+      startedAt: _clock(),
+    );
+    _lastSimResult = null;
+    _outage.reset();
+    _syncOutage(_clock());
+    _touch();
+    return null;
+  }
+
+  /// Stops a running blackout early and discards it: no result, no log
+  /// entry — cancelling is not a measurement.
+  void cancelSimulatedOutage() {
+    if (_simOutage == null) return;
+    _finishSimulatedOutage(_clock(), cancelled: true);
+  }
+
+  bool get isSimulatingOutage => _simOutage != null;
+
+  /// Why `startSimulatedOutage` would refuse right now, or null when it is
+  /// free to start — for the sheet to disable Start with the reason shown,
+  /// without actually starting anything to find out.
+  String? get simulatedOutageBlockedReason {
+    if (_simOutage != null) return 'A blackout is already running.';
+    if (_simTunnel || _simCanyon) return 'Stop the other simulation first.';
+    if (!location.isLive) return 'Waiting for a live GNSS fix.';
+    return null;
+  }
+
+  Duration? get simulatedOutageRemaining {
+    final session = _simOutage;
+    return session == null ? null : session.remaining(_clock());
+  }
+
+  /// The most recently completed (not cancelled) simulated blackout, until
+  /// the next one starts.
+  SimulatedOutageResult? get lastSimulatedOutageResult => _lastSimResult;
+
+  void _finishSimulatedOutage(DateTime now, {required bool cancelled}) {
+    final session = _simOutage;
+    if (session == null) return;
+    _simOutage = null;
+    if (cancelled) {
+      _outage.reset();
+      _touch();
+      return;
+    }
+    final result = SimulatedOutageScorer.score(
+      startedAt: session.startedAt,
+      plannedDuration: session.plannedDuration,
+      actualDuration: now.difference(session.startedAt),
+      truthFixes: session.truthFixes,
+      lastDrLatitudeDeg: session.lastDrLatitudeDeg ?? _lat,
+      lastDrLongitudeDeg: session.lastDrLongitudeDeg ?? _lon,
+      sigmaSamples: session.sigmaSamples,
+      coreLed: isEngineLeading,
+    );
+    _lastSimResult = result;
+    // The next real fix flows through the ordinary path (`_simOutage` is
+    // null again) and ends the outage like a real one; the jump is measured
+    // once it has been fused (`_measureSimRecovery`).
+    _simAwaitingRestore = (
+      drLat: session.lastDrLatitudeDeg ?? _lat,
+      drLon: session.lastDrLongitudeDeg ?? _lon,
+      fixCount: _appliedFixCount,
+      endedAt: now,
+    );
+    _touch();
+  }
+
   void resetSimulation() {
     final wasSimulating = _simTunnel || _simCanyon;
     if (_simTunnel) _reacquiringUntil = _clock().add(_reacquireWindow);
@@ -839,7 +969,99 @@ class LiveSessionController extends ChangeNotifier {
     if (_positionSeeded) _road.watch(_targetLat, _targetLon);
     _easePosition(now);
     _recordTrail();
+    _updateSimulatedOutage(now);
+    _measureSimRecovery(now);
+    _trust = _safety.update(_trustInput(now), now);
     if (_dirty) _touch();
+  }
+
+  /// Builds this tick's [TrustInput] from state every getter above already
+  /// exposes. Pure classification lives in `navigation_safety.dart`; this is
+  /// just the wiring (§ A5 Navigation Safety Controller).
+  TrustInput _trustInput(DateTime now) {
+    final sigma = uncertainty?.marginMeters;
+    final growth = _uncertaintyGrowthMPerS(sigma, now);
+    return TrustInput(
+      hadFix: location.hasBeenLive,
+      locationLive: hasLiveGnss,
+      secondsSinceLastFix: outageElapsed.inMilliseconds / 1000,
+      uncertaintyM: sigma,
+      uncertaintyGrowthMPerS: growth,
+      engineLeading: isEngineLeading,
+      // The core's own integrity only bears on what the driver is actually
+      // being shown when the core is leading, or during an outage (where a
+      // broken core is the difference between a modelled DR estimate and
+      // nothing). While GNSS is live and the heuristic pipeline is driving
+      // the display, the core may simply not have converged yet (e.g. the
+      // mount calibration takes ~40 s) — that is business as usual, not a
+      // reason to alarm the driver, so it is not fed in as "invalid" here.
+      integrity: (isEngineLeading || _drActive)
+          ? (_navSnapshot?.integrity ?? NavIntegrity.invalid)
+          : NavIntegrity.high,
+      roadLocked: isOnRoad,
+      gnssAccuracyM: _accuracy,
+    );
+  }
+
+  /// Tracks the uncertainty margin tick-to-tick to derive its growth rate
+  /// (m/s), used only to flag "growing fast" a few seconds before the
+  /// absolute ORANGE threshold is crossed.
+  double? _uncertaintyGrowthMPerS(double? currentM, DateTime now) {
+    final prevM = _lastUncertaintyM;
+    final prevAt = _lastUncertaintyAt;
+    _lastUncertaintyM = currentM;
+    _lastUncertaintyAt = now;
+    if (currentM == null || prevM == null || prevAt == null) return null;
+    final dtS = now.difference(prevAt).inMilliseconds / 1000;
+    if (dtS <= 0) return null;
+    return (currentM - prevM) / dtS;
+  }
+
+  /// Once the first real fix after a blackout has been fused, the distance
+  /// the solution moved from the last dead-reckoned position is the recovery
+  /// jump. No fix within [_simRestoreTimeout] leaves it unmeasured (`--`).
+  void _measureSimRecovery(DateTime now) {
+    final pending = _simAwaitingRestore;
+    final result = _lastSimResult;
+    if (pending == null || result == null) return;
+    double? jumpM;
+    if (_appliedFixCount > pending.fixCount) {
+      final dLatM = (_targetLat - pending.drLat) * _metresPerDegree;
+      final dLonM = (_targetLon - pending.drLon) *
+          _metresPerDegree *
+          cos(pending.drLat * pi / 180);
+      jumpM = sqrt(dLatM * dLatM + dLonM * dLonM);
+    } else if (now.difference(pending.endedAt) < _simRestoreTimeout) {
+      return;
+    }
+    _simAwaitingRestore = null;
+    _lastSimResult = result.withRecoveryJump(jumpM);
+    if (_outageLog.add(_lastSimResult!.toOutageRecovery())) _dirty = true;
+  }
+
+  static const Duration _simRestoreTimeout = Duration(seconds: 10);
+
+  /// Samples the running blackout's dead-reckoned position and reported
+  /// uncertainty, and ends it once its planned duration has elapsed.
+  void _updateSimulatedOutage(DateTime now) {
+    final session = _simOutage;
+    if (session == null) return;
+    // Keeps the sheet's countdown ticking even on a stationary demo phone,
+    // where nothing else would mark a frame dirty.
+    _dirty = true;
+    session.lastDrLatitudeDeg = _lat;
+    session.lastDrLongitudeDeg = _lon;
+    final lastSample = session.lastSigmaSampleAt;
+    if (lastSample == null ||
+        now.difference(lastSample) >=
+            SimulatedOutageConfig.standard.sigmaSampleInterval) {
+      session.lastSigmaSampleAt = now;
+      final sigma = uncertainty?.marginMeters;
+      if (sigma != null) {
+        session.sigmaSamples.add(SigmaSample(at: now, sigmaM: sigma));
+      }
+    }
+    if (session.isDue(now)) _finishSimulatedOutage(now, cancelled: false);
   }
 
   /// Adds the drawn position to the track. Until there is a position that
@@ -1081,12 +1303,18 @@ class LiveSessionController extends ChangeNotifier {
   /// Whether a starting outage is one to buzz about: a signal lost while the
   /// driver was using the app (or the tunnel test), not a location switch they
   /// turned off and not the settling after coming back from the background.
-  bool _outageIsWorthAlerting(DateTime now) {
+  /// The first seconds after coming back from the background are silent:
+  /// whatever changed while away is news to the app, not to the driver.
+  bool _inResumeQuiet(DateTime now) {
     final resumed = _resumedAt;
-    if (resumed != null && now.difference(resumed) < _afterResumeQuiet) {
-      return false;
-    }
-    return _simTunnel || location.status == LocationStatus.stale;
+    return resumed != null && now.difference(resumed) < _afterResumeQuiet;
+  }
+
+  bool _outageIsWorthAlerting(DateTime now) {
+    if (_inResumeQuiet(now)) return false;
+    return _simTunnel ||
+        _simOutage != null ||
+        location.status == LocationStatus.stale;
   }
 
   /// Starts/stops the outage tracker to match [_drActive]. An outage is only
@@ -1094,14 +1322,19 @@ class LiveSessionController extends ChangeNotifier {
   /// margin and (when short enough) the travelled distance is extrapolated.
   void _syncOutage(DateTime now) {
     final starting = _drActive && !_outage.isActive;
-    final gap = starting && !_simTunnel
+    final gap = starting && !_simTunnel && _simOutage == null
         ? location.timeSinceLastFix ?? Duration.zero
         : Duration.zero;
+    // Read before `_updateTunnelAhead` below, which disarms Preparation Mode
+    // (and drops the snapshot) the moment the tunnel is entered — exactly the
+    // tick this outage is starting on.
+    final prepSeed = starting ? _prep.seedAt(now) : null;
     _outage.update(
       outage: _drActive,
       now: now,
       accuracyMeters: _accuracy,
       alreadyElapsed: gap,
+      speedMps: prepSeed?.speedMps ?? _speed,
     );
     _updateMissionGuidance();
     _updateTunnelAhead(now);
@@ -1112,11 +1345,22 @@ class LiveSessionController extends ChangeNotifier {
     }
     if (!starting) return;
 
+    // A tunnel-mouth outage seeds from the last known-good GNSS reading
+    // (captured while Preparation Mode was armed) rather than whatever fix
+    // arrived last, which may already be degrading right at the portal.
+    if (prepSeed != null && !isEngineLeading) {
+      _speed = prepSeed.speedMps;
+      if (prepSeed.courseDeg != null) _courseDeg = prepSeed.courseDeg;
+      _heading = prepSeed.headingDeg;
+    }
+
     // Onto the road first: the travel missed while the outage went unnoticed
     // is then walked along the street, not along a bare heading.
     // A parked vehicle is not put on the nearest street: only one that was
     // moving when the signal went (or the tunnel test) has a road to follow.
-    if (_simTunnel || _speed > _stationarySpeed) _lockRoad();
+    if (_simTunnel || _simOutage != null || _speed > _stationarySpeed) {
+      _lockRoad();
+    }
     final missed = _speed * gap.inMilliseconds / 1000;
     if (isEngineLeading) {
       // The core backdates its own outage from the fix timestamps; adding
@@ -1138,6 +1382,13 @@ class LiveSessionController extends ChangeNotifier {
     }
     _lastTunnelCheck = now;
     final graph = _road.graph;
+    // Whether a road for the outage lock to use is available right now (the
+    // "Road lock available" readiness row). A plain nearest-edge query, never
+    // touching the follower's own lock state (that would leak into `isOnRoad`
+    // for a parked vehicle that never asked to be put on a street).
+    _roadAvailable = _road.isLocked ||
+        (graph?.nearby(_lat, _lon, radiusM: _roadLockRadiusM, limit: 1).isNotEmpty ??
+            false);
     final moving = _drActive || _speed > _stationarySpeed;
     final found = graph == null || !moving || uncertainty == null
         ? null
@@ -1147,6 +1398,15 @@ class LiveSessionController extends ChangeNotifier {
       _dirty = true;
     }
     _tunnelAhead = found;
+    _updatePreparationMode(found);
+  }
+
+  /// Arms/disarms "GNSS Loss Preparation Mode" from the tunnel lookahead.
+  /// No road lock is held while GNSS is live: a lock taken here would stay
+  /// where preparation began and the outage would start from there. The
+  /// outage-start lock uses the fresh position plus the saved course instead.
+  void _updatePreparationMode(TunnelAhead? found) {
+    _prep.updateTunnel(distanceM: found?.distanceM, inside: found?.inside ?? false);
   }
 
   /// Car-park floors: counted from the barometer while dead reckoning, from
@@ -1181,7 +1441,8 @@ class LiveSessionController extends ChangeNotifier {
     _missionGuidance = decision;
     if (_voiceGuidanceEnabled) unawaited(_voiceGuidance.speak(decision.speech));
     if (decision.requestHaptic &&
-        decision.event != MissionGuidanceEvent.outageStarted) {
+        decision.event != MissionGuidanceEvent.outageStarted &&
+        !_inResumeQuiet(_clock())) {
       unawaited(
           _haptics.fire(HapticEvent.missionWarning, recording: isRecording));
     }
@@ -1451,31 +1712,102 @@ class LiveSessionController extends ChangeNotifier {
     return us + (elapsed > 0 ? elapsed : 0);
   }
 
-  void _feedEngineFix(GnssFix fix) {
-    // On the sensor timeline, but spaced by the wall clock: see the note on
-    // [_clockOffsetUs]. Before the first IMU sample there is no shared
-    // timeline, and the core could not use the fix for anything anyway.
+  /// Converts the platform's `GnssTelemetrySnapshot` into the plain data the
+  /// pure `GnssHealthClassifier` accepts (core/nav stays Flutter-free — see
+  /// `_feedEngineFix`'s `GnssObservation` for the same pattern with fixes).
+  static GnssHealthReceiverSample _toHealthReceiverSample(
+      GnssTelemetrySnapshot snapshot) {
+    return GnssHealthReceiverSample(
+      satellites: [
+        for (final satellite in snapshot.satellites)
+          GnssHealthSatelliteSample(
+            constellation: _toHealthConstellation(satellite.constellation),
+            cn0DbHz: satellite.cn0DbHz,
+            usedInFix: satellite.usedInFix,
+            elevationDegrees: satellite.elevationDegrees,
+          ),
+      ],
+      multipathDetectedCount: snapshot.multipathDetectedCount,
+      meanAutomaticGainControlDb: snapshot.meanAutomaticGainControlDb,
+      clockDiscontinuityCount: snapshot.clockDiscontinuityCount,
+      clockDriftNanosPerSecond: snapshot.clockDriftNanosPerSecond,
+    );
+  }
+
+  static GnssHealthConstellation _toHealthConstellation(
+      GnssConstellation constellation) {
+    switch (constellation) {
+      case GnssConstellation.gps:
+        return GnssHealthConstellation.gps;
+      case GnssConstellation.sbas:
+        return GnssHealthConstellation.sbas;
+      case GnssConstellation.glonass:
+        return GnssHealthConstellation.glonass;
+      case GnssConstellation.qzss:
+        return GnssHealthConstellation.qzss;
+      case GnssConstellation.beidou:
+        return GnssHealthConstellation.beidou;
+      case GnssConstellation.galileo:
+        return GnssHealthConstellation.galileo;
+      case GnssConstellation.navic:
+        return GnssHealthConstellation.navic;
+      case GnssConstellation.unknown:
+        return GnssHealthConstellation.unknown;
+    }
+  }
+
+  /// On the sensor timeline, but spaced by the wall clock: see the note on
+  /// [_clockOffsetUs]. Null before the first IMU sample, when there is no
+  /// shared timeline and the core could not use the fix for anything anyway.
+  GnssObservation? _buildObservation(GnssFix fix) {
     final us = _engineNowUs;
-    if (us == null) return;
+    if (us == null) return null;
+    return GnssObservation(
+      latitudeDeg: fix.latitude,
+      longitudeDeg: fix.longitude,
+      accuracyM: fix.accuracy,
+      monotonicUs: us,
+      altitudeM: fix.altitude == 0 ? null : fix.altitude,
+      speedMps: fix.speed,
+      isMocked: fix.isMocked,
+    );
+  }
+
+  void _feedEngineFix(GnssFix fix) {
+    final observation = _buildObservation(fix);
+    if (observation == null) return;
     try {
-      final observation = GnssObservation(
-        latitudeDeg: fix.latitude,
-        longitudeDeg: fix.longitude,
-        accuracyM: fix.accuracy,
-        monotonicUs: us,
-        altitudeM: fix.altitude == 0 ? null : fix.altitude,
-        speedMps: fix.speed,
-        isMocked: fix.isMocked,
-      );
       _recorder?.recordGnss(observation);
       final snapshot = _engine.onGnss(observation);
       if (snapshot != null) _navSnapshot = snapshot;
+      _gnssHealth.addFix(
+        reason: snapshot?.gnss?.reason ?? GnssRejectReason.none,
+        accuracyM: fix.accuracy,
+        nowSeconds: _clock().millisecondsSinceEpoch / 1000.0,
+      );
       final recovery = _engine.snapshot?.lastRecovery;
-      if (recovery != null && _outageLog.add(recovery)) _dirty = true;
+      // A simulated blackout is logged once, by the simulator (marked
+      // simulated); the engine's own recovery of it would be a duplicate.
+      if (recovery != null && _simAwaitingRestore != null) {
+        _simRecoveryEndedAtUs = recovery.endedAtUs;
+      } else if (recovery != null &&
+          recovery.endedAtUs != _simRecoveryEndedAtUs &&
+          _outageLog.add(recovery)) {
+        _dirty = true;
+      }
       _appliedEngineFixCount++;
     } catch (e) {
       debugPrint('[NavigationEngine] fix feed failed: $e');
     }
+  }
+
+  /// Records a fix withheld for a simulated blackout as replay truth, without
+  /// handing it to the engine or the heuristic pipeline — that withholding is
+  /// the entire point of the simulator. Keeps a recorded drive honest: a
+  /// replay of the log still shows what GNSS actually said throughout.
+  void _recordWithheldFix(GnssFix fix) {
+    final observation = _buildObservation(fix);
+    if (observation != null) _recorder?.recordGnss(observation);
   }
 
   static String _vibrationLevelFor(double rms) {
@@ -1502,7 +1834,17 @@ class LiveSessionController extends ChangeNotifier {
     final fix = location.lastLiveFix;
     if (fix != null && location.fixCount != _appliedFixCount) {
       _appliedFixCount = location.fixCount;
-      if (!_simTunnel) _applyFix(fix);
+      if (_simOutage != null) {
+        _recordWithheldFix(fix);
+        _simOutage!.truthFixes.add(TruthFix(
+          latitudeDeg: fix.latitude,
+          longitudeDeg: fix.longitude,
+          accuracyM: fix.accuracy,
+          at: _clock(),
+        ));
+      } else if (!_simTunnel) {
+        _applyFix(fix);
+      }
     } else if (fix == null) {
       _seedFromLastKnown();
     }
@@ -1521,6 +1863,9 @@ class LiveSessionController extends ChangeNotifier {
     final now = _clock();
     double resolvedSpeed = fix.speed;
     var movedM = 0.0;
+    // Receiver (Doppler) speed is trustworthy; a speed derived from arrival
+    // times is only as good as the fix spacing, and bunched deliveries spike.
+    var speedTrusted = fix.speed >= 0.35;
 
     // Real-time speed & heading calibration:
     // When Android device doesn't populate fix.speed or reports 0 during walking/low speeds,
@@ -1540,6 +1885,7 @@ class LiveSessionController extends ChangeNotifier {
             derivedSpeed >= 0.35 &&
             derivedSpeed < 70.0) {
           resolvedSpeed = derivedSpeed;
+          speedTrusted = dt >= 0.8 && dt <= 2.0;
         }
 
         if (dist > 1.0) {
@@ -1554,6 +1900,20 @@ class LiveSessionController extends ChangeNotifier {
     _lastFixLat = fix.latitude;
     _lastFixLon = fix.longitude;
     _lastFixAt = now;
+
+    if (speedTrusted) _speedStdWindow.add(now, resolvedSpeed);
+    // Preparation Mode only keeps a reading GNSS health calls good, so a fix
+    // already degrading at the tunnel mouth never becomes the seed.
+    if (_gnssHealth.assessment.state == GnssHealthState.normal) {
+      _prep.capture(
+        speedMps: resolvedSpeed,
+        courseDeg: _courseDeg,
+        headingDeg: _heading,
+        lat: fix.latitude,
+        lon: fix.longitude,
+        now: now,
+      );
+    }
 
     // A real fix ends whatever outage the marker was following a road through.
     if (!_simCanyon) _road.release();
@@ -1681,9 +2041,16 @@ class LiveSessionController extends ChangeNotifier {
   /// have a fresh one — stale, location switched off, permission revoked, or
   /// still re-searching after a resume.
   bool get _drActive =>
-      _simTunnel || (location.hasBeenLive && !location.isLive);
+      _simTunnel ||
+      _simOutage != null ||
+      (location.hasBeenLive && !location.isLive);
 
   bool get inOutage => _drActive;
+
+  /// Driver-facing trust level (GREEN/AMBER/ORANGE/RED), recomputed once per
+  /// `tick()`. Single source of truth for every safety badge/banner — see
+  /// `navigation_safety.dart`.
+  TrustAssessment get trust => _trust;
   MissionGuidanceDecision? get missionGuidance => _missionGuidance;
 
   /// Whether the marker is being held on a road of the installed map: true
@@ -1710,10 +2077,12 @@ class LiveSessionController extends ChangeNotifier {
   GnssTelemetrySnapshot? get gnssTelemetry => _gnssTelemetry;
   GnssIntegrityAssessment get gnssIntegrity => _gnssIntegrity.assessment;
   List<double> get gnssCn0History => _gnssIntegrity.cn0History;
+  GnssHealthAssessment get gnssHealth => _gnssHealth.assessment;
 
   /// True only while a real, fresh fix is arriving and we are not simulating
   /// a blackout.
-  bool get hasLiveGnss => location.isLive && !_simTunnel;
+  bool get hasLiveGnss =>
+      location.isLive && !_simTunnel && _simOutage == null;
 
   int get sampleCount => _sampleCount;
   bool get isSensorLive =>
@@ -1783,7 +2152,7 @@ class LiveSessionController extends ChangeNotifier {
   int get backendRecords => _telemetry.recordsSent;
 
   FusionMode get fusionMode {
-    if (_simTunnel) return FusionMode.deadReckoning;
+    if (_simTunnel || _simOutage != null) return FusionMode.deadReckoning;
     if (_simCanyon) return FusionMode.gnssDegraded;
     final until = _reacquiringUntil;
     if (until != null && _clock().isBefore(until)) {
@@ -1882,6 +2251,27 @@ class LiveSessionController extends ChangeNotifier {
         : null;
   }
 
+  /// True while "GNSS Loss Preparation Mode" is armed ahead of a mapped
+  /// tunnel (see `GnssLossPreparation`).
+  bool get isPreparingForGnssLoss => _prep.isActive;
+
+  /// The Dead Reckoning readiness checklist, for the tunnel-ahead card and
+  /// the "Simulate GNSS loss" sheet.
+  DrReadinessReport get drReadiness => evaluateDrReadiness(DrReadinessInput(
+        alignmentConverged: isMountCalibrated,
+        recalibratingMount: isRecalibratingMount,
+        hardwareCheck: hardwareCheck,
+        roadAvailable: _roadAvailable,
+        gnssHealth: gnssHealth,
+        engineLeading: isEngineLeading,
+        integrity: (isEngineLeading || _drActive)
+            ? (_navSnapshot?.integrity ?? NavIntegrity.invalid)
+            : NavIntegrity.high,
+        gnssSpeedStdMps: _speedStdWindow.stdMps,
+        speedKnown: location.hasBeenLive,
+        gnssAccuracyM: hasLiveGnss ? _accuracy : null,
+      ));
+
   /// True once the AI speed has been validated against GNSS on this drive.
   bool get isSpeedAidValidated =>
       _navSnapshot?.aiDiagnostics.validated ?? false;
@@ -1901,6 +2291,21 @@ class LiveSessionController extends ChangeNotifier {
   int get alignmentSamples => _engine.alignmentSamples;
   int get alignmentEvents => _engine.alignmentEvents;
   bool get hasLevelling => _engine.hasLevelling;
+
+  /// The Navigation Hardware Check (§ sensor health monitor). Named
+  /// differently from the existing [sensorHealth] bool bundle below, which
+  /// the engine-spec screen already owns.
+  SensorHealthReport get hardwareCheck =>
+      _navSnapshot?.sensorHealth ?? SensorHealthReport.pending;
+
+  /// The Dynamic Mount Quality Score (§ mount quality), or null before the
+  /// engine has produced a first snapshot — the UI shows `--`, never a
+  /// made-up score.
+  MountQuality? get mountQuality => _navSnapshot?.mountQuality;
+
+  /// True while the mount has just been detected as moved and the vehicle
+  /// frame is being re-learned (§ mount-change detection).
+  bool get isRecalibratingMount => _navSnapshot?.recalibratingMount ?? false;
 
   /// Mean microseconds the navigation core takes per sensor frame, or
   /// null before it has run. Measured, not estimated (§44).

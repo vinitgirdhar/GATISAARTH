@@ -154,11 +154,18 @@ class _Row extends StatelessWidget {
     final r = recovery;
     final met = r.meetsTarget(target);
     final color = met ? AppColors.success : AppColors.warning;
+    final trackParts = <String>[
+      if (r.alongTrackM != null) 'along ${r.alongTrackM!.round()} m',
+      if (r.crossTrackM != null) 'cross ${r.crossTrackM!.round()} m',
+      if (r.recoveryJumpM != null) 'jump ${r.recoveryJumpM!.round()} m',
+    ];
     return Semantics(
-      label: 'Outage $number: ${r.durationS.round()} seconds, '
+      label: 'Outage $number${r.isSimulated ? ', simulated' : ''}: '
+          '${r.durationS.round()} seconds, '
           '${formatDistance(r.distanceM)}, error ${r.errorM.round()} metres, '
           '${r.driftPct.toStringAsFixed(1)} percent, '
-          '${met ? 'within' : 'above'} target',
+          '${met ? 'within' : 'above'} target'
+          '${trackParts.isEmpty ? '' : ', ${trackParts.join(', ')}'}',
       excludeSemantics: true,
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -178,7 +185,8 @@ class _Row extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '#$number · ${r.durationS.round()} s · '
+                    '#$number${r.isSimulated ? ' · sim' : ''} · '
+                    '${r.durationS.round()} s · '
                     '${formatDistance(r.distanceM)}',
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -193,6 +201,14 @@ class _Row extends StatelessWidget {
                     style: TextStyle(
                         color: AppColors.textSecondary, fontSize: 11.5),
                   ),
+                  if (trackParts.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      trackParts.join(' · '),
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 11.5),
+                    ),
+                  ],
                 ],
               ),
             ),

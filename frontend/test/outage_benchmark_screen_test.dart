@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gatisaarth/core/nav/benchmark/outage_report.dart';
 import 'package:gatisaarth/core/theme/app_theme.dart';
 import 'package:gatisaarth/features/benchmark/data/benchmark_backend.dart';
+import 'package:gatisaarth/features/benchmark/data/benchmark_report_exporter.dart';
 import 'package:gatisaarth/features/benchmark/presentation/outage_benchmark_screen.dart';
 
 import 'support/load_fonts.dart';
@@ -73,6 +74,8 @@ class _FakeBackend implements BenchmarkBackend {
   BenchmarkSource? shared;
   BenchmarkSource? deleted;
   BenchmarkSource? evidenceSource;
+  BenchmarkSource? reportSource;
+  ReportFormat? reportFormat;
 
   @override
   Future<List<BenchmarkSource>> sources() async =>
@@ -93,6 +96,16 @@ class _FakeBackend implements BenchmarkBackend {
     OutageReport report,
   ) async {
     evidenceSource = source;
+  }
+
+  @override
+  Future<void> shareReport(
+    BenchmarkSource source,
+    OutageReport report,
+    ReportFormat format,
+  ) async {
+    reportSource = source;
+    reportFormat = format;
   }
 
   @override
@@ -231,6 +244,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(backend.evidenceSource, _recorded);
+  });
+
+  testWidgets('the report section shows a PASS/FAIL chip and exports JSON/CSV/PDF',
+      (tester) async {
+    _size(tester, 360, 2400);
+    final backend = _FakeBackend();
+    await tester.pumpWidget(_screen(backend));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Reference city drive'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('REPORT'), findsOneWidget);
+    expect(find.text('PASS'), findsOneWidget);
+    expect(find.text('Export report'), findsOneWidget);
+
+    await tester.tap(find.text('Export report'));
+    await tester.pumpAndSettle();
+    expect(find.text('CSV'), findsOneWidget);
+
+    await tester.tap(find.text('CSV'));
+    await tester.pumpAndSettle();
+
+    expect(backend.reportSource, _reference);
+    expect(backend.reportFormat, ReportFormat.csv);
   });
 
   testWidgets('a log that cannot be read is reported, not shown as a result',

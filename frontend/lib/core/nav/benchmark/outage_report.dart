@@ -64,6 +64,10 @@ class OutageSample {
     required this.engineErrorM,
     required this.engineSigmaM,
     required this.distanceM,
+    this.alongTrackErrorM = double.nan,
+    this.crossTrackErrorM = double.nan,
+    this.maxSigmaM = double.nan,
+    this.recoveryJumpM,
   });
 
   final int startUs;
@@ -76,6 +80,24 @@ class OutageSample {
   /// Distance travelled during the outage, from Doppler speed where the phone
   /// reports it and from positions otherwise.
   final double distanceM;
+
+  /// The core's error at the end of the outage, decomposed against the
+  /// truth's own direction of travel there: along the route and across it.
+  /// A DR filter that is merely a little late along the road (along-track)
+  /// is a very different failure from one that has left the lane
+  /// (cross-track) - `double.nan` when no direction of travel could be read.
+  final double alongTrackErrorM;
+  final double crossTrackErrorM;
+
+  /// The core's own largest reported 1-sigma over the whole window, not just
+  /// at the end - a filter that is briefly far more confident than it should
+  /// be mid-outage would otherwise be invisible in an end-of-window number.
+  final double maxSigmaM;
+
+  /// Distance between the core's dead-reckoned belief right before the next
+  /// real fix after this window and the fused position right after it -
+  /// null when the log has no such fix to replay (e.g. it is the last one).
+  final double? recoveryJumpM;
 }
 
 /// Error statistics for one strategy at one outage length.
@@ -128,6 +150,13 @@ class OutageStats {
   }
 }
 
+/// Median of the finite values in [values], or `double.nan` if none are.
+double _medianFinite(Iterable<double> values) {
+  final finite = values.where((v) => v.isFinite).toList()..sort();
+  if (finite.isEmpty) return double.nan;
+  return OutageStats._median(finite);
+}
+
 /// Both strategies at one outage length, scored on the same windows.
 class DurationResult {
   const DurationResult({
@@ -136,6 +165,11 @@ class DurationResult {
     required this.engine,
     required this.engineWins,
     required this.engineCovered,
+    this.medianAlongTrackM = double.nan,
+    this.medianCrossTrackM = double.nan,
+    this.medianMaxSigmaM = double.nan,
+    this.medianRecoveryJumpM = double.nan,
+    this.medianDistanceM = double.nan,
   });
 
   factory DurationResult.of(int durationS, List<OutageSample> samples) {
@@ -149,6 +183,14 @@ class DurationResult {
       engineCovered: samples
           .where((s) => s.engineErrorM <= 3 * s.engineSigmaM)
           .length,
+      medianAlongTrackM:
+          _medianFinite(samples.map((s) => s.alongTrackErrorM.abs())),
+      medianCrossTrackM:
+          _medianFinite(samples.map((s) => s.crossTrackErrorM.abs())),
+      medianMaxSigmaM: _medianFinite(samples.map((s) => s.maxSigmaM)),
+      medianRecoveryJumpM:
+          _medianFinite(samples.map((s) => s.recoveryJumpM ?? double.nan)),
+      medianDistanceM: _medianFinite(distances),
     );
   }
 
@@ -167,7 +209,23 @@ class DurationResult {
   /// answer that knows it is wrong is usable; a wrong, confident one is not.
   final int engineCovered;
 
+  /// Median of the core's along-track / cross-track error magnitude at the
+  /// end of the outage, and of its own largest reported sigma over the
+  /// window, and of the recovery jump when the log allowed measuring it.
+  /// `double.nan` when no window in this bucket carried the data.
+  final double medianAlongTrackM;
+  final double medianCrossTrackM;
+  final double medianMaxSigmaM;
+  final double medianRecoveryJumpM;
+
+  /// Median distance travelled during the windows scored at this duration.
+  final double medianDistanceM;
+
   int get n => engine.n;
+
+  /// SIH26168's bar: median drift below [targetPct] of distance travelled.
+  bool passed(double targetPct) =>
+      engine.medianDriftPct.isFinite && engine.medianDriftPct < targetPct;
 }
 
 /// What the recording says about the phone that made it. Results only mean
@@ -217,6 +275,7 @@ class OutageReport {
     required this.coreLedFromS,
     required this.runtimeMs,
     this.vehicleClass = VehicleClass.car,
+    this.driftTargetPct = 10,
   });
 
   /// The vehicle settings the core was replayed with: taken from the
@@ -241,12 +300,22 @@ class OutageReport {
   final double? coreLedFromS;
   final int runtimeMs;
 
+  /// SIH26168's dead-reckoning bar (`NavConfig.outageReport.driftTargetPct`,
+  /// replayed alongside the engine config so a report always carries the
+  /// target it was judged against).
+  final double driftTargetPct;
+
   DurationResult? forDuration(int seconds) {
     for (final d in durations) {
       if (d.durationS == seconds) return d;
     }
     return null;
   }
+
+  /// PASS when every scored duration's median drift clears the SIH target -
+  /// null when nothing could be scored, so there is nothing to judge.
+  bool? get passed =>
+      durations.isEmpty ? null : durations.every((d) => d.passed(driftTargetPct));
 
   /// The one-line takeaway at the longest scored outage.
   String get headline {
@@ -274,7 +343,7 @@ class OutageReport {
           'magnetometer ${profile.hasMagnetometer ? 'yes' : 'no'}, '
           'barometer ${profile.hasBarometer ? 'yes' : 'no'}')
       ..writeln('Device: ${profile.deviceModel ?? 'unknown'} | '
-          'replayed with ${vehicleClass == VehicleClass.twoWheeler ? 'two-wheeler' : 'car'} settings')
+          'replayed with ${switch (vehicleClass) { VehicleClass.twoWheeler => 'two-wheeler', VehicleClass.pedestrian => 'pedestrian', VehicleClass.car => 'car' }} settings')
       ..writeln(coreLedFromS == null
           ? 'The core never became healthy enough to lead.'
           : 'The core led from ${coreLedFromS!.toStringAsFixed(0)} s; '
@@ -299,6 +368,13 @@ class OutageReport {
         ..writeln()
         ..writeln('Not scored: ${skipped.entries.map((e) => '${e.value} x ${e.key.name}').join(', ')}');
     }
+    final verdict = passed;
+    b
+      ..writeln()
+      ..writeln(verdict == null
+          ? 'Verdict: not scored.'
+          : 'Verdict: ${verdict ? 'PASS' : 'FAIL'} - SIH <${driftTargetPct.toStringAsFixed(0)}% '
+              'drift target.');
     return b.toString();
   }
 }

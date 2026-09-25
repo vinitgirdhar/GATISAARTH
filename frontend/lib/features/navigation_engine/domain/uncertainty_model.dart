@@ -26,6 +26,11 @@ class UncertaintyModel {
   static const double driftPerMetre = 0.05;
   static const double driftPerSecond = 0.15;
 
+  /// Share of the unexplained travel (see [deadReckoning]) added to the
+  /// margin. 1: the variance-only stationary gate cannot tell a real stop
+  /// from a smooth cruise, so the margin must cover both.
+  static const double unexplainedTravelFraction = 1.0;
+
   /// Margin (m) at which confidence bottoms out.
   static const double confidenceScaleMeters = 150;
   static const double minConfidence = 0.30;
@@ -53,12 +58,20 @@ class UncertaintyModel {
     required double accuracyAtLossMeters,
     required double distanceSinceLossMeters,
     required Duration sinceLoss,
+    double speedAtLossMps = 0,
   }) {
     final base = max(accuracyAtLossMeters, minMarginMeters);
+    final seconds = max(sinceLoss.inMilliseconds / 1000, 0);
+    final distance = max(distanceSinceLossMeters, 0);
+    // Travel the last GNSS speed implies but dead reckoning did not
+    // integrate: a real stop, or a cruise the IMU took for one. Either could
+    // be true, so the margin covers it rather than trusting the stop.
+    final unexplained = max(max(speedAtLossMps, 0) * seconds - distance, 0);
     return fromMargin(
       base +
-          driftPerMetre * max(distanceSinceLossMeters, 0) +
-          driftPerSecond * max(sinceLoss.inMilliseconds / 1000, 0),
+          driftPerMetre * distance +
+          driftPerSecond * seconds +
+          unexplainedTravelFraction * unexplained,
     );
   }
 }
@@ -69,6 +82,7 @@ class OutageTracker {
   DateTime? _startedAt;
   double _accuracyAtLoss = 0;
   double _distanceMeters = 0;
+  double _speedAtLoss = 0;
 
   bool get isActive => _startedAt != null;
   double get distanceMeters => _distanceMeters;
@@ -87,11 +101,13 @@ class OutageTracker {
     required DateTime now,
     required double accuracyMeters,
     Duration alreadyElapsed = Duration.zero,
+    double speedMps = 0,
   }) {
     if (outage && _startedAt == null) {
       _startedAt = now.subtract(alreadyElapsed);
       _accuracyAtLoss = accuracyMeters;
       _distanceMeters = 0;
+      _speedAtLoss = speedMps.isFinite ? speedMps : 0;
     } else if (!outage && _startedAt != null) {
       reset();
     }
@@ -105,11 +121,13 @@ class OutageTracker {
     _startedAt = null;
     _accuracyAtLoss = 0;
     _distanceMeters = 0;
+    _speedAtLoss = 0;
   }
 
   UncertaintyEstimate estimate(DateTime now) => UncertaintyModel.deadReckoning(
         accuracyAtLossMeters: _accuracyAtLoss,
         distanceSinceLossMeters: _distanceMeters,
         sinceLoss: elapsed(now),
+        speedAtLossMps: _speedAtLoss,
       );
 }
