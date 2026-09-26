@@ -59,6 +59,7 @@ class EngineStatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = AppColors.isDark;
+    if (compact) return _compactRecorder(context, theme, isDark);
     return Container(
       margin: EdgeInsets.only(bottom: compact ? AppSpacing.sm : AppSpacing.md),
       padding: EdgeInsets.all(compact ? 12 : 20),
@@ -121,6 +122,122 @@ class EngineStatusCard extends StatelessWidget {
               'Recording failed: $recordingError',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.error,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _compactRecorder(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    final minutes = recordedDuration.inMinutes;
+    final seconds = recordedDuration.inSeconds % 60;
+    final detail = isRecording
+        ? '${minutes.toString().padLeft(2, '0')}:'
+            '${seconds.toString().padLeft(2, '0')}  ·  $recordedLines samples'
+        : isLeading
+            ? 'Navigation core is guiding the position'
+            : blocker ?? 'Navigation core is calibrating';
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.lightSurfaceBorder,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isRecording ? Icons.fiber_manual_record : Icons.route_rounded,
+                size: 17,
+                color: isRecording ? AppColors.error : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Drive recorder',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      detail,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isRecording
+                            ? AppColors.error
+                            : AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: isRecording ? 76 : 104,
+                child: _ActionButton(
+                  label: isRecording ? 'Stop' : 'Record',
+                  icon: isRecording ? Icons.stop : Icons.fiber_manual_record,
+                  color:
+                      isRecording ? AppColors.textSecondary : AppColors.error,
+                  onTap: isRecording ? onStopRecording : onStartRecording,
+                ),
+              ),
+            ],
+          ),
+          if (isRecording) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    label: 'Bump',
+                    icon: Icons.warning_amber_rounded,
+                    color: AppColors.warning,
+                    onTap: onMarkBump,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _ActionButton(
+                    label: 'Mark',
+                    icon: Icons.flag_outlined,
+                    color: AppColors.cyan,
+                    onTap: onMarkEvent,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (recordingError != null) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Recording failed: $recordingError',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.error,
+                ),
               ),
             ),
           ],

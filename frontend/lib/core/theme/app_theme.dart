@@ -66,7 +66,7 @@ class AppColors {
   static const Color indigo = Color(0xFF5856D6);
 
   // UI/UX Board Theme Tokens
-  static const Color primary = Color(0xFF3882F6);
+  static const Color primary = blue;
   static const Color secondary = Color(0xFF06B6D4);
   static const Color accent = Color(0xFFF59E0B);
   static const Color success = Color(0xFF10B981);
@@ -245,7 +245,8 @@ class AppTheme {
         fontSize: 12,
         letterSpacing: 0.2,
       ),
-      bodyLarge: TextStyle(color: primary, fontFamily: fontFamily, fontSize: 16),
+      bodyLarge:
+          TextStyle(color: primary, fontFamily: fontFamily, fontSize: 16),
       bodyMedium:
           TextStyle(color: secondary, fontFamily: fontFamily, fontSize: 14),
       bodySmall: TextStyle(color: muted, fontFamily: fontFamily, fontSize: 12),
@@ -271,7 +272,8 @@ class AppTheme {
       tooltipTheme: const TooltipThemeData(enableFeedback: false),
       pageTransitionsTheme: _pageTransitions,
       colorScheme: const ColorScheme.light(
-        primary: AppColors.cyan,
+        primary: AppColors.primary,
+        onPrimary: Colors.white,
         secondary: AppColors.indigo,
         surface: AppColors.lightSurface,
         onSurface: AppColors.lightTextPrimary,
@@ -329,7 +331,8 @@ class AppTheme {
       tooltipTheme: const TooltipThemeData(enableFeedback: false),
       pageTransitionsTheme: _pageTransitions,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.cyan,
+        primary: AppColors.primary,
+        onPrimary: Colors.white,
         secondary: AppColors.indigo,
         surface: AppColors.darkSurface,
         onSurface: AppColors.darkTextPrimary,

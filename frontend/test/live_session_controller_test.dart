@@ -128,6 +128,31 @@ void main() {
     expect(controller.speed, 10); // the live fix still owns the speed
   });
 
+  test('accurate zero GNSS speed is not replaced by coordinate drift', () async {
+    const stopped = GnssFix(
+      latitude: 19.45,
+      longitude: 72.81,
+      altitude: 12,
+      accuracy: 5,
+      speed: 0,
+      speedAccuracy: 0.5,
+    );
+    await goLive(stopped);
+    now = now.add(const Duration(seconds: 1));
+    gateway.fixController.add(const GnssFix(
+      latitude: 19.4501,
+      longitude: 72.81,
+      altitude: 12,
+      accuracy: 5,
+      speed: 0,
+      speedAccuracy: 0.5,
+    ));
+    await settle();
+    controller.tick();
+    expect(controller.speed, 0);
+    expect(controller.heading, 0);
+  });
+
   test('cached position is shown before the first fix', () async {
     SharedPreferences.setMockInitialValues({
       'last_known_lat': 12.5,

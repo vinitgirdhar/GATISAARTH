@@ -19,80 +19,137 @@ class SensorsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = LiveSessionScope.of(context);
-    final isDark = AppColors.isDark;
     final rows = sensorRows(session);
+    final healthy = session.hardwareCheck.overall == HealthVerdict.pass &&
+        session.hasLiveGnss &&
+        session.isSensorLive;
+    final locationRow = rows.firstWhere((row) => row.name == 'GPS / GNSS');
+    final motionRows = rows
+        .where((row) => const {'Accelerometer', 'Gyroscope', 'Magnetometer'}
+            .contains(row.name))
+        .toList();
+    final motionReady =
+        motionRows.isNotEmpty && motionRows.every((r) => r.live);
 
     return ListView(
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
-        AppSpacing.sm,
+        AppSpacing.lg,
         AppSpacing.md,
-        AppSpacing.xxl,
+        AppSpacing.xl,
       ),
       children: [
-        // 1. Header with the live count
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Sensor Status',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.4,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'What each sensor is delivering right now',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+        Text('System health',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                )),
+        const SizedBox(height: 4),
+        Text('A quick read on your navigation setup',
+            style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: AppSpacing.lg),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: (healthy ? AppColors.healthy : AppColors.warning)
+                      .withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  healthy ? Icons.check_rounded : Icons.info_outline_rounded,
+                  color: healthy ? AppColors.healthy : AppColors.warning,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            _LiveCount(rows: rows),
-          ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(healthy ? 'Everything is ready' : 'Setup in progress',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            )),
+                    const SizedBox(height: 3),
+                    Text(
+                      healthy
+                          ? 'Location and motion sensors are available'
+                          : 'Some navigation signals need attention',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-
         const SizedBox(height: AppSpacing.lg),
-
-        // Navigation Hardware Check: one aggregate verdict over everything
-        // below, plus a per-check breakdown (§ sensor health monitor).
-        _HardwareCheckCard(report: session.hardwareCheck),
-
-        const SizedBox(height: AppSpacing.lg),
-
-        // Dynamic Mount Quality Score: replaces the old binary
-        // Calibrated/Learning line with four sub-scores (§ mount quality).
-        _MountQualityCard(
-          quality: session.mountQuality,
-          recalibrating: session.isRecalibratingMount,
-        ),
-
-        const SizedBox(height: AppSpacing.lg),
-
-        // 2. One row per sensor, from measured data only
         Container(
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : AppColors.lightSurfaceBorder,
-              width: 1,
-            ),
+            color: AppColors.surface,
+            borderRadius: AppRadius.cardRadius,
           ),
           child: Column(
             children: [
+              _SystemHealthRow(
+                icon: Icons.location_on_outlined,
+                title: 'Location',
+                detail: session.hasLiveGnss
+                    ? 'GPS signal · ±${session.uncertainty?.marginMeters.toStringAsFixed(0) ?? '--'} m'
+                    : locationRow.detail,
+                value: session.hasLiveGnss ? 'Connected' : locationRow.status,
+                color:
+                    session.hasLiveGnss ? AppColors.healthy : AppColors.warning,
+              ),
+              Divider(height: 1, color: AppColors.surfaceBorder, indent: 56),
+              _SystemHealthRow(
+                icon: Icons.motion_photos_on_outlined,
+                title: 'Motion sensors',
+                detail: 'Accelerometer, gyroscope and compass',
+                value: motionReady ? 'Active' : 'Starting',
+                color: motionReady ? AppColors.textPrimary : AppColors.warning,
+              ),
+              Divider(height: 1, color: AppColors.surfaceBorder, indent: 56),
+              _SystemHealthRow(
+                icon: Icons.stay_current_portrait_outlined,
+                title: 'Phone alignment',
+                detail: session.isMountCalibrated
+                    ? 'Ready for this position'
+                    : 'Learning the phone’s position',
+                value: session.isMountCalibrated ? 'Ready' : 'Learning',
+                color: session.isMountCalibrated
+                    ? AppColors.textPrimary
+                    : AppColors.warning,
+                isLast: true,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        _AnimatedDisclosureCard(
+          title: 'Technical diagnostics',
+          subtitle: 'Sensor readings and GPS details',
+          trailing: _LiveCount(rows: rows),
+          child: Column(
+            children: [
+              _HardwareCheckCard(report: session.hardwareCheck),
+              const SizedBox(height: AppSpacing.md),
+              _MountQualityCard(
+                quality: session.mountQuality,
+                recalibrating: session.isRecalibratingMount,
+              ),
+              const SizedBox(height: AppSpacing.md),
               for (final (i, r) in rows.indexed) ...[
                 if (i > 0) const Divider(height: 1),
                 _SensorStatusTile(
@@ -104,32 +161,28 @@ class SensorsTab extends StatelessWidget {
                   isLast: i == rows.length - 1,
                 ),
               ],
+              const SizedBox(height: AppSpacing.lg),
+              const SectionHeader(
+                title: 'Satellite constellations',
+                subtitle: 'GPS, NavIC, Galileo and GLONASS',
+              ),
+              SatelliteBreakdown(
+                satelliteBreakdown: SatelliteBreakdownModel.fromTelemetry(
+                  session.gnssTelemetry,
+                ),
+                isHardwareBacked: session.gnssTelemetry?.hasRealStatus ?? false,
+                rawMeasurementsSupported:
+                    session.gnssTelemetry?.rawMeasurementsSupported ?? false,
+              ),
+              NavicWeightIndicator(navicWeight: _navicWeight(session)),
+              GnssIntegrityPanel(
+                telemetry: session.gnssTelemetry,
+                assessment: session.gnssIntegrity,
+                cn0History: session.gnssCn0History,
+                health: session.gnssHealth,
+              ),
             ],
           ),
-        ),
-
-        const SizedBox(height: AppSpacing.lg),
-
-        // 3. Multi-GNSS Constellations
-        const SectionHeader(
-          title: 'Satellite constellations',
-          subtitle: 'NavIC, GPS, Galileo, and GLONASS tracking',
-        ),
-        SatelliteBreakdown(
-          satelliteBreakdown:
-              SatelliteBreakdownModel.fromTelemetry(session.gnssTelemetry),
-          isHardwareBacked: session.gnssTelemetry?.hasRealStatus ?? false,
-          rawMeasurementsSupported:
-              session.gnssTelemetry?.rawMeasurementsSupported ?? false,
-        ),
-        NavicWeightIndicator(
-          navicWeight: _navicWeight(session),
-        ),
-        GnssIntegrityPanel(
-          telemetry: session.gnssTelemetry,
-          assessment: session.gnssIntegrity,
-          cn0History: session.gnssCn0History,
-          health: session.gnssHealth,
         ),
       ],
     );
@@ -141,6 +194,146 @@ class SensorsTab extends StatelessWidget {
     return telemetry.usedCountFor(GnssConstellation.navic) /
         telemetry.usedInFixCount;
   }
+}
+
+class _AnimatedDisclosureCard extends StatefulWidget {
+  const _AnimatedDisclosureCard({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+    this.trailing,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+  final Widget? trailing;
+
+  @override
+  State<_AnimatedDisclosureCard> createState() =>
+      _AnimatedDisclosureCardState();
+}
+
+class _AnimatedDisclosureCardState extends State<_AnimatedDisclosureCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.cardRadius,
+        ),
+        child: Column(
+          children: [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: AppRadius.cardRadius,
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(widget.title,
+                                style: Theme.of(context).textTheme.titleMedium),
+                            const SizedBox(height: 3),
+                            Text(widget.subtitle,
+                                style: Theme.of(context).textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
+                      if (widget.trailing != null) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        widget.trailing!,
+                      ],
+                      const SizedBox(width: AppSpacing.xs),
+                      AnimatedRotation(
+                        turns: _expanded ? 0.5 : 0,
+                        duration: AppMotion.of(
+                          context,
+                          const Duration(milliseconds: 320),
+                        ),
+                        curve: Curves.easeInOutCubic,
+                        child: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            ClipRect(
+              child: AnimatedSize(
+                duration: AppMotion.of(
+                  context,
+                  const Duration(milliseconds: 380),
+                ),
+                curve: Curves.easeInOutCubic,
+                alignment: Alignment.topCenter,
+                child: _expanded
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: widget.child,
+                      )
+                    : const SizedBox(width: double.infinity),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _SystemHealthRow extends StatelessWidget {
+  const _SystemHealthRow({
+    required this.icon,
+    required this.title,
+    required this.detail,
+    required this.value,
+    required this.color,
+    this.isLast = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String detail;
+  final String value;
+  final Color color;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.textSecondary, size: 22),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          )),
+                  const SizedBox(height: 2),
+                  Text(detail, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ),
+            Text(value,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    )),
+          ],
+        ),
+      );
 }
 
 class _SensorStatusTile extends StatelessWidget {
@@ -432,42 +625,43 @@ class _HardwareCheckCard extends StatelessWidget {
         child: Material(
           color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          childrenPadding: const EdgeInsets.only(bottom: 8),
-          title: Text(
-            'Navigation Hardware Check',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          subtitle: Text(
-            'Every sensor and timing check in one place',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          ),
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withValues(alpha: 0.3)),
-            ),
-            child: Text(
-              report.overall.label,
+            tilePadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            childrenPadding: const EdgeInsets.only(bottom: 8),
+            title: Text(
+              'Navigation Hardware Check',
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: color,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
             ),
-          ),
-          children: [
-            for (final name in _hardwareCheckRows)
-              if (byName(name) != null) _HealthRow(check: byName(name)!),
-            for (final c in report.checks)
-              if (!_hardwareCheckRows.contains(c.name)) _HealthRow(check: c),
-          ],
+            subtitle: Text(
+              'Every sensor and timing check in one place',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                report.overall.label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ),
+            children: [
+              for (final name in _hardwareCheckRows)
+                if (byName(name) != null) _HealthRow(check: byName(name)!),
+              for (final c in report.checks)
+                if (!_hardwareCheckRows.contains(c.name)) _HealthRow(check: c),
+            ],
           ),
         ),
       ),
@@ -651,7 +845,8 @@ class _MessageBanner extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
+              style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600, color: color),
             ),
           ),
         ],

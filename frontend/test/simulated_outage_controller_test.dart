@@ -231,8 +231,9 @@ void main() {
     gateway.fixController.add(_homeFix);
     await settle();
     controller.tick();
-    expect(controller.trust.level, isNot(TrustLevel.green));
-    expect(controller.trust.level, isNot(TrustLevel.waiting));
+    // Dead reckoning, not a false "filter failed": the core has not aligned
+    // in this fixture, and that must not read as RED.
+    expect(controller.trust.level, TrustLevel.amber);
 
     now = now.add(const Duration(seconds: 11));
     controller.tick();

@@ -6,6 +6,7 @@ import '../../../../core/platform/maps/map_download_service.dart';
 import '../../../../core/platform/maps/offline_map_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/fade_indexed_stack.dart';
+import '../../../../core/widgets/motion.dart';
 import '../../../offline_maps/domain/map_download_prompt.dart';
 import '../../../offline_maps/presentation/map_download_sheet.dart';
 import '../controllers/live_session_controller.dart';
@@ -118,29 +119,38 @@ class _MainShellScreenState extends State<MainShellScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
-        child: Stack(
+        child: Column(
           children: [
-            FadeIndexedStack(
-              index: _currentIndex,
-              children: [
-                HomeTab(onNavigateToTab: _onTabSelected),
-                const MapTab(),
-                const SensorsTab(),
-                const ProfileTab(),
-              ],
-            ),
-            // Its own Builder, so the 10 Hz session updates rebuild only the
-            // capsule and not the whole shell.
-            Positioned(
-              top: AppSpacing.sm,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Builder(
-                  builder: (context) => SyncCapsule(
-                    status: LiveSessionScope.of(context).syncStatus,
+            // Reserve room while the live setup capsule enters and leaves, so
+            // it never covers the map's position or simulation controls.
+            AnimatedSize(
+              duration: AppMotion.of(context, AppMotion.medium),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.xs,
+                  bottom: AppSpacing.xs,
+                ),
+                child: Center(
+                  // Keep the 10 Hz status listener out of the page subtree.
+                  child: Builder(
+                    builder: (context) => SyncCapsule(
+                      status: LiveSessionScope.of(context).syncStatus,
+                    ),
                   ),
                 ),
+              ),
+            ),
+            Expanded(
+              child: FadeIndexedStack(
+                index: _currentIndex,
+                children: [
+                  HomeTab(onNavigateToTab: _onTabSelected),
+                  const MapTab(),
+                  const SensorsTab(),
+                  const ProfileTab(),
+                ],
               ),
             ),
           ],
@@ -167,36 +177,47 @@ class _MainShellScreenState extends State<MainShellScreen> {
         ),
         child: SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavBarItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  isSelected: _currentIndex == 0,
-                  onTap: () => _onTabSelected(0),
-                ),
-                _NavBarItem(
-                  icon: Icons.map_rounded,
-                  label: 'Map',
-                  isSelected: _currentIndex == 1,
-                  onTap: () => _onTabSelected(1),
-                ),
-                _NavBarItem(
-                  icon: Icons.sensors_rounded,
-                  label: 'Sensors',
-                  isSelected: _currentIndex == 2,
-                  onTap: () => _onTabSelected(2),
-                ),
-                _NavBarItem(
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                  isSelected: _currentIndex == 3,
-                  onTap: () => _onTabSelected(3),
-                ),
-              ],
+          child: SizedBox(
+            height: 72,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: _NavBarItem(
+                      icon: Icons.home_rounded,
+                      label: 'Home',
+                      isSelected: _currentIndex == 0,
+                      onTap: () => _onTabSelected(0),
+                    ),
+                  ),
+                  Expanded(
+                    child: _NavBarItem(
+                      icon: Icons.map_rounded,
+                      label: 'Map',
+                      isSelected: _currentIndex == 1,
+                      onTap: () => _onTabSelected(1),
+                    ),
+                  ),
+                  Expanded(
+                    child: _NavBarItem(
+                      icon: Icons.sensors_rounded,
+                      label: 'Sensors',
+                      isSelected: _currentIndex == 2,
+                      onTap: () => _onTabSelected(2),
+                    ),
+                  ),
+                  Expanded(
+                    child: _NavBarItem(
+                      icon: Icons.person_rounded,
+                      label: 'Profile',
+                      isSelected: _currentIndex == 3,
+                      onTap: () => _onTabSelected(3),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -227,29 +248,42 @@ class _NavBarItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        duration: AppMotion.of(context, const Duration(milliseconds: 200)),
+        curve: Curves.easeOutCubic,
+        width: double.infinity,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
         decoration: BoxDecoration(
-          color:
-              isSelected ? activeColor.withValues(alpha: 0.12) : Colors.transparent,
+          color: isSelected
+              ? activeColor.withValues(alpha: 0.12)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 24,
-              color: isSelected ? activeColor : inactiveColor,
+            AnimatedScale(
+              scale: isSelected ? 1.04 : 1,
+              duration:
+                  AppMotion.of(context, const Duration(milliseconds: 260)),
+              curve: Curves.easeOutCubic,
+              child: Icon(
+                icon,
+                size: 24,
+                color: isSelected ? activeColor : inactiveColor,
+              ),
             ),
-            const SizedBox(height: 3),
-            Text(
-              label,
+            const SizedBox(height: 2),
+            AnimatedDefaultTextStyle(
+              duration:
+                  AppMotion.of(context, const Duration(milliseconds: 260)),
+              curve: Curves.easeOutCubic,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected ? activeColor : inactiveColor,
               ),
+              child: Text(label),
             ),
           ],
         ),

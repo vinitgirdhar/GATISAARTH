@@ -24,6 +24,9 @@ class ProfileTab extends StatelessWidget {
     final downloads = MapDownloadsScope.maybeOf(context);
 
     return ListView(
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
         AppSpacing.sm,

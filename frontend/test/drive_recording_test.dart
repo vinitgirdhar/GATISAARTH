@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gatisaarth/core/nav/replay/drive_log.dart';
 import 'package:gatisaarth/core/nav/replay/replay_engine.dart';
 import 'package:gatisaarth/core/platform/hardware/haptics.dart';
 import 'package:gatisaarth/core/platform/hardware/vehicle_alignment_engine.dart';
@@ -185,6 +186,73 @@ void main() {
     expect(logSink.lines.any((l) => l.contains('"t":"i"')), isTrue);
     expect(logSink.lines.any((l) => l.contains('"t":"g"')), isTrue);
     expect(controller.recordedLines, greaterThan(60));
+  });
+
+  test(
+      'real-drive simulations keep recording sensor data and label test windows',
+      () async {
+    await controller.start();
+    gateway.fixController.add(_fix);
+    await settle();
+    await feed(60);
+    await controller.startRecording();
+
+    Future<void> sendFix(double longitude) async {
+      now = now.add(const Duration(seconds: 1));
+      await feed(50, from: now.millisecondsSinceEpoch / 1000);
+      gateway.fixController.add(GnssFix(
+        latitude: _fix.latitude,
+        longitude: longitude,
+        altitude: _fix.altitude,
+        accuracy: _fix.accuracy,
+        speed: _fix.speed,
+      ));
+      await settle();
+      controller.tick();
+    }
+
+    controller.startTunnelTest();
+    expect(controller.isRecording, isTrue);
+    await sendFix(_fix.longitude + 0.00001);
+    controller.resetSimulation();
+
+    controller.startUrbanCanyon();
+    await sendFix(_fix.longitude + 0.00002);
+    controller.resetSimulation();
+
+    expect(
+      controller.startSimulatedOutage(const Duration(seconds: 5)),
+      isNull,
+    );
+    await sendFix(_fix.longitude + 0.00003);
+    controller.cancelSimulatedOutage();
+    expect(controller.isRecording, isTrue);
+
+    await controller.stopRecording();
+    final records = logSink.lines.map(DriveRecord.fromJsonLine).toList();
+    final markers = records
+        .whereType<DriveRecord>()
+        .where((record) => record.type == DriveRecordType.marker)
+        .map((record) => record.label)
+        .toSet();
+    expect(
+        markers,
+        containsAll([
+          'simulation:tunnel:start',
+          'simulation:tunnel:end',
+          'simulation:urban_canyon:start',
+          'simulation:urban_canyon:end',
+          'simulation:gnss_loss:start',
+          'simulation:gnss_loss:cancelled',
+        ]));
+    expect(
+      records.whereType<DriveRecord>().where(
+            (record) => record.type == DriveRecordType.gnss,
+          ),
+      hasLength(3),
+      reason: 'real receiver fixes remain available, including during tests',
+    );
+    expect(controller.isRecording, isFalse);
   });
 
   test('the header names the phone and the vehicle it was recorded on',

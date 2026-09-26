@@ -56,8 +56,10 @@ class NavSafetyBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: neutral ? 0.22 : 0.12),
+          color: AppColors.surface.withValues(alpha: 0.94),
           borderRadius: AppRadius.pillRadius,
+          border: Border.all(color: color.withValues(alpha: 0.36)),
+          boxShadow: AppShadow.card,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

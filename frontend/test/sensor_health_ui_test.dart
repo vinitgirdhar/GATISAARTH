@@ -12,9 +12,8 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets(
-      'the hardware check and mount quality cards show up before any '
-      'sensor data has arrived, honestly pending rather than a fake pass',
-      (tester) async {
+      'diagnostics can be expanded and show pending values before sensor data '
+      'arrives', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(411, 3000);
     addTearDown(tester.view.reset);
@@ -24,6 +23,16 @@ void main() {
       child: const MaterialApp(home: Scaffold(body: SensorsTab())),
     ));
     await frames(tester, count: 3);
+
+    final liveCount = find.textContaining(' live');
+    expect(liveCount, findsOneWidget);
+    expect(
+      tester.getCenter(liveCount).dx,
+      greaterThan(tester.getCenter(find.text('Technical diagnostics')).dx),
+    );
+    await tester.tap(find.text('Technical diagnostics'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Navigation Hardware Check'), findsOneWidget);
     expect(find.text('Mount quality'), findsOneWidget);

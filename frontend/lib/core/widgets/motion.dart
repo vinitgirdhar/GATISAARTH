@@ -61,7 +61,7 @@ class _FadeSlideInState extends State<FadeSlideIn>
     }
     // If TickerMode is disabled (e.g. while offscreen or in ListView cacheExtent),
     // do not start or mark as started until it becomes enabled.
-    if (!TickerMode.of(context)) {
+    if (!TickerMode.valuesOf(context).enabled) {
       return;
     }
     if (_started) {
@@ -75,7 +75,7 @@ class _FadeSlideInState extends State<FadeSlideIn>
       _controller.forward();
     } else {
       _timer = Timer(widget.delay, () {
-        if (mounted && TickerMode.of(context)) {
+        if (mounted && TickerMode.valuesOf(context).enabled) {
           _controller.forward();
         }
       });
