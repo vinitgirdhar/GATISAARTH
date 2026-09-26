@@ -74,6 +74,8 @@ class NavigationScreen extends StatelessWidget {
                 marginMeters: estimate?.marginMeters,
                 trail: session.trail.segments,
                 roadCorridors: session.roadCorridors,
+                route: session.activeRoute,
+                routeAlongM: session.routeProgress?.alongM,
                 height: mapHeight,
                 // Inside a scrolling page a drag must scroll the page.
                 gestures: MapGestures.zoomOnly,

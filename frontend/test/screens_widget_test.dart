@@ -11,8 +11,8 @@ import 'package:gatisaarth/features/navigation_ui/presentation/screens/tabs/home
 import 'package:gatisaarth/features/navigation_ui/presentation/screens/tabs/map_tab.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/widgets/engine_status_card.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/widgets/mission_guidance_card.dart';
+import 'package:gatisaarth/features/navigation_ui/presentation/widgets/nav_safety_badge.dart';
 import 'package:gatisaarth/features/navigation_ui/presentation/widgets/navigation_map.dart';
-import 'package:gatisaarth/features/navigation_ui/presentation/widgets/road_anomaly_ticker.dart';
 
 import 'support/fake_location_gateway.dart';
 import 'support/load_fonts.dart';
@@ -86,68 +86,65 @@ Future<void> _scrollTo(WidgetTester tester, Finder target) async {
   await tester.pump(const Duration(milliseconds: 100)); // apply the scroll
 }
 
+Future<void> _finishUiMotion(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 void main() {
   setUpAll(loadAppFonts);
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('navigation core lives below Exact Location on Map, not Sensors',
+  testWidgets('Map leads, status floats, and controls follow speed',
       (tester) async {
     final h = _Harness();
     _phone(tester, const Size(411, 915));
     await _pumpApp(tester, h);
     await _goLive(tester, h);
     await tester.tap(find.text('Map').last);
-    await tester.pump(const Duration(milliseconds: 300));
+    await _finishUiMotion(tester);
 
     expect(find.byType(MapTab), findsOneWidget);
-    expect(find.byType(EngineStatusCard), findsOneWidget);
-    expect(tester.getTopLeft(find.byType(EngineStatusCard)).dy,
-        greaterThan(tester.getTopLeft(find.text('Exact Location')).dy));
-    expect(tester.getTopLeft(find.byType(NavigationMap)).dy,
-        greaterThan(tester.getTopLeft(find.byType(EngineStatusCard)).dy));
+    expect(find.byType(EngineStatusCard), findsNothing);
+    expect(find.text('Record drive'), findsOneWidget);
+    expect(find.byTooltip('Simulation Lab'), findsOneWidget);
+    expect(find.text('Simulate GNSS loss'), findsNothing);
+    final mapTop = tester.getTopLeft(find.byType(NavigationMap)).dy;
+    final mapBottom = tester.getBottomLeft(find.byType(NavigationMap)).dy;
+    final statusTop = tester.getTopLeft(find.byType(NavSafetyBadge)).dy;
+    final simulationTop = tester.getTopLeft(find.text('Simulation Lab')).dy;
+    final speedTop = tester.getTopLeft(find.text('SPEED')).dy;
+    final recordTop = tester.getTopLeft(find.text('Record drive')).dy;
+    expect(statusTop, greaterThan(mapTop));
+    expect(statusTop, lessThan(mapBottom));
+    expect(simulationTop, greaterThan(mapTop));
+    expect(speedTop, greaterThan(simulationTop));
+    expect(recordTop, greaterThan(speedTop));
 
     await tester.tap(find.text('Sensors').last);
-    await tester.pump(const Duration(milliseconds: 300));
+    await _finishUiMotion(tester);
     expect(find.byType(EngineStatusCard), findsNothing);
   });
 
-  testWidgets('core details expand on demand and simulations restore map space',
+  testWidgets('simulation action stays compact and reflects the active test',
       (tester) async {
     final h = _Harness();
     _phone(tester, const Size(411, 915));
     await _pumpApp(tester, h);
     await tester.tap(find.text('Map').last);
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(
-        tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
-        isTrue);
-    final normalMapHeight = tester.getSize(find.byType(NavigationMap)).height;
-    await tester.tap(find.byTooltip('Show core details'));
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(
-        tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
-        isFalse);
-    expect(tester.getSize(find.byType(NavigationMap)).height,
-        lessThan(normalMapHeight));
-    final expandedMapHeight = tester.getSize(find.byType(NavigationMap)).height;
-
-    h.controller.startTunnelTest();
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(
-        tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
-        isTrue);
-    expect(tester.getSize(find.byType(NavigationMap)).height,
-        greaterThan(expandedMapHeight));
+    await _finishUiMotion(tester);
+    expect(find.byType(EngineStatusCard), findsNothing);
+    expect(find.text('Record drive'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('map-simulation-tools')));
+    await _finishUiMotion(tester);
+    expect(find.text('Tunnel test'), findsWidgets);
+    await tester.tap(find.text('Tunnel test').last);
+    await _finishUiMotion(tester);
+    expect(find.text('End test'), findsOneWidget);
 
     h.controller.resetSimulation();
-    h.controller.startUrbanCanyon();
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(
-        tester.widget<EngineStatusCard>(find.byType(EngineStatusCard)).compact,
-        isTrue);
+    await _finishUiMotion(tester);
+    expect(find.text('Simulation Lab'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -158,25 +155,39 @@ void main() {
       _phone(tester, size);
       await _pumpApp(tester, h);
       await tester.tap(find.text('Map').last);
-      await tester.pump(const Duration(milliseconds: 300));
+      await _finishUiMotion(tester);
       expect(find.byType(NavigationMap), findsOneWidget);
       expect(
-          tester.getSize(find.byType(NavigationMap)).height, greaterThan(80));
+          tester
+              .getSize(
+                find.descendant(
+                  of: find.byType(MapTab),
+                  matching: find.byType(NavigationMap),
+                ),
+              )
+              .height,
+          greaterThan(80));
       expect(tester.takeException(), isNull);
       h.controller.startTunnelTest();
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 300));
       if (find.byType(MissionGuidanceCard).evaluate().isNotEmpty) {
+        final mapTop = tester.getTopLeft(find.byType(NavigationMap)).dy;
+        final mapBottom = tester.getBottomLeft(find.byType(NavigationMap)).dy;
+        expect(
+          tester.getTopLeft(find.byType(MissionGuidanceCard)).dy,
+          greaterThan(mapTop),
+        );
         expect(
           tester.getBottomLeft(find.byType(MissionGuidanceCard)).dy,
-          lessThanOrEqualTo(tester.getTopLeft(find.byType(NavigationMap)).dy),
+          lessThan(mapBottom),
         );
       }
       expect(tester.takeException(), isNull);
     });
   }
 
-  testWidgets('GNSS and sensor status follows Edge AI and telemetry',
+  testWidgets('Home presents current position and live drive metrics',
       (tester) async {
     final h = _Harness();
     _phone(tester, const Size(360, 740));
@@ -189,18 +200,18 @@ void main() {
         .first);
     final children =
         (list.childrenDelegate as SliverChildListDelegate).children;
-    final heading = children.indexWhere(
-      (child) => child is Text && child.data == 'Edge AI & Telemetry',
+    final position = children.indexWhere(
+      (child) => child.toStringShort() == '_NavigationOverview',
     );
-    final ticker = children.indexWhere(
-      (child) => child is RoadAnomalyTicker,
+    final glance = children.indexWhere(
+      (child) => child is Text && child.data == 'At a glance',
     );
-    final status = children.indexWhere(
-      (child) => child.toStringShort() == '_SystemStatusCard',
+    final snapshot = children.indexWhere(
+      (child) => child.toStringShort() == '_DriveSnapshot',
     );
-    expect(heading, greaterThanOrEqualTo(0));
-    expect(ticker, greaterThan(heading));
-    expect(status, greaterThan(ticker));
+    expect(position, greaterThanOrEqualTo(0));
+    expect(glance, greaterThan(position));
+    expect(snapshot, greaterThan(glance));
   });
 
   for (final size in const [Size(320, 568), Size(360, 740), Size(411, 915)]) {
@@ -212,10 +223,9 @@ void main() {
       await _pumpApp(tester, h);
       await _goLive(tester, h);
 
-      expect(find.text('GatiSaarth'), findsOneWidget);
-      expect(find.text('Nominal GNSS lock'), findsOneWidget);
-      await _scrollTo(tester, find.text('GNSS locked'));
-      expect(find.text('GNSS locked'), findsWidgets);
+      expect(find.byType(HomeTab), findsOneWidget);
+      expect(find.text('Location is ready'), findsOneWidget);
+      expect(find.text('At a glance'), findsOneWidget);
 
       await _scrollTo(tester, find.text('Start fullscreen navigation'));
       expect(tester.takeException(), isNull);
@@ -229,8 +239,7 @@ void main() {
     await _pumpApp(tester, h);
     await _goLive(tester, h);
 
-    await _scrollTo(tester, find.text('Core warming up'));
-    expect(find.text('Core warming up'), findsOneWidget);
+    expect(find.byType(HomeTab), findsOneWidget);
     expect(find.textContaining('Backend'), findsNothing);
     expect(find.textContaining('Map match'), findsNothing);
     expect(find.textContaining('MAP MATCH'), findsNothing);
@@ -242,11 +251,10 @@ void main() {
     _phone(tester, const Size(360, 740));
     await _pumpApp(tester, h);
 
-    expect(find.text('Searching for GNSS…'), findsOneWidget);
-    expect(find.text('No fix yet'), findsWidgets);
-    // Confidence and road match are unknown, and say so.
-    expect(find.textContaining('--'), findsWidgets);
-    expect(find.text('No offline roads'), findsOneWidget);
+    expect(find.text('Finding your location'), findsOneWidget);
+    expect(find.text('Waiting for a fresh GPS fix'), findsOneWidget);
+    // Speed and accuracy are unknown until a live fix arrives.
+    expect(find.text('—', findRichText: true), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -261,9 +269,10 @@ void main() {
     h.controller.tick();
     await tester.pump(const Duration(seconds: 1));
 
-    expect(find.text('GNSS signal lost'), findsOneWidget);
-    await _scrollTo(tester, find.text('Dead reckoning · inertial'));
-    expect(find.text('Dead reckoning · inertial'), findsOneWidget);
+    expect(find.text('Satellite signal lost'), findsOneWidget);
+    await tester.tap(find.text('Map').last);
+    await _finishUiMotion(tester);
+    expect(find.text('Dead reckoning'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -274,8 +283,8 @@ void main() {
     await _pumpApp(tester, h);
 
     expect(find.text('Location is turned off'), findsOneWidget);
+    expect(find.text('Live position paused'), findsOneWidget);
     expect(find.text('Open location settings'), findsOneWidget);
-    expect(find.text('Location is off'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -334,13 +343,17 @@ void main() {
     await _pumpApp(tester, h);
     await _goLive(tester, h);
 
-    await _scrollTo(tester, find.text('Tunnel test'));
-    await tester.tap(find.text('Tunnel test'));
+    await tester.tap(find.text('Map').last);
+    await _finishUiMotion(tester);
+    await tester.tap(find.byKey(const ValueKey('map-simulation-tools')));
+    await _finishUiMotion(tester);
+    await tester.tap(find.text('Tunnel test').last);
     h.controller.tick();
     await tester.pump(const Duration(seconds: 1));
 
     expect(h.controller.isSimulatingTunnel, isTrue);
-    expect(find.textContaining('Simulating a GNSS blackout'), findsOneWidget);
+    expect(find.text('End test'), findsOneWidget);
+    expect(find.byType(MissionGuidanceCard), findsOneWidget);
   });
 
   testWidgets('reduced motion shows content immediately', (tester) async {
@@ -357,15 +370,10 @@ void main() {
     ));
     await tester.pump();
 
-    final fade = tester.widget<FadeTransition>(
-      find
-          .ancestor(
-            of: find.text('GatiSaarth'),
-            matching: find.byType(FadeTransition),
-          )
-          .first,
-    );
-    expect(fade.opacity.value, 1.0);
+    await tester.tap(find.text('Map').last);
+    await tester.pump();
+    expect(find.byType(MapTab), findsOneWidget);
+    expect(find.byType(NavigationMap), findsOneWidget);
   });
 
   testWidgets(

@@ -148,8 +148,8 @@ void main() {
   testWidgets('heading up turns the map so the direction of travel is up',
       (tester) async {
     final controller = MapController();
-    await tester.pumpWidget(_host(_state(heading: 90, speed: 10),
-        controller: controller));
+    await tester.pumpWidget(
+        _host(_state(heading: 90, speed: 10), controller: controller));
     await _run(tester, 300);
     await tester.tap(find.byType(FollowButton)); // -> heading up
     await _run(tester, 2500);
@@ -167,8 +167,8 @@ void main() {
   testWidgets('standing still, a wandering compass does not swing the map',
       (tester) async {
     final controller = MapController();
-    await tester.pumpWidget(_host(_state(heading: 90, speed: 10),
-        controller: controller));
+    await tester.pumpWidget(
+        _host(_state(heading: 90, speed: 10), controller: controller));
     await _run(tester, 200);
     await tester.tap(find.byType(FollowButton));
     await _run(tester, 2500);
@@ -200,8 +200,8 @@ void main() {
 
   testWidgets('speed zooms the map out', (tester) async {
     final controller = MapController();
-    await tester.pumpWidget(
-        _host(_state(speed: 0), controller: controller, gestures: MapGestures.zoomOnly));
+    await tester.pumpWidget(_host(_state(speed: 0),
+        controller: controller, gestures: MapGestures.zoomOnly));
     await _run(tester, 1500);
     final parked = controller.camera.zoom;
     expect(parked, closeTo(autoZoomForSpeed(0), 0.2));
@@ -213,16 +213,20 @@ void main() {
     expect(controller.camera.zoom, closeTo(autoZoomForSpeed(25), 0.3));
   });
 
-  testWidgets('the first fix, or a teleport, jumps instead of gliding across '
+  testWidgets(
+      'the first fix, or a teleport, jumps instead of gliding across '
       'the country', (tester) async {
     final controller = MapController();
-    await tester.pumpWidget(_host(_state(), margin: null, controller: controller));
+    await tester
+        .pumpWidget(_host(_state(), margin: null, controller: controller));
     await _run(tester, 200);
 
-    await tester.pumpWidget(_host(_state(at: _mumbai), margin: 5, controller: controller));
+    await tester.pumpWidget(
+        _host(_state(at: _mumbai), margin: 5, controller: controller));
     await _run(tester, 160); // ten frames: a glide would not be there yet
     expect(controller.camera.center.latitude, closeTo(_mumbai.latitude, 0.01));
-    expect(controller.camera.center.longitude, closeTo(_mumbai.longitude, 0.01));
+    expect(
+        controller.camera.center.longitude, closeTo(_mumbai.longitude, 0.01));
   });
 
   testWidgets('the track is drawn solid for GNSS and dashed for dead reckoning',
@@ -235,13 +239,15 @@ void main() {
     await tester.pumpWidget(_host(_state(), trail: trail.segments));
     await _run(tester, 300);
 
-    final lines = tester.widget<PolylineLayer>(find.byType(PolylineLayer)).polylines;
+    final lines =
+        tester.widget<PolylineLayer>(find.byType(PolylineLayer)).polylines;
     expect(lines, hasLength(2));
     expect(lines[0].pattern.segments, isNull, reason: 'solid');
     expect(lines[1].pattern.segments, isNotNull, reason: 'dashed');
   });
 
-  testWidgets('clear track appears with a track and calls back', (tester) async {
+  testWidgets('clear track appears with a track and calls back',
+      (tester) async {
     var cleared = 0;
     final trail = TrackTrail(minStepMeters: 1)
       ..add(28.6390, 77.0661, TrailKind.gnss)
@@ -267,6 +273,44 @@ void main() {
     expect(cleared, 1);
   });
 
+  testWidgets('bottom status shares a row with Clear track above coordinates',
+      (tester) async {
+    final trail = TrackTrail(minStepMeters: 1)
+      ..add(28.6390, 77.0661, TrailKind.gnss)
+      ..add(28.6395, 77.0661, TrailKind.gnss);
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 320,
+          height: 420,
+          child: NavigationMap(
+            navigationState: _state(),
+            marginMeters: 5,
+            trail: trail.segments,
+            expand: true,
+            gestures: MapGestures.full,
+            onClearTrail: () {},
+            bottomStatus: const Text(
+              'GNSS restored · validating the returned fix',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ),
+    ));
+    await _run(tester, 200);
+
+    final clear = tester.getRect(find.text('Clear track'));
+    final restored = tester.getRect(
+      find.text('GNSS restored · validating the returned fix'),
+    );
+    final coordinates = tester.getRect(find.textContaining('28.639'));
+    expect(restored.left, greaterThan(clear.right));
+    expect(restored.bottom, lessThan(coordinates.top));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a static preview has no controls', (tester) async {
     await tester.pumpWidget(_host(_state(), gestures: MapGestures.none));
     await _run(tester, 200);
@@ -283,7 +327,8 @@ void main() {
   testWidgets('a dead-reckoned puck is drawn as estimated', (tester) async {
     await tester.pumpWidget(_host(_state(mode: FusionMode.deadReckoning)));
     await _run(tester, 200);
-    expect(tester.widget<VehiclePuck>(find.byType(VehiclePuck)).estimated, isTrue);
+    expect(
+        tester.widget<VehiclePuck>(find.byType(VehiclePuck)).estimated, isTrue);
   });
 
   testWidgets('the chips stay readable when the brightness changes',

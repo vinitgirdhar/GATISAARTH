@@ -56,6 +56,10 @@ const int _minPackZoom = 13;
 /// vector data is the same, drawn bigger.
 const int _maxTileZoom = 15;
 
+/// Preferred zoom for a corridor read ([linesInBox]): a box can span many
+/// tiles, so it defaults one zoom lower than a point read's [_maxTileZoom].
+const int _corridorZoom = 14;
+
 /// At most this many tiles decode in background isolates at once; a fresh
 /// block of 25 must not start 25 isolates.
 const int _decodeConcurrency = 3;
@@ -111,6 +115,100 @@ class PackRoadGraphSource implements RoadGraphSource {
       debugPrint('[RoadGraph] roads around $lat, $lon unavailable: $e');
     }
     return null;
+  }
+
+  /// All drivable lines inside a lat/lon box, from the best installed pack
+  /// (maxZoom >= 13) whose own bounding box contains the whole thing - most
+  /// detailed first. Used for a journey corridor, not for the live position:
+  /// reads go straight through the decode pool and never touch [_tiles], so a
+  /// one-off route read (which can ask for far more tiles than the live LRU
+  /// holds) never evicts the tiles [roadsAround] is using this second.
+  ///
+  /// Reads at `min(pack maxZoom, 14)`, dropping to 13 (still >= 13, so a pack
+  /// with no lower zoom is skipped) when that would need more than [maxTiles]
+  /// tiles. Null when no installed pack covers the box, or nothing in it could
+  /// be read.
+  Future<({List<TileRoadLine> lines, String packId})?> linesInBox({
+    required double south,
+    required double west,
+    required double north,
+    required double east,
+    int maxTiles = 250,
+  }) async {
+    await _untilPacksOpen();
+    try {
+      for (final pack in _packsCoveringBox(south, west, north, east)) {
+        final lines =
+            await _linesInBoxFrom(pack, south, west, north, east, maxTiles);
+        if (lines != null) return (lines: lines, packId: pack.pack.id);
+      }
+    } catch (e) {
+      debugPrint('[RoadGraph] lines in $south,$west,$north,$east unavailable: $e');
+    }
+    return null;
+  }
+
+  /// Installed packs whose own box contains the whole [south]/[west]/[north]/
+  /// [east] box and hold minor streets, most detailed first.
+  List<InstalledPack> _packsCoveringBox(
+    double south,
+    double west,
+    double north,
+    double east,
+  ) {
+    final sw = LatLng(south, west);
+    final ne = LatLng(north, east);
+    final packs = [
+      for (final p in maps.installed)
+        if (p.pack.contains(sw) &&
+            p.pack.contains(ne) &&
+            p.provider.maximumZoom >= _minPackZoom)
+          p,
+    ];
+    packs.sort((a, b) {
+      final byZoom = b.provider.maximumZoom.compareTo(a.provider.maximumZoom);
+      return byZoom != 0 ? byZoom : a.pack.id.compareTo(b.pack.id);
+    });
+    return packs;
+  }
+
+  Future<List<TileRoadLine>?> _linesInBoxFrom(
+    InstalledPack pack,
+    double south,
+    double west,
+    double north,
+    double east,
+    int maxTiles,
+  ) async {
+    var z = math.min(_corridorZoom, pack.provider.maximumZoom);
+    var tiles = _tilesInBox(south, west, north, east, z);
+    if (tiles.length > maxTiles && z > _minPackZoom) {
+      z = _minPackZoom;
+      tiles = _tilesInBox(south, west, north, east, z);
+    }
+    final block = await Future.wait([
+      for (final t in tiles) _readTile(pack, z, t.x, t.y),
+    ]);
+    if (block.every((lines) => lines == null)) return null;
+    return [for (final l in block) ...?l];
+  }
+
+  /// Tile coordinates at zoom [z] covering the box, clamped to the world.
+  List<({int x, int y})> _tilesInBox(
+    double south,
+    double west,
+    double north,
+    double east,
+    int z,
+  ) {
+    final limit = 1 << z;
+    final nw = tileOf(north, west, z);
+    final se = tileOf(south, east, z);
+    return [
+      for (var y = nw.y; y <= se.y; y++)
+        for (var x = nw.x; x <= se.x; x++)
+          if (x >= 0 && x < limit && y >= 0 && y < limit) (x: x, y: y),
+    ];
   }
 
   /// The app asks for roads a moment after it starts, before the archives are

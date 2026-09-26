@@ -1,10 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../../core/nav/guidance/mission_guidance.dart';
+import '../../../../../core/nav/route/route_tracker.dart';
 import '../../../../../core/theme/app_theme.dart';
-import '../../../../../core/utils/geo_format.dart';
+import '../../../../../core/widgets/motion.dart';
+import '../../controllers/live_session_controller.dart';
 import '../../controllers/live_session_scope.dart';
-import '../../widgets/fusion_confidence_badge.dart';
-import '../../widgets/engine_status_card.dart';
 import '../../widgets/map_controls.dart';
 import '../../widgets/nav_safety_badge.dart';
 import '../../widgets/navigation_map.dart';
@@ -13,10 +15,11 @@ import '../../controllers/position_share.dart';
 import '../../widgets/parking_level_card.dart';
 import '../../widgets/tunnel_ahead_card.dart';
 import '../../widgets/mission_guidance_card.dart';
-import '../../widgets/session_controls.dart';
 import '../../widgets/simulated_outage_sheet.dart';
-import '../../widgets/telemetry_card.dart';
 import '../../../../navigation_engine/domain/navigation_safety.dart';
+import '../../../../journey/application/journey_service.dart';
+import '../../../../journey/presentation/journey_format.dart';
+import '../../../../journey/presentation/widgets/maneuver_banner.dart';
 
 const double _sheetRadius = 22;
 
@@ -28,7 +31,128 @@ class MapTab extends StatefulWidget {
 }
 
 class _MapTabState extends State<MapTab> {
-  bool _coreDetailsExpanded = false;
+  bool _detailsExpanded = false;
+
+  void _showSimulationMenu(
+    BuildContext context,
+    LiveSessionController session,
+  ) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: const Text('Simulation Lab'),
+        message: const Text(
+          'Try signal conditions while your drive recording continues. Simulations affect GatiSaarth only; they do not change the phone’s GNSS receiver.',
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(sheetContext).pop();
+              session.startTunnelTest();
+            },
+            child: const Text('Tunnel test'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(sheetContext).pop();
+              session.startUrbanCanyon();
+            },
+            child: const Text('Urban canyon test'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(sheetContext).pop();
+              showSimulatedOutageSheet(context, session);
+            },
+            child: const Text('Timed GPS loss test'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(sheetContext).pop(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  Widget _simulationToolsButton(
+    BuildContext context,
+    LiveSessionController session,
+  ) {
+    final tunnelOrCanyon =
+        session.isSimulatingTunnel || session.isSimulatingCanyon;
+    final outage = session.isSimulatingOutage;
+    final active = tunnelOrCanyon || outage;
+    final accent = AppColors.warning;
+    return Tooltip(
+      message: 'Simulation Lab',
+      child: OutlinedButton.icon(
+        key: const ValueKey('map-simulation-tools'),
+        onPressed: tunnelOrCanyon
+            ? session.resetSimulation
+            : outage
+                ? () => showSimulatedOutageSheet(context, session)
+                : () => _showSimulationMenu(context, session),
+        icon: Icon(
+          active ? Icons.stop_circle_outlined : Icons.science_outlined,
+          size: 16,
+        ),
+        label: Text(tunnelOrCanyon
+            ? 'End test'
+            : outage
+                ? 'Outage'
+                : 'Simulation Lab'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: accent,
+          backgroundColor: accent.withValues(alpha: 0.10),
+          side: BorderSide(
+            color: accent.withValues(alpha: active ? 0.65 : 0.38),
+          ),
+          minimumSize: const Size(0, 38),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startRecording(
+    BuildContext context,
+    LiveSessionController session,
+  ) async {
+    final path = await session.startRecording();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(path == null
+            ? 'Could not start recording — storage unavailable'
+            : 'Recording this drive. The screen stays on.'),
+        backgroundColor: path == null ? AppColors.error : AppColors.cyan,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _stopRecording(
+    BuildContext context,
+    LiveSessionController session,
+  ) async {
+    final file = await session.stopRecording();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(file == null
+            ? 'Recording stopped'
+            : 'Saved ${file.name} (${file.sizeMb.toStringAsFixed(1)} MB)'),
+        backgroundColor: AppColors.healthy,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,274 +161,18 @@ class _MapTabState extends State<MapTab> {
     final margin = estimate?.marginMeters;
     final isDark = AppColors.isDark;
     final trust = session.trust;
+    final restoring = !trust.limited &&
+        session.missionGuidance?.event == MissionGuidanceEvent.recovered;
+    final journey = JourneyScope.maybeOf(context);
+    final activeRoute = session.activeRoute;
+    final routeProgress = session.routeProgress;
 
     return ColoredBox(
-      color: AppColors.background,
+      color: AppColors.surface,
       child: Column(
         children: [
-          // Nothing to show before the first fix — the location card below
-          // and the sync capsule already say "searching"; a "Waiting" badge
-          // here would only crowd the smallest screens for no new information.
-          if (trust.level != TrustLevel.waiting)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: NavSafetyBadge(assessment: trust),
-                  ),
-                  if (trust.limited) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    const NavSafetyLimitedBanner(),
-                  ],
-                ],
-              ),
-            ),
-          // 1. Top Exact Location Card (replaces mock 300 m guidance)
-          Container(
-            margin: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.sm,
-              AppSpacing.md,
-              AppSpacing.sm,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : AppColors.lightSurfaceBorder,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.my_location_rounded,
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              trust.limited
-                                  ? 'Approximate area'
-                                  : session.inOutage
-                                      ? 'Estimated road corridor'
-                                      : 'Exact Location',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: session.inOutage
-                                    ? AppColors.error.withValues(alpha: 0.15)
-                                    : AppColors.success.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                session.inOutage
-                                    ? 'DEAD RECKONING'
-                                    : 'GNSS LOCKED',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: session.inOutage
-                                      ? AppColors.error
-                                      : AppColors.success,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        // No fake precision: RED/Limited mode never prints a
-                        // coordinate, only the trust badge's own reason.
-                        trust.limited
-                            ? trust.reason
-                            : '${formatLatitude(session.latitude)}, ${formatLongitude(session.longitude)}${margin != null ? ' · ${formatUncertainty(trust, margin)}' : ''}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          // Digits of equal width, so the line does not jitter.
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.topCenter,
-                  child: EngineStatusCard(
-                    compact: !_coreDetailsExpanded ||
-                        session.isSimulatingTunnel ||
-                        session.isSimulatingCanyon,
-                    onToggleDetails: () => setState(
-                      () => _coreDetailsExpanded = !_coreDetailsExpanded,
-                    ),
-                    snapshot: session.navSnapshot,
-                    isLeading: session.isEngineLeading,
-                    blocker: session.engineHandoverBlocker,
-                    isRecording: session.isRecording,
-                    recordedDuration: session.recordedDuration,
-                    recordedLines: session.recordedLines,
-                    recordingError: session.recordingError,
-                    onStartRecording: () async {
-                      final path = await session.startRecording();
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(path == null
-                              ? 'Could not start recording — storage unavailable'
-                              : 'Recording this drive. The screen stays on.'),
-                          backgroundColor:
-                              path == null ? AppColors.error : AppColors.cyan,
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
-                    },
-                    onStopRecording: () async {
-                      final file = await session.stopRecording();
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(file == null
-                              ? 'Recording stopped'
-                              : 'Saved ${file.name} (${file.sizeMb.toStringAsFixed(1)} MB)'),
-                          backgroundColor: AppColors.healthy,
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
-                    },
-                    onMarkBump: () {
-                      session.markEvent('bump');
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Bump labelled in the log'),
-                          backgroundColor: AppColors.warning,
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                    onMarkEvent: () {
-                      session.markEvent('driver marker');
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Marked this moment in the log'),
-                          backgroundColor: AppColors.cyan,
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // No fake precision: RED/Limited mode pauses turn/road guidance
-          // outright, ahead of the recovery/parking/tunnel/mission chain
-          // below, all of which are built from the position it distrusts.
-          if (trust.limited)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: MissionGuidancePausedNotice(),
-            )
-          // A just-ended outage is scored first; guidance returns after.
-          else if (session.recentRecovery != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/outage-log'),
-                child: OutageRecoveryCard(recovery: session.recentRecovery!),
-              ),
-            )
-          else if (session.parkingLevel != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: ParkingLevelCard(level: session.parkingLevel!),
-            )
-          else if (session.tunnelAhead != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: TunnelAheadCard(
-                tunnel: session.tunnelAhead!,
-                speedAidValidated: session.isSpeedAidValidated,
-                readiness: session.isPreparingForGnssLoss
-                    ? session.drReadiness
-                    : null,
-              ),
-            )
-          else if (session.missionGuidance != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: MissionGuidanceCard(
-                decision: session.missionGuidance!,
-                compact: true,
-              ),
-            ),
-
-          // 2. Interactive Navigation Map. Fills all the space between the card
-          // above and the sheet below, and runs [_sheetRadius] underneath the
-          // sheet so its rounded top corners show map, not page background.
+          // The map leads the page. Status and recording controls stay in
+          // floating map overlays or the lower sheet.
           Expanded(
             child: Stack(
               clipBehavior: Clip.none,
@@ -319,10 +187,17 @@ class _MapTabState extends State<MapTab> {
                     marginMeters: margin,
                     trail: session.trail.segments,
                     roadCorridors: session.roadCorridors,
+                    route: activeRoute,
+                    routeAlongM: routeProgress?.alongM,
                     expand: true,
                     gestures: MapGestures.full,
                     bottomInset: _sheetRadius + 12,
                     onClearTrail: session.clearTrail,
+                    bottomStatus: restoring
+                        ? _RecoveryMapStatus(
+                            message: session.missionGuidance!.display,
+                          )
+                        : null,
                     actions: [
                       if (estimate != null)
                         MapControlButton(
@@ -346,18 +221,6 @@ class _MapTabState extends State<MapTab> {
                         ),
                       MapControlButton(
                         icon: Icon(
-                          Icons.gps_off_rounded,
-                          size: 22,
-                          color: session.isSimulatingOutage
-                              ? AppColors.warning
-                              : AppColors.textPrimary,
-                        ),
-                        active: session.isSimulatingOutage,
-                        semanticLabel: 'Simulate GNSS loss',
-                        onTap: () => showSimulatedOutageSheet(context, session),
-                      ),
-                      MapControlButton(
-                        icon: Icon(
                           Icons.fullscreen_rounded,
                           size: 22,
                           color: AppColors.textPrimary,
@@ -368,17 +231,72 @@ class _MapTabState extends State<MapTab> {
                     ],
                   ),
                 ),
+                Positioned(
+                  top: 54,
+                  left: 12,
+                  right: 72,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (activeRoute != null && routeProgress != null) ...[
+                        ManeuverBanner(
+                          progress: routeProgress,
+                          isRouteLocked: session.isRouteLocked,
+                          isRerouting: journey?.isRerouting ?? false,
+                          isOffRoute: session.isOffRoute,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                      ],
+                      NavSafetyBadge(assessment: trust),
+                      if (!restoring) ...[
+                        if (trust.limited) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          const MissionGuidancePausedNotice(),
+                        ] else if (session.missionGuidance != null) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          MissionGuidanceCard(
+                            decision: session.missionGuidance!,
+                            compact: true,
+                          ),
+                        ] else if (session.recentRecovery != null) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          GestureDetector(
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/outage-log'),
+                            child: OutageRecoveryCard(
+                              recovery: session.recentRecovery!,
+                            ),
+                          ),
+                        ] else if (session.parkingLevel != null) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          ParkingLevelCard(level: session.parkingLevel!),
+                        ] else if (session.tunnelAhead != null) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          TunnelAheadCard(
+                            tunnel: session.tunnelAhead!,
+                            speedAidValidated: session.isSpeedAidValidated,
+                            readiness: session.isPreparingForGnssLoss
+                                ? session.drReadiness
+                                : null,
+                          ),
+                        ],
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
 
-          // 3. Bottom Telemetry & Simulation Controls
+          // The map stays primary; the sheet keeps only speed and accuracy at a glance.
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
               borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(_sheetRadius)),
+                top: Radius.circular(_sheetRadius),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
@@ -390,53 +308,178 @@ class _MapTabState extends State<MapTab> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Telemetry metrics row
+                SizedBox(
+                  width: double.infinity,
+                  child: _simulationToolsButton(context, session),
+                ),
+                if (activeRoute != null && routeProgress != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  _RouteSheetRow(progress: routeProgress, journey: journey),
+                ],
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
-                    TelemetryCard(
-                      label: 'Speed',
-                      value: (session.speed * 3.6).toStringAsFixed(0),
-                      unit: 'km/h',
-                      subtitle: '${session.speed.toStringAsFixed(1)} m/s',
-                      accentColor: AppColors.primary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'SPEED',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                (session.speed * 3.6).toStringAsFixed(0),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .displayLarge
+                                    ?.copyWith(color: AppColors.primary),
+                              ),
+                              const SizedBox(width: 5),
+                              Text('km/h',
+                                  style: Theme.of(context).textTheme.bodyLarge),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    TelemetryCard(
-                      label: 'Heading',
-                      value: '${session.heading.round()}°',
-                      subtitle: 'Direction of travel',
-                      accentColor: AppColors.secondary,
+                    Container(
+                      width: 1,
+                      height: 44,
+                      color: AppColors.surfaceBorder,
                     ),
-                    const SizedBox(width: 8),
-                    TelemetryCard(
-                      label: 'Accuracy',
-                      // No fake precision: once Limited, "> N m" replaces the
-                      // usual "± N m" — same rule as the location card above.
-                      value: margin == null
-                          ? '—'
-                          : formatUncertainty(trust, margin)
-                              .replaceAll(' m', ''),
-                      unit: margin == null ? null : 'm',
-                      subtitle:
-                          session.inOutage ? 'Dead reckoning' : 'GNSS fix',
-                      accentColor: trust.limited
-                          ? NavSafetyBadge.colorFor(trust.level)
-                          : FusionConfidenceBadge.colorFor(estimate?.confidence),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'LOCATION',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            margin == null
+                                ? (session.hasLiveGnss
+                                    ? 'Connected'
+                                    : 'Searching')
+                                : formatUncertainty(trust, margin),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  color: trust.limited
+                                      ? NavSafetyBadge.colorFor(trust.level)
+                                      : AppColors.textPrimary,
+                                ),
+                          ),
+                          Text(
+                            session.inOutage
+                                ? 'Estimated position'
+                                : 'GPS accuracy',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip:
+                          _detailsExpanded ? 'Hide details' : 'Show details',
+                      onPressed: () =>
+                          setState(() => _detailsExpanded = !_detailsExpanded),
+                      icon: AnimatedRotation(
+                        turns: _detailsExpanded ? 0.5 : 0,
+                        duration: AppMotion.of(
+                          context,
+                          const Duration(milliseconds: 320),
+                        ),
+                        curve: Curves.easeInOutCubic,
+                        child: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-
-                // Outage & Simulation Controls
-                SessionControls(
-                  compact: true,
-                  showBackground: false,
-                  showDiagnostics: false,
-                  margin: EdgeInsets.zero,
-                  padding: const EdgeInsets.only(top: 10),
-                  onTunnelTest: session.startTunnelTest,
-                  onUrbanCanyon: session.startUrbanCanyon,
-                  onResetGps: session.resetSimulation,
+                ClipRect(
+                  child: AnimatedSize(
+                    duration: AppMotion.of(
+                      context,
+                      const Duration(milliseconds: 380),
+                    ),
+                    curve: Curves.easeInOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: _detailsExpanded
+                        ? Padding(
+                            padding: const EdgeInsets.only(
+                              top: AppSpacing.md,
+                              bottom: AppSpacing.sm,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _SmallReading(
+                                    label: 'Heading',
+                                    value: '${session.heading.round()}°',
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _SmallReading(
+                                    label: 'Mode',
+                                    value: session.inOutage
+                                        ? 'Estimating'
+                                        : 'Live GPS',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const SizedBox(width: double.infinity),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: session.isRecording
+                        ? () => _stopRecording(context, session)
+                        : () => _startRecording(context, session),
+                    icon: Icon(session.isRecording
+                        ? Icons.stop_rounded
+                        : Icons.fiber_manual_record_rounded),
+                    label: Text(session.isRecording
+                        ? 'Stop recording'
+                        : 'Record drive'),
+                    style: FilledButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      backgroundColor: AppColors.error.withValues(alpha: 0.14),
+                      minimumSize: const Size(double.infinity, 46),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(
+                          color: AppColors.error.withValues(alpha: 0.28),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -445,4 +488,104 @@ class _MapTabState extends State<MapTab> {
       ),
     );
   }
+}
+
+/// Compact remaining-distance/ETA row shown in the sheet while a journey
+/// route is active, with the way out of it.
+class _RouteSheetRow extends StatelessWidget {
+  const _RouteSheetRow({required this.progress, required this.journey});
+
+  final RouteProgress progress;
+  final JourneyService? journey;
+
+  @override
+  Widget build(BuildContext context) {
+    final arrived = progress.arrived;
+    final eta = formatArrivalIn(progress.remainingS, DateTime.now());
+    return Row(
+      children: [
+        Expanded(
+          child: arrived
+              ? Text(
+                  'You have arrived',
+                  style: TextStyle(
+                    color: AppColors.healthy,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                )
+              : Text(
+                  '${formatRouteDistance(progress.remainingM)} · '
+                  '${formatRouteDuration(progress.remainingS)} · arrive $eta',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                  ),
+                ),
+        ),
+        TextButton(
+          onPressed: journey == null ? null : journey!.end,
+          child: Text(arrived ? 'End' : 'End route'),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecoveryMapStatus extends StatelessWidget {
+  const _RecoveryMapStatus({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        liveRegion: true,
+        label: message,
+        excludeSemantics: true,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.gps_fixed_rounded,
+                size: 14, color: AppColors.success),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                message,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _SmallReading extends StatelessWidget {
+  const _SmallReading({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      );
 }

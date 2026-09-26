@@ -1,7 +1,7 @@
 name: gatisaarth
 description: "GatiSaarth - High-Precision Vehicle Navigation System using Dead Reckoning, Multi-GNSS/NavIC, and Edge AI"
 publish_to: 'none'
-version: 4.5.1+48
+version: 5.1.0+50
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -38,6 +38,9 @@ dependencies:
   # Decodes the `roads` layer of the installed map archives into a road graph
   # (already a transitive dependency of `vector_map_tiles`).
   vector_tile: ^2.0.1
+  # Bundled with Flutter already (transitive); declared so the route planner's
+  # A* search can use a real priority queue (HeapPriorityQueue).
+  collection: ^1.19.0
 
   vector_tile_renderer: any
   pdf: ^3.12.0

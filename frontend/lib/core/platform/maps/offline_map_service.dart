@@ -58,6 +58,12 @@ class OfflineMapService extends ChangeNotifier {
   final PackOpener _opener;
   final List<OfflinePack> _catalog;
 
+  /// Packs registered at runtime (e.g. a journey corridor cut on demand),
+  /// beyond the static [OfflineCatalog].
+  final List<OfflinePack> _extra = [];
+
+  List<OfflinePack> get _allPacks => [..._catalog, ..._extra];
+
   final Map<String, InstalledPack> _installed = {};
   final Map<String, String> _problems = {};
   bool _loading = false;
@@ -91,6 +97,36 @@ class OfflineMapService extends ChangeNotifier {
   bool covers(LatLng point) =>
       _installed.values.any((p) => p.pack.contains(point));
 
+  /// Extends the scanned catalogue with packs not in [OfflineCatalog] - a
+  /// journey corridor cut just for one route. Ignored for an id already
+  /// known. Call [load] afterwards to open them.
+  void addPacks(Iterable<OfflinePack> packs) {
+    var changed = false;
+    for (final pack in packs) {
+      if (_catalog.any((p) => p.id == pack.id) ||
+          _extra.any((p) => p.id == pack.id)) {
+        continue;
+      }
+      _extra.add(pack);
+      changed = true;
+    }
+    if (changed) _notify();
+  }
+
+  /// Drops a pack added with [addPacks] from the scanned set and from what is
+  /// currently reported as installed. Its file, if any, is left on disk -
+  /// callers that also want it deleted do that separately.
+  void removePack(String id) {
+    final removedFromExtra = _extra.length;
+    _extra.removeWhere((p) => p.id == id);
+    // Every removal must run - `||` would short-circuit past the rest.
+    final removedInstalled = _installed.remove(id) != null;
+    final removedProblem = _problems.remove(id) != null;
+    if (_extra.length != removedFromExtra || removedInstalled || removedProblem) {
+      _notify();
+    }
+  }
+
   /// Finds and opens every archive in the catalogue. Safe to call again (e.g.
   /// after new files were pushed): it rescans.
   Future<void> load() async {
@@ -114,7 +150,7 @@ class OfflineMapService extends ChangeNotifier {
     final found = <String, InstalledPack>{};
     final problems = <String, String>{};
     await Future.wait([
-      for (final pack in _catalog)
+      for (final pack in _allPacks)
         () async {
           try {
             final location = await _locator.locate(pack.fileName);

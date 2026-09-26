@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
+import '../../../../core/nav/route/planned_route.dart';
 import '../../../../core/platform/maps/map_download_service.dart';
 import '../../../../core/platform/maps/offline_map_service.dart';
 import '../../../../core/platform/maps/offline_tile_provider.dart';
@@ -51,9 +52,12 @@ class NavigationMap extends StatefulWidget {
     this.bottomInset = 12,
     this.actions = const [],
     this.onClearTrail,
+    this.bottomStatus,
     this.initialFollow = FollowMode.north,
     this.controller,
     this.clock = DateTime.now,
+    this.route,
+    this.routeAlongM,
   });
 
   final NavigationStateModel navigationState;
@@ -63,6 +67,13 @@ class NavigationMap extends StatefulWidget {
 
   /// The path travelled, oldest segment first (see [TrackTrail.segments]).
   final List<TrailSegment> trail;
+
+  /// A journey route to draw under the trail and puck, or null.
+  final PlannedRoute? route;
+
+  /// How far along [route] the vehicle has travelled; the stretch before this
+  /// is drawn as already-driven (greyed, thinner). Null draws it all ahead.
+  final double? routeAlongM;
 
   /// Ranked offline-map hypotheses shown only when the session supplies them.
   final List<RoadCorridorModel> roadCorridors;
@@ -83,6 +94,9 @@ class NavigationMap extends StatefulWidget {
 
   /// Shows a "Clear track" chip while there is a track and this is set.
   final VoidCallback? onClearTrail;
+
+  /// Short contextual status shown beside Clear track, above coordinates.
+  final Widget? bottomStatus;
 
   final FollowMode initialFollow;
 
@@ -465,6 +479,12 @@ class _NavigationMapState extends State<NavigationMap>
                           rasterProvider: _raster,
                           dark: dark,
                         ),
+                        if (widget.route != null)
+                          _RouteLayer(
+                            route: widget.route!,
+                            alongM: widget.routeAlongM,
+                            dark: dark,
+                          ),
                         if (widget.roadCorridors.isNotEmpty)
                           _RoadCorridorLayer(corridors: widget.roadCorridors),
                         if (widget.trail.isNotEmpty)
@@ -653,28 +673,42 @@ class _NavigationMapState extends State<NavigationMap>
             ],
           ),
         ),
-      if (widget.onClearTrail != null && widget.trail.isNotEmpty)
+      if ((widget.onClearTrail != null && widget.trail.isNotEmpty) ||
+          widget.bottomStatus != null)
         Positioned(
           left: 12,
+          right: 12,
           bottom: widget.bottomInset + 38,
-          child: GestureDetector(
-            onTap: widget.onClearTrail,
-            child: _FrostedPill(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.timeline_rounded,
-                      size: 13, color: AppColors.textSecondary),
-                  const SizedBox(width: 5),
-                  Text('Clear track', style: _pillStyle),
-                ],
-              ),
-            ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (widget.onClearTrail != null && widget.trail.isNotEmpty) ...[
+                GestureDetector(
+                  onTap: widget.onClearTrail,
+                  child: _FrostedPill(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.timeline_rounded,
+                            size: 13, color: AppColors.textSecondary),
+                        const SizedBox(width: 5),
+                        Text('Clear track', style: _pillStyle),
+                      ],
+                    ),
+                  ),
+                ),
+                if (widget.bottomStatus != null) const SizedBox(width: 8),
+              ],
+              if (widget.bottomStatus != null)
+                Expanded(
+                  child: _FrostedPill(child: widget.bottomStatus!),
+                ),
+            ],
           ),
         ),
       Positioned(
         right: 14,
-        bottom: widget.bottomInset + 40,
+        bottom: widget.bottomInset + (widget.bottomStatus == null ? 40 : 88),
         child: IgnorePointer(
           child: Text(
             basemapAttribution(coverage),
@@ -742,6 +776,72 @@ class _NavigationMapState extends State<NavigationMap>
         fontSize: 11,
         fontWeight: FontWeight.w600,
       );
+}
+
+/// A journey route: the stretch ahead in the accent colour with a light
+/// casing (like [_TrackLayer]'s solid segments), the already-driven stretch
+/// behind it thinner and greyed, plus a destination pin at the route's end.
+class _RouteLayer extends StatelessWidget {
+  const _RouteLayer({required this.route, required this.alongM, required this.dark});
+
+  final PlannedRoute route;
+  final double? alongM;
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    final points = [
+      for (var i = 0; i < route.pointCount; i++)
+        LatLng(route.latAt(i), route.lonAt(i)),
+    ];
+    if (points.length < 2) return const SizedBox.shrink();
+
+    // Nearest vertex to the travelled distance — exact enough for a line's
+    // colour split; the geometry itself does not need sub-segment precision.
+    var splitIndex = 0;
+    final along = alongM;
+    if (along != null) {
+      final cum = route.cumM;
+      while (splitIndex < cum.length - 1 && cum[splitIndex] < along) {
+        splitIndex++;
+      }
+    }
+    final drivenPoints = points.sublist(0, splitIndex + 1);
+    final remainingPoints = points.sublist(splitIndex);
+    final casing =
+        dark ? const Color(0xCC1C1C1E) : Colors.white.withValues(alpha: 0.9);
+
+    return Stack(children: [
+      PolylineLayer(polylines: [
+        if (remainingPoints.length >= 2)
+          Polyline(
+            points: remainingPoints,
+            strokeWidth: 6,
+            borderStrokeWidth: 1.8,
+            borderColor: casing,
+            color: AppColors.primary,
+          ),
+        if (drivenPoints.length >= 2)
+          Polyline(
+            points: drivenPoints,
+            strokeWidth: 3.5,
+            color: AppColors.textSecondary.withValues(alpha: 0.55),
+          ),
+      ]),
+      MarkerLayer(markers: [
+        Marker(
+          point: points.last,
+          width: 30,
+          height: 40,
+          alignment: Alignment.topCenter,
+          child: IgnorePointer(
+            child: Icon(Icons.location_on_rounded,
+                color: AppColors.primary, size: 34),
+          ),
+        ),
+      ]),
+    ]);
+  }
 }
 
 /// The track: solid where a satellite fix backed the position, dashed and red

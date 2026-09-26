@@ -20,6 +20,8 @@ import '../../../../core/nav/model/correction_explainer.dart';
 import '../../../../core/nav/model/nav_snapshot.dart';
 import '../../../../core/nav/model/outage_log.dart';
 import '../../../../core/nav/model/outage_recovery.dart';
+import '../../../../core/nav/route/planned_route.dart';
+import '../../../../core/nav/route/route_tracker.dart';
 import '../../../../core/nav/model/simulated_outage.dart';
 import '../../../../core/nav/outage/gnss_loss_preparation.dart';
 import '../../../../core/nav/motion/activity_mode.dart';
@@ -69,6 +71,7 @@ const Duration _reacquireWindow = Duration(seconds: 3);
 const Duration _sensorFresh = Duration(milliseconds: 500);
 const Duration _cacheEvery = Duration(seconds: 15);
 const double _easeTauSeconds = 0.6;
+
 /// Matches `RoadConstraint`'s own lock radius (the "Road lock available"
 /// readiness row asks the same question the outage lock will ask).
 const double _roadLockRadiusM = 40;
@@ -267,6 +270,9 @@ class LiveSessionController extends ChangeNotifier {
 
   /// Keeps dead reckoning on the roads of the installed map (see class doc).
   final RoadConstraint _road;
+
+  /// The journey route being driven, or null (see "journey route" below).
+  RouteTracker? _routeTracker;
   final TunnelLookahead _tunnelLook = TunnelLookahead(config: NavConfig.live);
   TunnelAhead? _tunnelAhead;
 
@@ -304,8 +310,12 @@ class LiveSessionController extends ChangeNotifier {
   /// A finished blackout waiting for its first restored fix to be fused, so
   /// the recovery jump (last DR position to the first fused position) can be
   /// measured; committed to the outage log only then.
-  ({double drLat, double drLon, int fixCount, DateTime endedAt})?
-      _simAwaitingRestore;
+  ({
+    double drLat,
+    double drLon,
+    int fixCount,
+    DateTime endedAt
+  })? _simAwaitingRestore;
 
   /// The engine's recovery of a simulated blackout, never logged twice.
   int? _simRecoveryEndedAtUs;
@@ -780,6 +790,7 @@ class LiveSessionController extends ChangeNotifier {
   }
 
   void startTunnelTest() {
+    _recordSimulationMarker('tunnel', 'start');
     _simTunnel = true;
     _simCanyon = false;
     _outage.reset();
@@ -796,11 +807,12 @@ class LiveSessionController extends ChangeNotifier {
   }
 
   void startUrbanCanyon() {
+    _recordSimulationMarker('urban_canyon', 'start');
     _simTunnel = false;
     _simCanyon = true;
     _outage.reset();
     _canyonMisses = 0;
-    _lockRoad();
+    if (!_lockRoute()) _lockRoad();
     if (_speed < 5.0) {
       _speed = _canyonCruiseSpeed; // 30 km/h urban speed
     }
@@ -821,6 +833,7 @@ class LiveSessionController extends ChangeNotifier {
       plannedDuration: plannedDuration,
       startedAt: _clock(),
     );
+    _recordSimulationMarker('gnss_loss', 'start');
     _lastSimResult = null;
     _outage.reset();
     _syncOutage(_clock());
@@ -859,6 +872,7 @@ class LiveSessionController extends ChangeNotifier {
   void _finishSimulatedOutage(DateTime now, {required bool cancelled}) {
     final session = _simOutage;
     if (session == null) return;
+    _recordSimulationMarker('gnss_loss', cancelled ? 'cancelled' : 'end');
     _simOutage = null;
     if (cancelled) {
       _outage.reset();
@@ -890,6 +904,8 @@ class LiveSessionController extends ChangeNotifier {
 
   void resetSimulation() {
     final wasSimulating = _simTunnel || _simCanyon;
+    if (_simTunnel) _recordSimulationMarker('tunnel', 'end');
+    if (_simCanyon) _recordSimulationMarker('urban_canyon', 'end');
     if (_simTunnel) _reacquiringUntil = _clock().add(_reacquireWindow);
     _simTunnel = false;
     _simCanyon = false;
@@ -900,6 +916,7 @@ class LiveSessionController extends ChangeNotifier {
     final fix = location.lastLiveFix;
     if (wasSimulating && fix != null) {
       _road.release();
+      _routeTracker?.release();
       _canyonMisses = 0;
       _accuracy = fix.accuracy;
       _targetLat = fix.latitude;
@@ -934,6 +951,25 @@ class LiveSessionController extends ChangeNotifier {
     _heading = onRoad.headingDeg;
   }
 
+  /// Locks the journey route's own tracker onto the current (or given)
+  /// position, so dead reckoning follows the planned turns rather than
+  /// whichever road the plain follower happens to continue onto. Tried
+  /// before [_lockRoad] everywhere DR needs a lock: a route, when there is
+  /// one, is a stronger prior than "whatever road is nearest".
+  bool _lockRoute({double? lat, double? lon}) {
+    final tracker = _routeTracker;
+    if (tracker == null) return false;
+    return tracker.lockAt(
+      lat ?? _targetLat,
+      lon ?? _targetLon,
+      headingDeg: _courseDeg ?? _heading,
+    );
+  }
+
+  /// Whether dead reckoning is being held to a known street right now,
+  /// whichever of the two mechanisms is doing it.
+  bool get _onTrack => _road.isLocked || (_routeTracker?.isLocked ?? false);
+
   /// New roads arrived (the map was opened, or the vehicle moved on). A
   /// session already dead reckoning off the roads gets onto them now.
   void _onRoadsChanged() {
@@ -942,7 +978,7 @@ class LiveSessionController extends ChangeNotifier {
     // ones drawn on screen, read from the installed offline map.
     final roads = _road.graph;
     if (roads != null) _engine.setRoadGraph(roads);
-    if ((_drActive || _simCanyon) && !_road.isLocked && _lockRoad()) {
+    if ((_drActive || _simCanyon) && !_onTrack && (_lockRoute() || _lockRoad())) {
       _dirty = true;
     }
   }
@@ -967,6 +1003,7 @@ class LiveSessionController extends ChangeNotifier {
     _applyEngineSolution();
     // Roads are read ahead of need: an outage has to find them already loaded.
     if (_positionSeeded) _road.watch(_targetLat, _targetLon);
+    _updateRouteProgress();
     _easePosition(now);
     _recordTrail();
     _updateSimulatedOutage(now);
@@ -988,14 +1025,12 @@ class LiveSessionController extends ChangeNotifier {
       uncertaintyM: sigma,
       uncertaintyGrowthMPerS: growth,
       engineLeading: isEngineLeading,
-      // The core's own integrity only bears on what the driver is actually
-      // being shown when the core is leading, or during an outage (where a
-      // broken core is the difference between a modelled DR estimate and
-      // nothing). While GNSS is live and the heuristic pipeline is driving
-      // the display, the core may simply not have converged yet (e.g. the
-      // mount calibration takes ~40 s) — that is business as usual, not a
-      // reason to alarm the driver, so it is not fed in as "invalid" here.
-      integrity: (isEngineLeading || _drActive)
+      // The core's own integrity only bears on what the driver is shown
+      // while the core leads. Otherwise the fallback pipeline is driving the
+      // display, in an outage too, and a core that has simply not aligned yet
+      // (the first ~40 s, or a loose phone) must not read as "filter failed":
+      // the outage's own uncertainty decides the level then.
+      integrity: isEngineLeading
           ? (_navSnapshot?.integrity ?? NavIntegrity.invalid)
           : NavIntegrity.high,
       roadLocked: isOnRoad,
@@ -1082,6 +1117,23 @@ class LiveSessionController extends ChangeNotifier {
     _touch();
   }
 
+  /// Projects the current position onto the active route for progress and
+  /// off-route detection.
+  ///
+  /// ponytail: only a *measured* position is projected here — while
+  /// route-locked, `_integrate` already advances progress by the distance
+  /// travelled (`tracker.advance`), and while dead reckoning without a route
+  /// lock the drawn position is an estimate, not a measurement, so running
+  /// it through `observe` would flip `isOffRoute` on plain drift rather than
+  /// a real missed turn. Upgrade path: a separate drift-tolerant progress
+  /// projection, if showing progress during unlocked DR turns out to matter.
+  void _updateRouteProgress() {
+    final tracker = _routeTracker;
+    if (tracker == null || !_positionSeeded) return;
+    if (tracker.isLocked || !hasLiveGnss) return;
+    tracker.observe(_targetLat, _targetLon, accuracyM: _accuracy);
+  }
+
   void _easePosition(DateTime now) {
     final last = _lastEaseAt;
     _lastEaseAt = now;
@@ -1140,14 +1192,17 @@ class LiveSessionController extends ChangeNotifier {
     _accY = _accY * 0.7 + ay * 0.3;
     _accZ = _accZ * 0.7 + az * 0.3;
     _gyroZ = _gyroZ * 0.7 + gz * 0.3;
-    // On a road the road gives the heading; the compass would only fight it.
+    // On a road (or a route) the road gives the heading; the compass would
+    // only fight it.
     if (v.length >= 10) {
-      _updateHeading(v[7], v[8], v[9], steer: !_road.isLocked);
+      _updateHeading(v[7], v[8], v[9], steer: !_onTrack);
     }
     // Only while moving: at a red light the gyro's bias would otherwise be
     // read as a turn.
     if (_speed > _stationarySpeed) {
-      _road.addYaw(_yawStepDegrees(gx, gy, gz, dt));
+      final yawStep = _yawStepDegrees(gx, gy, gz, dt);
+      _road.addYaw(yawStep);
+      _routeTracker?.addYaw(yawStep);
     }
     if (v.length >= 11) _pressureHpa = v[10];
 
@@ -1359,7 +1414,7 @@ class LiveSessionController extends ChangeNotifier {
     // A parked vehicle is not put on the nearest street: only one that was
     // moving when the signal went (or the tunnel test) has a road to follow.
     if (_simTunnel || _simOutage != null || _speed > _stationarySpeed) {
-      _lockRoad();
+      if (!_lockRoute()) _lockRoad();
     }
     final missed = _speed * gap.inMilliseconds / 1000;
     if (isEngineLeading) {
@@ -1387,7 +1442,9 @@ class LiveSessionController extends ChangeNotifier {
     // touching the follower's own lock state (that would leak into `isOnRoad`
     // for a parked vehicle that never asked to be put on a street).
     _roadAvailable = _road.isLocked ||
-        (graph?.nearby(_lat, _lon, radiusM: _roadLockRadiusM, limit: 1).isNotEmpty ??
+        (graph
+                ?.nearby(_lat, _lon, radiusM: _roadLockRadiusM, limit: 1)
+                .isNotEmpty ??
             false);
     final moving = _drActive || _speed > _stationarySpeed;
     final found = graph == null || !moving || uncertainty == null
@@ -1406,7 +1463,8 @@ class LiveSessionController extends ChangeNotifier {
   /// where preparation began and the outage would start from there. The
   /// outage-start lock uses the fresh position plus the saved course instead.
   void _updatePreparationMode(TunnelAhead? found) {
-    _prep.updateTunnel(distanceM: found?.distanceM, inside: found?.inside ?? false);
+    _prep.updateTunnel(
+        distanceM: found?.distanceM, inside: found?.inside ?? false);
   }
 
   /// Car-park floors: counted from the barometer while dead reckoning, from
@@ -1449,10 +1507,30 @@ class LiveSessionController extends ChangeNotifier {
     _dirty = true;
   }
 
-  /// Moves the fused position [distanceMeters] forward: along the road when
-  /// the marker is on one, otherwise straight ahead on the heading.
+  /// Moves the fused position [distanceMeters] forward: along the route when
+  /// one is locked, else along the road when the marker is on one, otherwise
+  /// straight ahead on the heading.
   void _integrate(double distanceMeters) {
     _outage.addDistance(distanceMeters);
+    final tracker = _routeTracker;
+    if (tracker != null && tracker.isLocked) {
+      final point = tracker.advance(distanceMeters);
+      if (tracker.hasDiverged) {
+        // The driver left the planned route: hand off to the plain road
+        // follower at the position last trusted, rather than keep walking
+        // the route the gyro says was not actually driven.
+        tracker.release();
+        if (!_lockRoad()) _integrateUnconstrained(distanceMeters);
+        return;
+      }
+      if (point != null) {
+        _targetLat = point.lat;
+        _targetLon = point.lon;
+        _heading = point.headingDeg;
+        _dirty = true;
+        return;
+      }
+    }
     if (_road.advance(distanceMeters, simulated: _simTunnel || _simCanyon) ==
         null) {
       _integrateUnconstrained(distanceMeters);
@@ -1544,7 +1622,7 @@ class LiveSessionController extends ChangeNotifier {
     if (speed != null && speed.isFinite) {
       _speed = speed < _stationarySpeed ? 0 : speed;
     }
-    if (_road.isLocked && (_drActive || _simCanyon)) {
+    if (_onTrack && (_drActive || _simCanyon)) {
       _advanceAlongRoad();
     } else {
       _lastRoadAdvanceAt = null;
@@ -1569,6 +1647,45 @@ class LiveSessionController extends ChangeNotifier {
     if (last == null || _speed <= _stationarySpeed) return;
     final dt = (now.difference(last).inMilliseconds / 1000).clamp(0.0, 0.5);
     _integrate(_speed * dt);
+  }
+
+  // ---------------------------------------------------------- journey route
+
+  /// The journey route being driven, or null.
+  PlannedRoute? get activeRoute => _routeTracker?.route;
+
+  /// Progress along [activeRoute]; null without one or before a position.
+  RouteProgress? get routeProgress =>
+      _routeTracker == null || !_positionSeeded ? null : _routeTracker!.progress;
+
+  /// Dead reckoning is following the route itself (GNSS lost on the route).
+  bool get isRouteLocked => _routeTracker?.isLocked ?? false;
+
+  /// Live positions have stayed off the route (a missed turn).
+  bool get isOffRoute => _routeTracker?.isOffRoute ?? false;
+
+  /// Starts (or replaces) the route navigation follows.
+  ///
+  /// Projects the current position onto it immediately (so progress reads
+  /// correctly from the first tick) and, if an outage is already under way,
+  /// tries to route-lock right now rather than waiting for the next one.
+  void startRoute(PlannedRoute route) {
+    _routeTracker = RouteTracker(route, config: NavConfig.live.route);
+    if (_positionSeeded) {
+      _routeTracker!.observe(_targetLat, _targetLon, accuracyM: _accuracy);
+    }
+    if (_drActive) _lockRoute();
+    _touch();
+  }
+
+  /// Drops the route. Dead reckoning already following it hands off to plain
+  /// road-following at the current position, so an outage in progress does
+  /// not lose its lock outright.
+  void endRoute() {
+    final wasRouteLocked = _routeTracker?.isLocked ?? false;
+    _routeTracker = null;
+    if (wasRouteLocked && _drActive) _lockRoad(keepIfFails: true);
+    _touch();
   }
 
   // -------------------------------------------------------- recording
@@ -1619,6 +1736,13 @@ class LiveSessionController extends ChangeNotifier {
     ));
     _recorder = recorder;
     _recordingPath = path;
+    if (_simTunnel) {
+      _recordSimulationMarker('tunnel', 'recording_started_mid_run');
+    } else if (_simCanyon) {
+      _recordSimulationMarker('urban_canyon', 'recording_started_mid_run');
+    } else if (_simOutage != null) {
+      _recordSimulationMarker('gnss_loss', 'recording_started_mid_run');
+    }
     // Without this the drive ends at the screen timeout: backgrounding stops
     // the sensors, by design.
     await _setScreenAwake(true);
@@ -1630,6 +1754,13 @@ class LiveSessionController extends ChangeNotifier {
   Future<DriveLogFile?> stopRecording() async {
     final recorder = _recorder;
     if (recorder == null) return null;
+    if (_simTunnel) {
+      _recordSimulationMarker('tunnel', 'recording_stopped_mid_run');
+    } else if (_simCanyon) {
+      _recordSimulationMarker('urban_canyon', 'recording_stopped_mid_run');
+    } else if (_simOutage != null) {
+      _recordSimulationMarker('gnss_loss', 'recording_stopped_mid_run');
+    }
     recorder.stop();
     _recorder = null;
     _recordingPath = null;
@@ -1646,6 +1777,15 @@ class LiveSessionController extends ChangeNotifier {
     final us = _engineNowUs;
     if (us == null) return;
     _recorder?.recordMarker(monotonicUs: us, label: label);
+  }
+
+  void _recordSimulationMarker(String simulation, String boundary) {
+    final us = _engineNowUs;
+    if (us == null) return;
+    _recorder?.recordMarker(
+      monotonicUs: us,
+      label: 'simulation:$simulation:$boundary',
+    );
   }
 
   // ---------------------------------------------------------- nav core
@@ -1845,7 +1985,12 @@ class LiveSessionController extends ChangeNotifier {
           accuracyM: fix.accuracy,
           at: _clock(),
         ));
-      } else if (!_simTunnel) {
+      } else if (_simTunnel) {
+        // Preserve the real receiver fix in a drive log while withholding it
+        // from GatiSaarth's tunnel simulation. The boundary markers identify
+        // this interval so analysis can distinguish the test from a real loss.
+        _recordWithheldFix(fix);
+      } else {
         _applyFix(fix);
       }
     } else if (fix == null) {
@@ -1870,9 +2015,10 @@ class LiveSessionController extends ChangeNotifier {
     // times is only as good as the fix spacing, and bunched deliveries spike.
     var speedTrusted = fix.speed >= 0.35;
 
-    // Real-time speed & heading calibration:
-    // When Android device doesn't populate fix.speed or reports 0 during walking/low speeds,
-    // accurately derive ground speed and course heading from consecutive GPS positions.
+    // Only infer speed when the receiver supplies no usable speed accuracy.
+    // Android's zero-speed fix with a good speed accuracy is evidence of a
+    // stopped vehicle, even if its reported coordinates wander (as emulator
+    // route playback can). Position differences alone are not a speed sensor.
     if (_lastFixLat != null && _lastFixLon != null && _lastFixAt != null) {
       final dt = now.difference(_lastFixAt!).inMilliseconds / 1000.0;
       if (dt >= 0.5 && dt <= 10.0) {
@@ -1884,17 +2030,20 @@ class LiveSessionController extends ChangeNotifier {
         movedM = dist;
         final derivedSpeed = dist / dt;
 
-        if (resolvedSpeed < 0.35 &&
+        if (fix.speedAccuracy == null &&
+            dist > 3 * fix.accuracy &&
+            resolvedSpeed < 0.35 &&
             derivedSpeed >= 0.35 &&
             derivedSpeed < 70.0) {
           resolvedSpeed = derivedSpeed;
           speedTrusted = dt >= 0.8 && dt <= 2.0;
         }
 
-        if (dist > 1.0) {
+        if (dist > max(1.0, 3 * fix.accuracy) &&
+            resolvedSpeed >= _courseMinSpeed) {
           final courseDeg = (atan2(dLonM, dLatM) * 180 / pi + 360) % 360;
           _heading = courseDeg;
-          if (resolvedSpeed >= _courseMinSpeed) _courseDeg = courseDeg;
+          _courseDeg = courseDeg;
         }
       }
     }
@@ -1918,8 +2067,12 @@ class LiveSessionController extends ChangeNotifier {
       );
     }
 
-    // A real fix ends whatever outage the marker was following a road through.
-    if (!_simCanyon) _road.release();
+    // A real fix ends whatever outage the marker was following a road or a
+    // route through.
+    if (!_simCanyon) {
+      _road.release();
+      _routeTracker?.release();
+    }
 
     // While the core leads, a raw fix is a *measurement*, not the answer:
     // the filter has already gated it and folded in what survived. Writing
@@ -1951,8 +2104,24 @@ class LiveSessionController extends ChangeNotifier {
       {required bool moving}) {
     if (!moving) return;
     _speed = resolvedSpeed;
+    final tracker = _routeTracker;
+    if (tracker != null && tracker.isLocked) {
+      // ponytail: a route-locked canyon only nudges *progress* via `observe`
+      // — the road follower's `correct` reasons about one road's along-edge
+      // coordinate and knows nothing about which branch the route chose at
+      // a junction.
+      tracker.observe(fix.latitude, fix.longitude, accuracyM: _accuracy);
+      final point = tracker.pointAt(tracker.alongM);
+      _targetLat = point.lat;
+      _targetLon = point.lon;
+      _heading = point.headingDeg;
+      return;
+    }
     if (!_road.isLocked) {
-      if (_lockRoad(lat: fix.latitude, lon: fix.longitude)) return;
+      if (_lockRoute(lat: fix.latitude, lon: fix.longitude) ||
+          _lockRoad(lat: fix.latitude, lon: fix.longitude)) {
+        return;
+      }
       _targetLat = fix.latitude;
       _targetLon = fix.longitude;
       return;
@@ -2084,8 +2253,7 @@ class LiveSessionController extends ChangeNotifier {
 
   /// True only while a real, fresh fix is arriving and we are not simulating
   /// a blackout.
-  bool get hasLiveGnss =>
-      location.isLive && !_simTunnel && _simOutage == null;
+  bool get hasLiveGnss => location.isLive && !_simTunnel && _simOutage == null;
 
   int get sampleCount => _sampleCount;
   bool get isSensorLive =>
@@ -2111,6 +2279,7 @@ class LiveSessionController extends ChangeNotifier {
 
   double get vibrationRms => _vibrationRms;
   String get vibrationLevel => _vibrationLevel;
+
   /// Phone temperature in °C, or null until the phone has reported one.
   double? get temperature => _hardware.currentTemperature;
   List<AnomalyEventModel> get anomalies => List.unmodifiable(_anomalies);
@@ -2267,7 +2436,7 @@ class LiveSessionController extends ChangeNotifier {
         roadAvailable: _roadAvailable,
         gnssHealth: gnssHealth,
         engineLeading: isEngineLeading,
-        integrity: (isEngineLeading || _drActive)
+        integrity: isEngineLeading
             ? (_navSnapshot?.integrity ?? NavIntegrity.invalid)
             : NavIntegrity.high,
         gnssSpeedStdMps: _speedStdWindow.stdMps,

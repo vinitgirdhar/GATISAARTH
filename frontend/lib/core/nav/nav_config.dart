@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import 'ai/ai_config.dart';
+import 'map/road_graph.dart' show RoadClass;
 
 export 'ai/ai_config.dart';
 
@@ -44,6 +45,7 @@ class NavConfig {
     this.mountQuality = const MountQualityConfig(),
     this.faultMonitor = const FaultMonitorConfig(),
     this.gnssLossPreparation = const GnssLossPreparationConfig(),
+    this.route = const RouteConfig(),
     this.features = const FeatureFlags(),
   });
 
@@ -78,6 +80,7 @@ class NavConfig {
   final MountQualityConfig mountQuality;
   final FaultMonitorConfig faultMonitor;
   final GnssLossPreparationConfig gnssLossPreparation;
+  final RouteConfig route;
   final FeatureFlags features;
 
   static const NavConfig defaults = NavConfig();
@@ -117,6 +120,7 @@ class NavConfig {
     MountQualityConfig? mountQuality,
     FaultMonitorConfig? faultMonitor,
     GnssLossPreparationConfig? gnssLossPreparation,
+    RouteConfig? route,
     FeatureFlags? features,
   }) =>
       NavConfig(
@@ -148,6 +152,7 @@ class NavConfig {
         faultMonitor: faultMonitor ?? this.faultMonitor,
         gnssLossPreparation:
             gnssLossPreparation ?? this.gnssLossPreparation,
+        route: route ?? this.route,
         features: features ?? this.features,
       );
 
@@ -1710,4 +1715,121 @@ class GnssLossPreparationConfig {
   /// A pre-lock reading older than this at outage start is not used; the
   /// last real fix is trusted instead.
   final Duration maxSeedAge;
+}
+
+/// Journey routing and route-locked dead reckoning (`core/nav/route/`).
+///
+/// Every threshold the planner and the route tracker use. Agents implementing
+/// the planner/tracker add fields here (with a doc comment each) rather than
+/// hard-coding numbers.
+@immutable
+class RouteConfig {
+  const RouteConfig({
+    this.snapRadiusM = 250,
+    this.offRouteM = 50,
+    this.offRouteObservations = 3,
+    this.lockRadiusM = 40,
+    this.lockHeadingTolDeg = 60,
+    this.divergeYawDeg = 60,
+    this.yawWindowM = 80,
+    this.arrivalRadiusM = 30,
+    this.snapCandidates = 6,
+    this.classSpeedMps = const {
+      RoadClass.motorway: 22,
+      RoadClass.trunk: 17,
+      RoadClass.primary: 12,
+      RoadClass.secondary: 10,
+      RoadClass.tertiary: 8.5,
+      RoadClass.residential: 6.5,
+      RoadClass.unclassified: 6.5,
+      RoadClass.service: 4,
+    },
+    this.maneuverSlightDeg = 20,
+    this.maneuverTurnDeg = 45,
+    this.maneuverSharpDeg = 135,
+    this.maneuverUTurnDeg = 170,
+    this.maneuverMergeM = 15,
+    this.maneuverBearingSampleM = 10,
+    this.maneuverPassedM = 5,
+    this.observeWindowBackM = 150,
+    this.observeWindowForwardM = 1000,
+    this.observeAlongPenaltyPerM = 0.05,
+  });
+
+  /// How far from the nearest road a chosen start or destination may be and
+  /// still be routed from/to (m).
+  final double snapRadiusM;
+
+  /// A position further than this from the route counts as off it (m); the
+  /// receiver's own accuracy widens it.
+  final double offRouteM;
+
+  /// Consecutive off-route observations before the tracker says so (one bad
+  /// fix is not a missed turn).
+  final int offRouteObservations;
+
+  /// Dead reckoning locks onto the route only within this distance (m).
+  final double lockRadiusM;
+
+  /// ... and only when the vehicle's heading agrees this well (deg).
+  final double lockHeadingTolDeg;
+
+  /// Gyro yaw the route does not explain, over [yawWindowM] of travel, that
+  /// means the vehicle has left the route (deg).
+  final double divergeYawDeg;
+
+  /// Travel window the yaw disagreement is summed over (m).
+  final double yawWindowM;
+
+  /// Within this of the destination the journey counts as arrived (m).
+  final double arrivalRadiusM;
+
+  /// How many nearby roads the planner considers as start/destination
+  /// candidates, not just the closest one — the closest edge can be a
+  /// one-way leading nowhere useful, while the next one over reaches the
+  /// destination.
+  final int snapCandidates;
+
+  /// Free-flow speed (m/s) assumed for a road class when the map data itself
+  /// carries no `maxSpeedMps` (real packs never do — see `tile_roads.dart`).
+  /// Also the ceiling the A* heuristic assumes no road can beat, which is
+  /// what keeps `distance / fastest class speed` admissible.
+  final Map<RoadClass, double> classSpeedMps;
+
+  /// Turn-angle bands a junction's incoming-vs-outgoing bearing falls into
+  /// (deg): below [maneuverSlightDeg] the road is "straight" (no maneuver,
+  /// unless the road's name changes — see [ManeuverKind.continueOn]); below
+  /// [maneuverTurnDeg] a slight turn; below [maneuverSharpDeg] an ordinary
+  /// turn; below [maneuverUTurnDeg] a sharp turn; at or beyond it, a U-turn.
+  final double maneuverSlightDeg;
+  final double maneuverTurnDeg;
+  final double maneuverSharpDeg;
+  final double maneuverUTurnDeg;
+
+  /// Maneuvers closer together than this along the route (m) are one
+  /// instruction — the bigger turn wins — so a junction noded into two
+  /// vertices a metre apart does not announce twice.
+  final double maneuverMergeM;
+
+  /// A maneuver's incoming/outgoing bearing is measured over this many
+  /// metres either side of the junction vertex, long enough that digitising
+  /// noise right at the vertex cannot masquerade as a turn.
+  final double maneuverBearingSampleM;
+
+  /// A maneuver within this distance behind the vehicle still counts as
+  /// passed, so `RouteProgress.next` does not re-announce the one just taken.
+  final double maneuverPassedM;
+
+  /// `RouteTracker.observe` first searches this far behind and ahead of the
+  /// current progress (m) — restricting to nearby route topology, not just
+  /// nearby space, is what stops a loop or a flyover over the same road from
+  /// snapping progress to the wrong stretch.
+  final double observeWindowBackM;
+  final double observeWindowForwardM;
+
+  /// Extra cost per metre of mismatch between a candidate projection's
+  /// along-route distance and the current progress, added to its
+  /// perpendicular distance when scoring candidates — keeps progress
+  /// continuous when two nearby segments are both plausible matches.
+  final double observeAlongPenaltyPerM;
 }

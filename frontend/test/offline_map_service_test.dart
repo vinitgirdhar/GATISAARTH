@@ -104,6 +104,72 @@ void main() {
       await service.load();
       expect(service.installed, isEmpty);
     });
+
+    test('addPacks extends the scanned set; load picks it up', () async {
+      const corridor = OfflinePack(
+        id: 'journey-corridor',
+        name: 'Journey route',
+        south: 19.0,
+        west: 72.7,
+        north: 19.2,
+        east: 73.0,
+        maxZoom: 15,
+        approxBytes: 1,
+      );
+      final service = OfflineMapService(
+        locator: FakeMapPackLocator({corridor.fileName: fakeLocation(42)}),
+        opener: (l, p) async => EmptyTileProvider(maxZoom: p.maxZoom),
+        catalog: const [],
+      );
+      await service.load();
+      expect(service.isInstalled('journey-corridor'), isFalse);
+
+      service.addPacks([corridor]);
+      await service.load();
+
+      expect(service.isInstalled('journey-corridor'), isTrue);
+      expect(service.covers(const LatLng(19.06, 72.835)), isTrue);
+    });
+
+    test('addPacks ignores an id already known', () async {
+      final service = OfflineMapService(
+        locator: FakeMapPackLocator(const {}),
+        opener: (l, p) async => EmptyTileProvider(),
+      );
+      var notes = 0;
+      service.addPacks([OfflineCatalog.delhiNcr]); // already in the catalogue
+      service.addListener(() => notes++);
+      service.addPacks([OfflineCatalog.delhiNcr]);
+      expect(notes, 0);
+    });
+
+    test('removePack drops it from the scanned and installed sets', () async {
+      const corridor = OfflinePack(
+        id: 'journey-corridor',
+        name: 'Journey route',
+        south: 19.0,
+        west: 72.7,
+        north: 19.2,
+        east: 73.0,
+        maxZoom: 15,
+        approxBytes: 1,
+      );
+      final service = OfflineMapService(
+        locator: FakeMapPackLocator({corridor.fileName: fakeLocation(42)}),
+        opener: (l, p) async => EmptyTileProvider(maxZoom: p.maxZoom),
+        catalog: const [],
+      );
+      service.addPacks([corridor]);
+      await service.load();
+      expect(service.isInstalled('journey-corridor'), isTrue);
+
+      service.removePack('journey-corridor');
+      expect(service.isInstalled('journey-corridor'), isFalse);
+
+      // And it stays gone across a rescan (removed from the scanned set too).
+      await service.load();
+      expect(service.isInstalled('journey-corridor'), isFalse);
+    });
   });
 
   group('OffsetFileAt', () {

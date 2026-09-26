@@ -350,6 +350,107 @@ void main() {
     });
   });
 
+  group('PackRoadGraphSource.linesInBox', () {
+    // A 2x2 block of z14 tiles around the Delhi point.
+    final _x0 = _cx >> 1, _y0 = _cy >> 1;
+    // Bounds strictly inside tile x0/y0 and tile (x0+1)/(y0+1): a point
+    // exactly on a tile edge can float-round into the next tile, so a box
+    // built from tile *centres* is the only reliable way to ask for exactly
+    // a 2x2 block.
+    final _boxWest = _lonAt(14, _x0 + 0.5), _boxEast = _lonAt(14, _x0 + 1.5);
+    final _boxNorth = _latAt(14, _y0 + 0.5), _boxSouth = _latAt(14, _y0 + 1.5);
+
+    test('reads the box at zoom min(pack maxZoom, 14)', () async {
+      final tiles = _FakeTiles();
+      final source = _source(await _service({'a': tiles}));
+
+      final result = await source.linesInBox(
+        south: _boxSouth,
+        west: _boxWest,
+        north: _boxNorth,
+        east: _boxEast,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.packId, 'a');
+      expect(
+        tiles.requested.toSet(),
+        {
+          for (var dx = 0; dx < 2; dx++)
+            for (var dy = 0; dy < 2; dy++) TileIdentity(14, _x0 + dx, _y0 + dy),
+        },
+      );
+      expect(result.lines, hasLength(4)); // one road per tile
+    });
+
+    test('drops to zoom 13 when the box needs more than maxTiles', () async {
+      final tiles = _FakeTiles();
+      final source = _source(await _service({'a': tiles}));
+
+      final result = await source.linesInBox(
+        south: _boxSouth,
+        west: _boxWest,
+        north: _boxNorth,
+        east: _boxEast,
+        maxTiles: 2, // the z14 box needs 4
+      );
+
+      expect(result, isNotNull);
+      expect(tiles.requested, isNotEmpty);
+      expect(tiles.requested.every((t) => t.z == 13), isTrue);
+    });
+
+    test('no pack covering the whole box gives no answer', () async {
+      final tiles = _FakeTiles();
+      final source = _source(await _service({'a': tiles}));
+
+      // Bengaluru: outside `_pack('a')`'s box (28.38-28.90, 76.83-77.45).
+      final result = await source.linesInBox(
+        south: 12.90,
+        west: 77.50,
+        north: 13.00,
+        east: 77.60,
+      );
+
+      expect(result, isNull);
+      expect(tiles.requested, isEmpty);
+    });
+
+    test('does not touch the small roadsAround tile cache', () async {
+      final tiles = _FakeTiles();
+      final source = _source(await _service({'a': tiles}), radius: 1, cache: 9);
+      await source.roadsAround(_lat, _lon);
+      expect(tiles.requested, hasLength(9));
+
+      final result = await source.linesInBox(
+        south: _boxSouth,
+        west: _boxWest,
+        north: _boxNorth,
+        east: _boxEast,
+      );
+      expect(result, isNotNull);
+
+      // The point's 9 tiles are still cached: nothing new is read for them.
+      await source.roadsAround(_lat, _lon);
+      expect(tiles.requested, hasLength(9 + 4));
+    });
+
+    test('a pack that stops below zoom 13 is ignored', () async {
+      final low = _FakeTiles(maxZoom: 12);
+      final source = _source(await _service({'low': low}));
+
+      final result = await source.linesInBox(
+        south: _boxSouth,
+        west: _boxWest,
+        north: _boxNorth,
+        east: _boxEast,
+      );
+
+      expect(result, isNull);
+      expect(low.requested, isEmpty);
+    });
+  });
+
   // ---------------------------------------------------------------- real pack
   group('the real Delhi archive', () {
     final file = File('assets/maps/packs/delhi-ncr.pmtiles');
