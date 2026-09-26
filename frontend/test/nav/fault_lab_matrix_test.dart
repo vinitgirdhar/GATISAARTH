@@ -125,11 +125,15 @@ void main() {
     expect(results['Magnetometer disturbance (×2)']!.detected, isFalse);
 
     // Honesty: a read-only monitor's action never claims a correction.
-    for (final label in ['Gyro bias (+0.5 deg/s)', 'GNSS integrity anomaly']) {
-      final r = results[label]!;
-      expect(r.detected, isTrue);
-      expect(r.action, contains('no correction applied'), reason: '$label: $r');
-    }
+    final gyro = results['Gyro bias (+0.5 deg/s)']!;
+    expect(gyro.detected, isTrue);
+    expect(gyro.action, contains('no correction applied'));
+    // A drifting GNSS offset makes the core's predictions of each fix worse
+    // than holding the last velocity, so the earned-trust gate hands the
+    // position back: a real action, reported as exactly that.
+    final anomaly = results['GNSS integrity anomaly']!;
+    expect(anomaly.detected, isTrue);
+    expect(anomaly.action, contains('handed back'));
   });
 
   test('false positives: FaultMonitor stays silent on a whole clean replay',

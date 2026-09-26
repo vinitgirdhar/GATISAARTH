@@ -66,3 +66,6 @@ docs/sih2026/
 
 # Real recorded drives: full location traces, never committed
 field_drives/
+
+# Downloaded datasets (GSDC etc.) - large, licensed, never commit
+datasets/

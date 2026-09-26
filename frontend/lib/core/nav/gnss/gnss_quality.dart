@@ -47,6 +47,24 @@ class GnssObservation {
 
   final bool isMocked;
 
+  /// The same fix with a bearing filled in (from `GnssCourseTracker` when the
+  /// receiver reported none).
+  GnssObservation withBearing(double bearingDeg, double accuracyDeg) =>
+      GnssObservation(
+        latitudeDeg: latitudeDeg,
+        longitudeDeg: longitudeDeg,
+        accuracyM: accuracyM,
+        monotonicUs: monotonicUs,
+        altitudeM: altitudeM,
+        speedMps: speedMps,
+        speedAccuracyMps: speedAccuracyMps,
+        bearingDeg: bearingDeg,
+        bearingAccuracyDeg: accuracyDeg,
+        verticalAccuracyM: verticalAccuracyM,
+        satellitesUsed: satellitesUsed,
+        isMocked: isMocked,
+      );
+
   bool get hasFiniteCoordinates =>
       latitudeDeg.isFinite &&
       longitudeDeg.isFinite &&

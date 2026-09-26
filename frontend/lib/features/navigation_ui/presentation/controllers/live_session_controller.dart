@@ -1769,6 +1769,9 @@ class LiveSessionController extends ChangeNotifier {
       monotonicUs: us,
       altitudeM: fix.altitude == 0 ? null : fix.altitude,
       speedMps: fix.speed,
+      speedAccuracyMps: fix.speedAccuracy,
+      bearingDeg: fix.bearing,
+      bearingAccuracyDeg: fix.bearingAccuracy,
       isMocked: fix.isMocked,
     );
   }

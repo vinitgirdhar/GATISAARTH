@@ -38,6 +38,9 @@ class GnssFix {
     required this.accuracy,
     required this.speed,
     this.isMocked = false,
+    this.bearing,
+    this.bearingAccuracy,
+    this.speedAccuracy,
   });
 
   final double latitude;
@@ -50,6 +53,13 @@ class GnssFix {
   /// Ground speed in m/s (never negative).
   final double speed;
   final bool isMocked;
+
+  /// Course over ground, degrees from north, or null when the receiver has
+  /// none (standing still, or a chipset that never reports it). Without it
+  /// the navigation core has to wait for the fixes to trace a course.
+  final double? bearing;
+  final double? bearingAccuracy;
+  final double? speedAccuracy;
 }
 
 /// Thin seam over the location plugin so the state machine is unit-testable.

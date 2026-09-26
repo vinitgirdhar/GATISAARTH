@@ -49,7 +49,9 @@ void main() {
     final label = [path, if (ai) 'AI on', if (handHeld) 'hand-held'].join(' ');
     final engineConfig = NavConfig(
       ai: AiConfig(enabled: ai),
-      features: FeatureFlags(handHeldMode: handHeld),
+      features: FeatureFlags(
+          handHeldMode: handHeld,
+          speedPrior: Platform.environment['NAV_SPEEDPRIOR'] == '1'),
     );
 
     final report = mapPath == null

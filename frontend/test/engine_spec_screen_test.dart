@@ -37,7 +37,7 @@ void main() {
 
       expect(find.text('Navigation engine'), findsOneWidget, reason: 'title');
       expect(find.text('GatiSaarth Navigation Engine'), findsOneWidget);
-      expect(find.text('v4.5.0 (build 47)'), findsOneWidget);
+      expect(find.text('v4.5.1 (build 48)'), findsOneWidget);
       for (final section in [
         'Right now',
         'How it works',

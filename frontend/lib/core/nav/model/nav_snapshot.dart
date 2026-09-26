@@ -217,6 +217,7 @@ class NavigationSnapshot {
     this.mountQuality = MountQuality.unknown,
     this.recalibratingMount = false,
     this.faultFlags = const [],
+    this.predictionTrusted = true,
   });
 
   /// Monotonic counter. A consumer that sees a lower sequence than it already
@@ -318,6 +319,12 @@ class NavigationSnapshot {
   /// gates has been noticed — never inferred from silence elsewhere.
   final List<FaultFlag> faultFlags;
 
+  /// Whether the core has recently predicted each new GNSS fix at least as
+  /// well as holding the last velocity would have (`GnssCourseConfig`'s
+  /// earned-trust gate). A core that cannot beat that baseline while GNSS is
+  /// live would only do worse in an outage, so it may not lead.
+  final bool predictionTrusted;
+
   bool get hasPosition => latitude != null && longitude != null;
 
   /// True only when the mount transform has genuinely converged (§6).
@@ -333,6 +340,7 @@ class NavigationSnapshot {
   bool get canLeadPosition {
     if (!hasPosition || mode == NavMode.sensorFailure) return false;
     if (integrity == NavIntegrity.invalid) return false;
+    if (!predictionTrusted) return false;
     final sigma = horizontalSigmaM;
     if (sigma == null || !sigma.isFinite) return false;
     return handHeld || isMountCalibrated;

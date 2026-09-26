@@ -39,6 +39,7 @@ class NavConfig {
     this.outageReport = const OutageReportConfig(),
     this.handHeld = const HandHeldConfig(),
     this.gnssHealth = const GnssHealthConfig(),
+    this.gnssCourse = const GnssCourseConfig(),
     this.sensorHealth = const SensorHealthConfig(),
     this.mountQuality = const MountQualityConfig(),
     this.faultMonitor = const FaultMonitorConfig(),
@@ -72,6 +73,7 @@ class NavConfig {
   final OutageReportConfig outageReport;
   final HandHeldConfig handHeld;
   final GnssHealthConfig gnssHealth;
+  final GnssCourseConfig gnssCourse;
   final SensorHealthConfig sensorHealth;
   final MountQualityConfig mountQuality;
   final FaultMonitorConfig faultMonitor;
@@ -110,6 +112,7 @@ class NavConfig {
     OutageReportConfig? outageReport,
     HandHeldConfig? handHeld,
     GnssHealthConfig? gnssHealth,
+    GnssCourseConfig? gnssCourse,
     SensorHealthConfig? sensorHealth,
     MountQualityConfig? mountQuality,
     FaultMonitorConfig? faultMonitor,
@@ -139,6 +142,7 @@ class NavConfig {
         outageReport: outageReport ?? this.outageReport,
         handHeld: handHeld ?? this.handHeld,
         gnssHealth: gnssHealth ?? this.gnssHealth,
+        gnssCourse: gnssCourse ?? this.gnssCourse,
         sensorHealth: sensorHealth ?? this.sensorHealth,
         mountQuality: mountQuality ?? this.mountQuality,
         faultMonitor: faultMonitor ?? this.faultMonitor,
@@ -179,6 +183,7 @@ class FeatureFlags {
     this.vibrationSpeed = false,
     this.leanAwareNhc = false,
     this.handHeldMode = false,
+    this.speedPrior = false,
   });
 
   /// Everything off: pure inertial propagation, corrected only by GNSS
@@ -229,6 +234,11 @@ class FeatureFlags {
   /// hand-held drive shows it beats hold-last-velocity (§83).
   final bool handHeldMode;
 
+  /// In an outage, the last GNSS speed as a forward-speed measurement whose
+  /// sigma grows with time (`GnssCourseConfig.speedPrior*`): a loose phone's
+  /// accelerometer cannot be integrated for long.
+  final bool speedPrior;
+
   FeatureFlags copyWith({
     bool? zeroVelocityUpdate,
     bool? zeroAngularRateUpdate,
@@ -242,6 +252,7 @@ class FeatureFlags {
     bool? vibrationSpeed,
     bool? leanAwareNhc,
     bool? handHeldMode,
+    bool? speedPrior,
   }) =>
       FeatureFlags(
         zeroVelocityUpdate: zeroVelocityUpdate ?? this.zeroVelocityUpdate,
@@ -259,6 +270,7 @@ class FeatureFlags {
         vibrationSpeed: vibrationSpeed ?? this.vibrationSpeed,
         leanAwareNhc: leanAwareNhc ?? this.leanAwareNhc,
         handHeldMode: handHeldMode ?? this.handHeldMode,
+        speedPrior: speedPrior ?? this.speedPrior,
       );
 
   Map<String, dynamic> toJson() => {
@@ -1362,6 +1374,84 @@ class ParkingLevelConfig {
 
   /// Extra fraction of a floor, beyond half, before the level changes.
   final double hysteresis;
+}
+
+/// Course over ground from the GNSS fixes themselves, for receivers that
+/// report no bearing (`gnss/gnss_course.dart`), and the heading guard that
+/// uses it. Values from the 2026-09-26 rickshaw drive (1 Hz fixes, ~10 m
+/// accuracy): consecutive phone fixes err together, so their *relative*
+/// error is a fraction of the reported accuracy.
+@immutable
+class GnssCourseConfig {
+  const GnssCourseConfig({
+    this.minBaselineM = 20,
+    this.maxBaselineS = 6,
+    this.minSpeedMps = 3,
+    this.maxAccuracyM = 30,
+    this.maxBendDeg = 20,
+    this.relativeErrorFraction = 0.25,
+    this.minSigmaDeg = 5,
+    this.guardDisagreeDeg = 45,
+    this.guardConsecutive = 3,
+    this.guardResetSigmaDeg = 20,
+    this.dopplerSpeedSigmaMps = 1.0,
+    this.speedPriorBaseSigmaMps = 0.5,
+    this.speedPriorGrowthMpsPerS = 0.3,
+    this.trustWindow = 20,
+    this.trustMinSamples = 10,
+    this.trustRatio = 1.25,
+    this.trustMarginM = 2,
+    this.trustMaxGapS = 2.5,
+  });
+
+  /// Earned-trust gate: over the last [trustWindow] fixes (at least
+  /// [trustMinSamples]), the core's median error predicting each fix must be
+  /// within [trustRatio] x + [trustMarginM] of holding the last velocity's.
+  /// Fixes further apart than [trustMaxGapS] are not compared.
+  final int trustWindow;
+  final int trustMinSamples;
+  final double trustRatio;
+  final double trustMarginM;
+  final double trustMaxGapS;
+
+  /// Speed prior in an outage (`FeatureFlags.speedPrior`): sigma =
+  /// base + growth * seconds since the last fix.
+  final double speedPriorBaseSigmaMps;
+  final double speedPriorGrowthMpsPerS;
+
+  /// Floor on the sigma of the receiver's (Doppler) speed, fed as a forward-
+  /// speed measurement when a fix has no usable course. Covers the ~1 s lag
+  /// of phone GNSS speed during hard acceleration.
+  final double dopplerSpeedSigmaMps;
+
+  /// Shortest chord a course is taken over.
+  final double minBaselineM;
+
+  /// Oldest fix still used as the start of a chord.
+  final double maxBaselineS;
+
+  /// Below this ground speed the chord is mostly noise.
+  final double minSpeedMps;
+
+  /// Fixes worse than this are not used for course at all.
+  final double maxAccuracyM;
+
+  /// Either half of the chord bending more than this from the whole: a turn,
+  /// not a straight course.
+  final double maxBendDeg;
+
+  /// Relative error of two fixes a few seconds apart, as a fraction of the
+  /// reported accuracy.
+  final double relativeErrorFraction;
+  final double minSigmaDeg;
+
+  /// Heading guard: the core disagreeing with the GNSS course by more than
+  /// this on this many consecutive courses is re-seeded on the course.
+  final double guardDisagreeDeg;
+  final int guardConsecutive;
+
+  /// Heading sigma after a guard re-seed.
+  final double guardResetSigmaDeg;
 }
 
 /// Thresholds for `GnssHealthClassifier` (driver-facing GNSS HEALTH state:

@@ -7,6 +7,7 @@ import 'alignment/mount_quality.dart';
 import 'anchors/portal_anchor.dart';
 import 'calibration/sensor_calibration.dart';
 import 'ekf/navigation_filter.dart';
+import 'gnss/gnss_course.dart';
 import 'gnss/gnss_quality.dart';
 import 'ins/ins_state.dart';
 import 'map/map_matcher.dart';
@@ -145,7 +146,8 @@ class NavigationEngine {
         _gyroBias = GyroBiasEstimator(config: config),
         _health = SensorHealthMonitor(config: config),
         _mountQualityEstimator = MountQualityEstimator(config: config),
-        _faultMonitor = FaultMonitor(config: config);
+        _faultMonitor = FaultMonitor(config: config),
+        _course = GnssCourseTracker(config: config.gnssCourse);
 
   final NavConfig _config;
   final NavigationFilter _filter;
@@ -166,6 +168,26 @@ class NavigationEngine {
   final SensorHealthMonitor _health;
   final MountQualityEstimator _mountQualityEstimator;
   final FaultMonitor _faultMonitor;
+  final GnssCourseTracker _course;
+
+  /// Consecutive GNSS courses the core's heading has disagreed with.
+  int _headingMisses = 0;
+
+  /// Consecutive fixes the quality check passed but the filter's own gate
+  /// refused: the filter has diverged from the GNSS it should be following.
+  int _gnssRejectStreak = 0;
+
+  /// Last trusted GNSS speed and when, for the outage speed prior.
+  double? _priorSpeedMps;
+  int? _priorSpeedUs;
+  int? _lastPriorUs;
+
+  /// Earned trust: per fix, how far the core's prediction and a
+  /// hold-last-velocity prediction each landed from it.
+  final List<double> _coreMissM = [];
+  final List<double> _holdMissM = [];
+  GnssObservation? _prevFix;
+  GnssObservation? _prevPrevFix;
   final _ContributionTracker _contribution = _ContributionTracker();
 
   SensorCalibration _calibration;
@@ -480,6 +502,7 @@ class NavigationEngine {
       );
       _applyTurnSpeed(accelVehicle, gyroVehicle, monotonicUs);
       _applyVibrationSpeed(accelVehicle, monotonicUs);
+      _applySpeedPrior(monotonicUs);
       _contribution.decayTo(monotonicUs);
       _runMapMatch(monotonicUs);
     }
@@ -490,8 +513,20 @@ class NavigationEngine {
 
   /// Feeds one GNSS fix. Every fix goes in, accepted or not — the quality
   /// engine needs the rejected ones to judge the source (§13).
-  NavigationSnapshot? onGnss(GnssObservation fix) {
+  NavigationSnapshot? onGnss(GnssObservation raw) {
+    // A receiver that reports no bearing gets the course its own fixes trace
+    // (see `GnssCourseTracker`); without it the core has no heading at all.
+    final course = _course.add(
+      latitudeDeg: raw.latitudeDeg,
+      longitudeDeg: raw.longitudeDeg,
+      accuracyM: raw.accuracyM,
+      monotonicUs: raw.monotonicUs,
+    );
+    final fix = raw.bearingDeg == null && course != null
+        ? raw.withBearing(course.courseDeg, course.sigmaDeg)
+        : raw;
     final state = _filter.state;
+    _scorePrediction(raw, state);
     final predictedHorizontalSigmaM = _filter.horizontalPositionSigma;
     final assessment = _gnssQuality.assess(
       fix,
@@ -523,6 +558,16 @@ class NavigationEngine {
     }
 
     if (!_filter.isInitialised) {
+      // Heading 0 (north) as a guess was the 2026-09-26 rickshaw failure:
+      // the core ran ~90 degrees off for the whole drive. Wait for a bearing,
+      // or for the fixes to trace a course, before starting.
+      final noHeading = fix.bearingDeg == null &&
+          _alignmentEstimator.alignment != null &&
+          !_config.features.handHeldMode;
+      if (noHeading) {
+        _updateMode(fix.monotonicUs);
+        return _maybeSnapshot(fix.monotonicUs, force: true);
+      }
       // No body frame yet means no propagation is possible, and a filter
       // that cannot propagate would sit still while the vehicle drives off
       // and then reject every fix as an impossible jump. Until the mount is
@@ -606,6 +651,10 @@ class NavigationEngine {
       _sinceFixDistanceM = 0;
       _endOutage();
       _anchorBarometer(fix);
+      if (assessment.useVelocity && fix.speedMps != null) {
+        _priorSpeedMps = fix.speedMps;
+        _priorSpeedUs = fix.monotonicUs;
+      }
     }
 
     if (_config.features.gnssVelocity &&
@@ -627,6 +676,28 @@ class NavigationEngine {
         _contribution.add('gnss', velocityResult.positionVarianceReduction);
       }
     }
+
+    // No course (slow, turning, or a receiver without bearing): the
+    // receiver's Doppler speed still pins speed along the vehicle's forward
+    // axis, which is what keeps velocity from running away unobserved.
+    MeasurementResult? speedResult;
+    if (raw.bearingDeg == null &&
+        course == null &&
+        assessment.usable &&
+        fix.speedMps != null) {
+      speedResult = _filter.updateForwardSpeed(
+        speedMps: fix.speedMps!,
+        sigma: math.max(
+            fix.speedAccuracyMps ?? 0, _config.gnssCourse.dopplerSpeedSigmaMps),
+        name: 'gnss_speed',
+      );
+      _record(speedResult);
+    }
+    _guardDivergence(fix, course, assessment,
+        // Position only: a refused speed can be the receiver's own ~1 s lag
+        // during hard acceleration, not the filter going astray.
+        rejected: result.outcome == MeasurementOutcome.rejectedByGate);
+    _guardHeading(fix, course, assessment);
 
     // Reacquisition is a real state correction, then a settling window during
     // which the UI says so (§26).
@@ -737,6 +808,13 @@ class NavigationEngine {
 
   void reset() {
     _filter.reset();
+    _course.reset();
+    _headingMisses = 0;
+    _gnssRejectStreak = 0;
+    _coreMissM.clear();
+    _holdMissM.clear();
+    _prevFix = null;
+    _prevPrevFix = null;
     _gnssQuality.reset();
     _alignmentEstimator.reset();
     _motion.reset();
@@ -803,6 +881,83 @@ class NavigationEngine {
   /// Nav-frame velocity implied by a fix, when it reports both speed and
   /// bearing. Starting the filter at zero while the vehicle is already
   /// moving guarantees the first few fixes look like impossible jumps.
+  /// A heading the GNSS course keeps contradicting is re-seeded on it. The
+  /// filter cannot escape a large yaw error on its own: the chi-square gate
+  /// rejects the correction and the non-holonomic constraint pins velocity
+  /// along the wrong axis, so speed (and with it yaw observability) collapses.
+  /// While it disagrees the core may not lead (`_integrity`).
+  void _guardHeading(
+    GnssObservation fix,
+    GnssCourse? course,
+    GnssAssessment assessment,
+  ) {
+    final state = _filter.state;
+    final c = _config.gnssCourse;
+    if (course == null || state == null || !assessment.usable) return;
+    if ((fix.speedMps ?? 0) < c.minSpeedMps) return;
+    final diff = courseDifferenceDeg(course.courseDeg, state.headingDeg).abs();
+    if (diff <= c.guardDisagreeDeg) {
+      _headingMisses = 0;
+      return;
+    }
+    if (++_headingMisses < c.guardConsecutive) return;
+    _headingMisses = 0;
+    _reseed(fix, assessment, course.courseDeg,
+        'heading re-seeded: GNSS course disagreed by ${diff.round()} deg');
+  }
+
+  /// Fixes the quality check trusted but the filter kept refusing mean the
+  /// filter, not the GNSS, is wrong (a velocity that ran away while GNSS said
+  /// 3 m/s, found on the same rickshaw drive). Re-seed on the fix.
+  void _guardDivergence(
+    GnssObservation fix,
+    GnssCourse? course,
+    GnssAssessment assessment, {
+    required bool rejected,
+  }) {
+    final state = _filter.state;
+    if (state == null || !assessment.usable) return;
+    if (!rejected) {
+      _gnssRejectStreak = 0;
+      return;
+    }
+    if (++_gnssRejectStreak < _config.gnssCourse.guardConsecutive) return;
+    _gnssRejectStreak = 0;
+    _reseed(fix, assessment, course?.courseDeg ?? state.headingDeg,
+        'filter re-seeded: GNSS refused ${_config.gnssCourse.guardConsecutive} times in a row');
+  }
+
+  void _reseed(
+    GnssObservation fix,
+    GnssAssessment assessment,
+    double headingDeg,
+    String reason,
+  ) {
+    final state = _filter.state!;
+    final c = _config.gnssCourse;
+    final rad = headingDeg * NavMath.degToRad;
+    final speed = fix.speedMps ?? 0;
+    _filter.initialise(
+      latitudeDeg: fix.latitudeDeg,
+      longitudeDeg: fix.longitudeDeg,
+      altitudeM: fix.altitudeM ?? 0,
+      headingRad: rad,
+      gravityBody: _levelledGravity(),
+      positionSigma: assessment.horizontalSigmaM,
+      initialVelocityNed: Vector3(speed * math.cos(rad), speed * math.sin(rad), 0),
+      accelBias: state.accelBias,
+      gyroBias: state.gyroBias,
+      headingSigma: c.guardResetSigmaDeg * NavMath.degToRad,
+      timestampUs: fix.monotonicUs,
+    );
+    _transitions.add(ModeTransition(
+      from: _mode,
+      to: _mode,
+      reason: reason,
+      monotonicUs: fix.monotonicUs,
+    ));
+  }
+
   Vector3? _velocityFrom(GnssObservation fix) {
     final speed = fix.speedMps;
     final bearing = fix.bearingDeg;
@@ -1113,6 +1268,71 @@ class NavigationEngine {
     }
   }
 
+  /// Once a second in an outage: vehicles do not change speed at will, so the
+  /// last GNSS speed stays evidence, less and less sure as time passes. The
+  /// gyro still steers; only speed is held.
+  void _applySpeedPrior(int monotonicUs) {
+    if (!_config.features.speedPrior) return;
+    final speed = _priorSpeedMps, since = _priorSpeedUs;
+    if (_outageStartedUs == null || speed == null || since == null) return;
+    if (!_filter.isInitialised || _motion.snapshot.isStationary) return;
+    final last = _lastPriorUs;
+    if (last != null && monotonicUs - last < 1000000) return;
+    _lastPriorUs = monotonicUs;
+    final c = _config.gnssCourse;
+    final seconds = (monotonicUs - since) / 1e6;
+    _recordInertial(_filter.updateForwardSpeed(
+      speedMps: speed,
+      sigma: c.speedPriorBaseSigmaMps + c.speedPriorGrowthMpsPerS * seconds,
+      name: 'speed_prior',
+    ));
+  }
+
+  /// Compares the core's prediction of this fix with holding the velocity of
+  /// the last two fixes. Only consecutive fixes while GNSS is flowing are
+  /// compared; an outage is scored by the benchmark, not here.
+  void _scorePrediction(GnssObservation fix, InsState? state) {
+    final prev = _prevFix, prevPrev = _prevPrevFix;
+    _prevPrevFix = prev;
+    _prevFix = fix;
+    final c = _config.gnssCourse;
+    if (state == null || prev == null || prevPrev == null) return;
+    final dt = (fix.monotonicUs - prev.monotonicUs) / 1e6;
+    final dtPrev = (prev.monotonicUs - prevPrev.monotonicUs) / 1e6;
+    if (dt <= 0 || dtPrev <= 0 || dt > c.trustMaxGapS || dtPrev > c.trustMaxGapS) {
+      return;
+    }
+    final k = dt / dtPrev;
+    final holdLat = prev.latitudeDeg + (prev.latitudeDeg - prevPrev.latitudeDeg) * k;
+    final holdLon =
+        prev.longitudeDeg + (prev.longitudeDeg - prevPrev.longitudeDeg) * k;
+    _coreMissM.add(_metresBetween(state.latitudeDeg, state.longitudeDeg,
+        fix.latitudeDeg, fix.longitudeDeg));
+    _holdMissM.add(
+        _metresBetween(holdLat, holdLon, fix.latitudeDeg, fix.longitudeDeg));
+    while (_coreMissM.length > c.trustWindow) {
+      _coreMissM.removeAt(0);
+      _holdMissM.removeAt(0);
+    }
+  }
+
+  bool get _predictionTrusted {
+    final c = _config.gnssCourse;
+    if (_coreMissM.length < c.trustMinSamples) return false;
+    return _median(_coreMissM) <= _median(_holdMissM) * c.trustRatio + c.trustMarginM;
+  }
+
+  static double _median(List<double> v) {
+    final s = [...v]..sort();
+    return s[s.length ~/ 2];
+  }
+
+  static double _metresBetween(double lat1, double lon1, double lat2, double lon2) {
+    final dn = (lat2 - lat1) * 111320;
+    final de = (lon2 - lon1) * 111320 * math.cos(lat1 * math.pi / 180);
+    return math.sqrt(dn * dn + de * de);
+  }
+
   void _startOutage(int monotonicUs) {
     if (_outageStartedUs != null) return;
     _outageStartedUs = monotonicUs;
@@ -1273,6 +1493,11 @@ class NavigationEngine {
     if (_motion.snapshot.state == VehicleState.sensorAnomaly) {
       return NavIntegrity.low;
     }
+    // The core's heading disagrees with where the GNSS says it is going:
+    // whatever the covariance claims, its dead reckoning would go the wrong way.
+    if (_headingMisses > 0 || _gnssRejectStreak > 0) {
+      return NavIntegrity.invalid;
+    }
     final gnssAnomaly = _lastAssessment?.integrity == GnssIntegrity.anomaly;
     if (gnssAnomaly) return NavIntegrity.low;
 
@@ -1383,6 +1608,9 @@ class NavigationEngine {
       mountQuality: mountQuality,
       recalibratingMount: recalibratingMount,
       faultFlags: _faultMonitor.flags,
+      predictionTrusted: _config.features.handHeldMode && !_filter.isInitialised
+          ? true
+          : _predictionTrusted,
     );
     return _snapshot;
   }

@@ -36,8 +36,8 @@ device: Profile > Outage Benchmark (background isolate, reference drive or any
 recording). Headless: `flutter test test/nav/reference_drive_asset_test.dart`
 prints the report. Bundled reference drive is **simulated** (regenerate with
 `UPDATE_REFERENCE_DRIVE=1`); on it the core beats hold-velocity by a wide margin
-through bends and stops (30 s: 12 m vs 189 m) but is weak at 120 s (281 m median,
-its own 3-sigma covers the error in 3 of 6) - see
+through bends and stops (30 s: 12 m vs 189 m) and, since the 2026-09-26 heading fix,
+60 m median at 120 s (3-sigma 6/6; it was 281 m) - see
 `docs/architecture/EVOLUTION_PLAN.md` P2. **Never quote simulated results as
 field accuracy; record real drives (Sensors > Navigation core) and score them.**
 
@@ -158,6 +158,47 @@ at all (44/60 window-attempts skipped) before touching sigma again; a fourth
 real drive would make the leave-one-out study honest; the map-matching gain on
 151514/162733 suggests investing there (a tighter road search radius, a real
 junction-choice policy from the yaw rate) rather than more sigma tuning.
+
+## Heading, divergence and earned trust (2026-09-26, first real rickshaw drive)
+
+A realme RMX3851 lying on an auto-rickshaw seat (100 Hz IMU, 1 Hz GNSS, 10.6
+min) exposed three real-phone failures the simulations never showed:
+
+- **No bearing ever reached the core.** `LiveSessionController` never passed
+  `bearingDeg`, so the filter started at heading 0 (north) and never got a
+  GNSS velocity update. A wrong heading is self-sealing: NHC pins velocity
+  along the wrong axis, speed collapses, and yaw becomes unobservable from
+  position. The core ran ~90 deg off for the whole drive while reporting
+  integrity HIGH. Fixed three ways: the app now passes the Android bearing
+  (`GnssFix.bearing`, only when moving); `gnss/gnss_course.dart` fills in a
+  course traced by the fixes when there is none (straight chords of >= 20 m),
+  and the filter waits for a heading before it initialises; and a heading
+  guard re-seeds the filter when the GNSS course keeps disagreeing
+  (`GnssCourseConfig.guard*`), refusing to lead meanwhile.
+- **Velocity ran away while GNSS was live** (32 m/s vs 3 m/s), with the
+  filter's gate refusing the fixes. Fixed: the receiver's Doppler speed is a
+  forward-speed update whenever there is no course, and three position fixes
+  refused in a row re-seed the filter (position only: a refused speed can be
+  the receiver's ~1 s lag in hard acceleration).
+- **The core led while worse than holding the last velocity.** Fixed with the
+  earned-trust gate (`NavigationSnapshot.predictionTrusted`): while GNSS is
+  live the core must predict each next fix within 1.25x + 2 m of what holding
+  the last velocity predicts (median over 20 fixes), or it may not lead.
+
+Result on that drive (Mumbai map, `score_drive_test.dart`): before, the core
+led from 64 s and was 272 m off at 10 s against 5.6 m for hold. After, it
+declines to lead on 56 of 57 windows and the app keeps its own pipeline. **A
+loose phone on a seat still does not beat hold**: the EKF's accel-bias
+estimate absorbs the phone's changing tilt (~0.5 m/s^2). `FeatureFlags.
+speedPrior` (last GNSS speed as a growing-sigma forward-speed update in an
+outage) helped a little (10 s 62 -> 42 m) and stays off until more drives show
+it helps. The simulated reference drive changed too, because it has no
+bearings either: 30 s 12.0 m, 60 s 23.4 m, **120 s 60.1 m (was 281 m)**,
+3-sigma 6/6 at 120 s. Simulated, not field accuracy.
+
+Tools: `DRIVE_LOG=... [OUTAGE_AT=s] [REJECT_WIN=a-b] [NAV_NOMAG=1] flutter
+test test/nav/diagnose_drive_test.dart` prints the core against GNSS per fix;
+`NAV_SPEEDPRIOR=1` on `score_drive_test.dart` A/Bs the speed prior.
 
 ## Road graph and map matching
 

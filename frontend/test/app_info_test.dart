@@ -5,8 +5,8 @@ import 'package:gatisaarth/core/constants/dr_constants.dart';
 
 void main() {
   test('the requested 4.3 build is labeled consistently', () {
-    expect(AppConstants.appVersion, '4.5.0');
-    expect(AppConstants.appBuild, '47');
+    expect(AppConstants.appVersion, '4.5.1');
+    expect(AppConstants.appBuild, '48');
   });
 
   test('the version shown in the app is the one in pubspec.yaml', () {

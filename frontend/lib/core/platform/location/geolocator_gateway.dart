@@ -64,5 +64,16 @@ class GeolocatorGateway implements LocationGateway {
         accuracy: p.accuracy,
         speed: p.speed < 0 ? 0 : p.speed,
         isMocked: p.isMocked,
+        // Android reports bearing 0.0 when it has none; only a moving fix
+        // with a bearing (or a bearing accuracy) carries a real one.
+        bearing: p.speed >= _minBearingSpeedMps &&
+                (p.headingAccuracy > 0 || p.heading != 0)
+            ? p.heading
+            : null,
+        bearingAccuracy: p.headingAccuracy > 0 ? p.headingAccuracy : null,
+        speedAccuracy: p.speedAccuracy > 0 ? p.speedAccuracy : null,
       );
+
+  /// Below this the receiver's bearing is mostly noise.
+  static const double _minBearingSpeedMps = 1.0;
 }
