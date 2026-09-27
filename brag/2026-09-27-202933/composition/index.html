@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<title>GatiSaarth — Sneak peek</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<script src="assets/audio/rms.js"></script>
+<style>
+  @font-face {
+    font-family: "Inter Display";
+    src: url("assets/fonts/Inter-Variable.ttf") format("truetype");
+    font-weight: 100 900;
+    font-style: normal;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #f5f5f7; }
+  body { font-family: "Inter Display", sans-serif; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; }
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #f5f5f7; --rms: 0; --kl: 1; }
+
+  .layer { position: absolute; inset: 0; pointer-events: none; }
+  #bg-light { background: radial-gradient(ellipse 80% 70% at 62% 46%, #ffffff 0%, #f8f8fa 48%, #ebebef 100%); }
+  #keylight {
+    background: radial-gradient(ellipse 42% 46% at 60% 58%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%);
+    opacity: calc((0.3 + var(--rms) * 0.5) * var(--kl));
+  }
+  #bg-dark {
+    opacity: 0;
+    background:
+      radial-gradient(ellipse 60% 45% at 52% 34%, #1c2029 0%, rgba(20,22,28,0) 70%),
+      radial-gradient(ellipse 90% 55% at 50% 110%, #151a22 0%, rgba(12,13,16,0) 70%),
+      #0a0b0e;
+  }
+  #road-glow {
+    opacity: 0;
+    background: radial-gradient(ellipse 40% 26% at 56% 70%, rgba(255,59,48,calc(0.07 + var(--rms) * 0.1)) 0%, rgba(255,59,48,0) 100%);
+  }
+  #tunnel { opacity: 0; }
+  .tl {
+    position: absolute; left: 0; top: 0; width: 220px; height: 10px; border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255,241,214,0) 0%, rgba(255,241,214,0.95) 28%, rgba(255,247,232,1) 50%, rgba(255,241,214,0.95) 72%, rgba(255,241,214,0) 100%);
+    box-shadow: 0 0 22px 4px rgba(255,226,180,0.45);
+    opacity: 0;
+  }
+
+  /* camera wrapper: ground plane + screen-space overlay */
+  #cam { position: absolute; inset: 0; transform-origin: 960px 648px; }
+  #ground {
+    position: absolute; left: -1040px; top: -600px; width: 4000px; height: 2280px;
+    transform-origin: 2000px 1248px;
+    transform: perspective(1600px) rotateX(40deg);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 28%, #000 44%, #000 100%);
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 28%, #000 44%, #000 100%);
+  }
+  #ground svg { position: absolute; inset: 0; width: 4000px; height: 2280px; overflow: visible; }
+  #overlay { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: visible; }
+  .sat-id { font-family: "JetBrains Mono", monospace; font-size: 28px; font-weight: 700; fill: #1d1d1f; }
+  .sat-c { font-family: "Inter Display", sans-serif; font-size: 21px; font-weight: 500; fill: #6e6e73; }
+
+  /* type */
+  .hl { position: absolute; left: 150px; top: 250px; opacity: 0; }
+  .line { display: block; overflow: hidden; padding: 0.04em 0 0.14em; margin-bottom: -0.12em; white-space: nowrap; }
+  .w { display: inline-block; }
+  .h1 { font-size: 96px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.02; color: #1d1d1f; }
+  .grey { color: #86868b; }
+  .light { color: #f5f5f7; }
+  .dgrey { color: #8e8e93; }
+  .blue-d { color: #2997ff; }
+
+  #lockup { position: absolute; left: 0; right: 0; top: 372px; text-align: center; opacity: 0; transform-origin: 50% 50%; }
+  #lockup .name { font-size: 184px; font-weight: 600; letter-spacing: -0.045em; color: #1d1d1f; line-height: 1; }
+  #lockup .name .ch { display: inline-block; }
+  #lockup .tag { margin-top: 30px; font-size: 50px; font-weight: 500; letter-spacing: -0.02em; color: #6e6e73; }
+  #lockup .soon { margin-top: 58px; font-size: 25px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: #6e6e73; }
+  #flash { background: #ffffff; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="10">
+  <div class="layer" id="bg-light" data-layout-ignore></div>
+  <div class="layer" id="keylight" data-layout-ignore></div>
+  <div class="layer" id="bg-dark" data-layout-ignore></div>
+  <div class="layer" id="road-glow" data-layout-ignore></div>
+  <div class="layer" id="tunnel" data-layout-ignore></div>
+
+  <div id="cam" data-layout-ignore>
+    <div id="ground">
+      <svg viewBox="0 0 4000 2280">
+        <g transform="translate(1040,600)">
+          <g id="world">
+            <g id="streets" fill="none" stroke="#dcdce1" stroke-width="5" stroke-linecap="round"></g>
+            <path id="band" fill="none" stroke="#e2e2e7" stroke-width="58" stroke-linecap="round" stroke-linejoin="round" />
+            <path id="ahead" fill="none" stroke="#b8b8c0" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 18" />
+            <path id="trail" fill="none" stroke="#007aff" stroke-width="9" stroke-linecap="round" />
+            <path id="drtrail" fill="none" stroke="#ff3b30" stroke-width="9" stroke-linecap="round" />
+          </g>
+        </g>
+      </svg>
+    </div>
+    <svg id="overlay" viewBox="0 0 1920 1080">
+      <g id="sats"></g>
+      <circle id="ring" r="16" fill="rgba(0,122,255,0.12)" stroke="rgba(0,122,255,0.45)" stroke-width="2" />
+      <circle id="halo" r="30" fill="rgba(0,122,255,0.16)" />
+      <circle id="dot" r="14" fill="#007aff" stroke="#ffffff" stroke-width="5" />
+    </svg>
+  </div>
+
+  <div class="hl" id="t1">
+    <div class="line h1 grey"><span class="w">Guided</span> <span class="w">by</span></div>
+    <div class="line h1"><span class="w">satellites.</span></div>
+  </div>
+  <div class="hl" id="t2">
+    <div class="line h1 light"><span class="w">Until</span> <span class="w">the</span> <span class="w">signal</span></div>
+    <div class="line h1 dgrey"><span class="w">disappears.</span></div>
+  </div>
+  <div class="hl" id="t3">
+    <div class="line h1 light"><span class="w">Something</span></div>
+    <div class="line h1 blue-d"><span class="w">keeps</span> <span class="w">moving.</span></div>
+  </div>
+
+  <div id="lockup">
+    <div class="name" id="lk-name"></div>
+    <div class="tag" id="lk-tag">Navigation beyond GNSS.</div>
+    <div class="soon" id="lk-soon">Coming soon</div>
+  </div>
+
+  <div class="layer" id="flash" data-layout-ignore></div>
+  <audio id="score" src="assets/audio/mix.wav" data-start="0" data-duration="10" data-track-index="20" data-volume="1"></audio>
+</div>
+
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const NS = "http://www.w3.org/2000/svg";
+  const tl = gsap.timeline({ paused: true });
+
+  // ------------------------------------------------------------ world geometry (pre-tilt screen coords)
+  const ROUTE = "M -400 760 C 100 740, 400 640, 800 680 S 1400 820, 1900 760 S 2600 600, 3100 660 S 3800 820, 4300 740 S 5000 620, 5500 700";
+  ["#band", "#ahead", "#trail", "#drtrail"].forEach((s) => $(s).setAttribute("d", ROUTE));
+  const STREETS = [
+    "M 180 300 L 320 1400", "M 620 260 L 560 1420", "M 1080 240 L 1240 1400", "M 1520 300 L 1420 1420",
+    "M 1980 250 L 2120 1420", "M 2440 280 L 2380 1400", "M 2920 240 L 3060 1420", "M 3380 300 L 3300 1400",
+    "M 3860 250 L 3980 1420", "M 4320 280 L 4240 1400",
+    "M -600 470 C 800 430, 2400 520, 5600 440", "M -600 1080 C 1200 1120, 3000 1020, 5600 1100",
+  ];
+  const sg = $("#streets");
+  STREETS.forEach((d) => { const p = document.createElementNS(NS, "path"); p.setAttribute("d", d); sg.appendChild(p); });
+
+  // Arc-length lookup of the route, sampled once at setup (pure geometry).
+  const rp = $("#trail");
+  const L = rp.getTotalLength();
+  const LUT = [];
+  for (let s = 0; s <= L; s += 2) { const p = rp.getPointAtLength(s); LUT.push([p.x, p.y]); }
+  const at = (s) => { const i = Math.max(0, Math.min(LUT.length - 1, s / 2)); const i0 = Math.floor(i), f = i - i0;
+    const a = LUT[i0], b = LUT[Math.min(LUT.length - 1, i0 + 1)]; return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]; };
+  let S0 = 0; while (at(S0)[0] < 520) S0 += 4;
+  const V = 430;                       // px per second along the route
+  const T_DR = 2.9;                    // dot turns red: dead reckoning takes over
+  const sAt = (t) => S0 + V * Math.min(t, 7.25);
+  const S_DR = sAt(T_DR);
+  $("#ahead").setAttribute("stroke-dashoffset", 0);
+
+  // Ground-plane projection: perspective(1600px) rotateX(40deg) about screen (960,648).
+  const TH = 40 * Math.PI / 180, D = 1600, OX = 960, OY = 648;
+  const project = (x, y) => { const dx = x - OX, dy = y - OY; const w = 1 - (dy * Math.sin(TH)) / D;
+    return [OX + dx / w, OY + (dy * Math.cos(TH)) / w]; };
+  const screenX = (t) => 760 + 300 * gsap.parseEase("power2.inOut")(Math.min(1, t / 3.2));
+
+  // ------------------------------------------------------------ satellites (screen space)
+  const SATS = [
+    { id: "G05", c: "GPS", x: 1190, y: 150 }, { id: "E24", c: "Galileo", x: 1430, y: 92 },
+    { id: "C19", c: "BeiDou", x: 1665, y: 128 }, { id: "I03", c: "NavIC", x: 1846, y: 214 },
+  ];
+  const satG = $("#sats");
+  SATS.forEach((s, i) => {
+    const ln = document.createElementNS(NS, "line");
+    ln.setAttribute("id", "sl" + i); ln.setAttribute("x1", s.x); ln.setAttribute("y1", s.y);
+    ln.setAttribute("stroke", "#007aff"); ln.setAttribute("stroke-width", "3"); ln.setAttribute("stroke-linecap", "round");
+    ln.setAttribute("pathLength", "1"); ln.setAttribute("stroke-dasharray", "1 1"); ln.setAttribute("stroke-dashoffset", "1");
+    ln.style.opacity = "0.8";
+    satG.appendChild(ln);
+    const g = document.createElementNS(NS, "g"); g.setAttribute("id", "sat" + i); g.style.opacity = "0";
+    g.innerHTML = '<circle cx="' + s.x + '" cy="' + s.y + '" r="26" fill="none" stroke="rgba(0,122,255,0.55)" stroke-width="3"/>' +
+      '<circle cx="' + s.x + '" cy="' + s.y + '" r="9" fill="#0a0a0c"/>' +
+      '<text class="sat-id" x="' + (s.x - 40) + '" y="' + (s.y - 2) + '" text-anchor="end">' + s.id + "</text>" +
+      '<text class="sat-c" x="' + (s.x - 40) + '" y="' + (s.y + 24) + '" text-anchor="end">' + s.c + "</text>";
+    satG.appendChild(g);
+  });
+
+  // ------------------------------------------------------------ per-frame draw (driven by timeline time)
+  const trail = $("#trail"), dr = $("#drtrail"), dot = $("#dot"), ring = $("#ring"), halo = $("#halo"), world = $("#world");
+  const RMS = window.__RMS || [];
+  const root = $("#root");
+  function draw(t) {
+    const s = sAt(t);
+    const [wx, wy] = at(s);
+    const camX = wx - screenX(t);
+    world.setAttribute("transform", "translate(" + (-camX).toFixed(2) + ",0)");
+    const [px, py] = project(wx - camX, wy);
+    [dot, ring, halo].forEach((c) => { c.setAttribute("cx", px.toFixed(2)); c.setAttribute("cy", py.toFixed(2)); });
+    // solid blue trail up to the outage, dashed red after it
+    trail.setAttribute("stroke-dasharray", Math.min(s, S_DR).toFixed(1) + " " + (L + 10));
+    if (s > S_DR) {
+      const parts = [0, S_DR];
+      let u = S_DR;
+      while (u < s) { const d = Math.min(22, s - u); parts.push(d, 16); u += 38; }
+      parts.push(0, L + 10);   // keep the list even: final entry is a gap
+      dr.setAttribute("stroke-dasharray", parts.map((v) => v.toFixed(1)).join(" "));
+      dr.style.opacity = "1";
+    } else {
+      dr.style.opacity = "0";
+    }
+    // honest uncertainty: grows only while dead reckoning
+    const grow = s > S_DR ? Math.min(46, (s - S_DR) * 0.028) : 0;
+    ring.setAttribute("r", (18 + grow).toFixed(2));
+    SATS.forEach((sat, i) => { const l = document.getElementById("sl" + i); l.setAttribute("x2", px.toFixed(2)); l.setAttribute("y2", py.toFixed(2)); });
+    const f = Math.max(0, Math.min(RMS.length - 1, Math.round(t * 30)));
+    root.style.setProperty("--rms", (RMS[f] || 0).toFixed(3));
+    halo.setAttribute("r", (28 + (RMS[f] || 0) * 10).toFixed(2));
+  }
+  const clock = { t: 0 };
+  draw(0);
+  tl.to(clock, { t: 10, duration: 10, ease: "none", onUpdate: () => draw(clock.t) }, 0);
+
+  // ------------------------------------------------------------ helpers
+  function reveal(sel, t, stagger) {
+    tl.set(sel, { opacity: 1 }, t);
+    tl.fromTo(sel + " .w", { yPercent: 115, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.9, ease: "power4.out", stagger: stagger || 0.07 }, t);
+  }
+  function hide(sel, t, d) { tl.to(sel, { opacity: 0, y: -20, filter: "blur(10px)", duration: d || 0.35, ease: "power2.in" }, t); }
+
+  // ------------------------------------------------------------ S1 Satellites 0 - 2.4
+  gsap.set("#cam", { scale: 1.0 });
+  tl.fromTo("#cam", { scale: 1.0 }, { scale: 1.07, duration: 7.2, ease: "sine.inOut" }, 0);
+  tl.fromTo("#ground", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "sine.out" }, 0);
+  tl.fromTo(["#dot", "#ring", "#halo"], { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(2)" }, 0.2);
+  SATS.forEach((s, i) => {
+    const t = 0.6 + i * 0.3;                         // beat-grid: 8ths 0.6 .. 1.5
+    tl.fromTo("#sat" + i, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, t - 0.15);
+    tl.to("#sl" + i, { attr: { "stroke-dashoffset": 0 }, duration: 0.45, ease: "power2.out" }, t);
+  });
+  reveal("#t1", 0.35);
+  hide("#t1", 2.2);
+
+  // ------------------------------------------------------------ S2 Signal loss 2.4 - 4.8
+  SATS.forEach((s, i) => {
+    const t = 2.4 + i * 0.15;                        // beat-locked 2.40 snaps
+    const k = SATS.length - 1 - i;
+    tl.to("#sl" + k, { attr: { "stroke-dashoffset": -1 }, opacity: 0, duration: 0.25, ease: "power2.in" }, t);
+    tl.to("#sat" + k, { opacity: 0, duration: 0.3, ease: "power2.in" }, t + 0.05);
+  });
+  tl.to("#bg-dark", { opacity: 1, duration: 0.8, ease: "sine.inOut" }, 2.5);
+  tl.to("#root", { "--kl": 0, duration: 0.7, ease: "sine.inOut" }, 2.5);
+  tl.to("#band", { attr: { stroke: "#1e222a" }, duration: 0.8, ease: "sine.inOut" }, 2.5);
+  tl.to("#streets", { attr: { stroke: "#191c23" }, duration: 0.8, ease: "sine.inOut" }, 2.5);
+  tl.to("#ahead", { attr: { stroke: "#3b404a" }, duration: 0.8, ease: "sine.inOut" }, 2.5);
+  tl.to("#dot", { attr: { fill: "#ff3b30", stroke: "#1b1d22" }, duration: 0.25 }, T_DR);
+  tl.to("#ring", { attr: { fill: "rgba(255,59,48,0.10)", stroke: "rgba(255,59,48,0.5)" }, duration: 0.25 }, T_DR);
+  tl.to("#halo", { attr: { fill: "rgba(255,59,48,0.2)" }, duration: 0.25 }, T_DR);
+  tl.to("#tunnel", { opacity: 1, duration: 0.5 }, 3.0);
+  tl.to("#road-glow", { opacity: 1, duration: 0.8 }, 3.0);
+  reveal("#t2", 3.0, 0.06);
+  hide("#t2", 4.62, 0.3);
+
+  // tunnel ceiling lights, one pair per 8th
+  const tun = $("#tunnel");
+  const VP = { x: 1010, y: 360 };
+  const RAYS = [{ x: -300, y: -260 }, { x: 2320, y: -260 }];
+  for (let t = 3.0; t < 7.2; t += 0.3) {
+    RAYS.forEach((r) => {
+      const el = document.createElement("div"); el.className = "tl"; tun.appendChild(el);
+      const ang = Math.atan2(r.y - VP.y, r.x - VP.x) * 180 / Math.PI;
+      tl.fromTo(el, { x: VP.x - 110, y: VP.y - 5, rotation: ang, scaleX: 0.04, scaleY: 0.2 },
+        { x: r.x - 110, y: r.y - 5, scaleX: 1.9, scaleY: 1.5, duration: 1.3, ease: "expo.in" }, t);
+      tl.to(el, { keyframes: [{ opacity: 0.9, duration: 0.45, ease: "sine.out" }, { opacity: 0.9, duration: 0.6 }, { opacity: 0, duration: 0.25 }] }, t);
+    });
+  }
+
+  // ------------------------------------------------------------ S3 Keeps moving 4.8 - 7.2
+  reveal("#t3", 4.95, 0.08);                          // beat-locked 4.80 drop (+0.15)
+
+  // ------------------------------------------------------------ S4 Reveal 7.2 - 10
+  tl.to("#flash", { opacity: 1, duration: 0.2, ease: "power2.in" }, 7.0);
+  tl.set(["#bg-dark", "#tunnel", "#road-glow", "#t3", "#cam"], { opacity: 0 }, 7.22);
+  tl.set("#root", { "--kl": 1 }, 7.22);
+  tl.to("#flash", { opacity: 0, duration: 0.8, ease: "power2.out" }, 7.24);   // beat-locked 7.20 burst
+  $("#lk-name").innerHTML = "GatiSaarth".split("").map((c) => '<span class="ch">' + c + "</span>").join("");
+  tl.set("#lockup", { opacity: 1 }, 7.3);
+  tl.fromTo("#lockup .ch", { opacity: 0, y: 70, filter: "blur(14px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.0, ease: "power4.out", stagger: 0.035 }, 7.4);
+  tl.fromTo("#lk-tag", { opacity: 0, y: 18, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out" }, 8.0);
+  tl.fromTo("#lk-soon", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 8.5);
+  tl.fromTo("#lockup", { scale: 1 }, { scale: 1.03, duration: 2.7, ease: "sine.out", immediateRender: false }, 7.3);
+
+  window.__timelines["main"] = tl;
+})();
+</script>
+</body>
+</html>
