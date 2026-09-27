@@ -909,7 +909,8 @@ h2 {
   grid-template-columns: 1fr 1fr;
   gap: 100px;
   align-items: center;
-  padding-block: 110px;
+  padding-top: 48px;
+  padding-bottom: 110px;
 }
 .journey-visual {
   position: relative;
@@ -1269,7 +1270,8 @@ details[open] > summary > .icon {
 
 /* A visual explanation of the added positioning layer. */
 .difference-section {
-  padding-block: 100px 70px;
+  padding-top: 100px;
+  padding-bottom: 24px;
   display: block;
 }
 .difference-heading {
@@ -1506,21 +1508,42 @@ details[open] > summary > .icon {
 }
 .comparison-evidence {
   border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-top: 20px;
 }
 .comparison-evidence summary {
   font-size: 11px;
   color: var(--muted);
-  padding-block: 17px;
+  padding-block: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+.comparison-evidence summary::-webkit-details-marker {
+  display: none;
+}
+.comparison-evidence summary:hover {
+  color: var(--ink);
 }
 .comparison-evidence summary .icon {
-  width: 15px;
+  width: 14px;
+  height: 14px;
+  transition: transform 0.25s var(--ease);
+}
+.comparison-evidence[open] summary .icon {
+  transform: rotate(45deg);
 }
 .comparison-evidence > div {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 38px;
-  padding-bottom: 24px;
+  padding-bottom: 18px;
   font-size: 12px;
+  line-height: 1.7;
   color: var(--muted);
 }
 .comparison-evidence a {
@@ -2091,7 +2114,8 @@ details[open] > summary > .icon {
   }
   .journey-section {
     gap: 40px;
-    padding-block: 85px;
+    padding-top: 36px;
+    padding-bottom: 85px;
   }
   .journey-visual {
     min-height: 760px;
@@ -2171,7 +2195,8 @@ details[open] > summary > .icon {
     grid-template-columns: repeat(2, 1fr);
   }
   .difference-section {
-    padding-block: 80px;
+    padding-top: 60px;
+    padding-bottom: 14px;
     gap: 45px;
   }
   .difference-heading h2 {
@@ -2455,7 +2480,8 @@ details[open] > summary > .icon {
     display: flex;
     flex-direction: column-reverse;
     gap: 38px;
-    padding-block: 68px;
+    padding-top: 24px;
+    padding-bottom: 68px;
   }
   .journey-copy {
     width: 100%;
@@ -2606,7 +2632,8 @@ details[open] > summary > .icon {
   }
   .difference-section {
     display: block;
-    padding-block: 68px;
+    padding-top: 60px;
+    padding-bottom: 14px;
   }
   .difference-heading h2 {
     font-size: 40px;
