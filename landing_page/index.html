@@ -1580,18 +1580,24 @@
         preload="none"
         poster="./media/launch-poster.jpg"
         aria-label="GatiSaarth launch film"
-        aria-describedby="film-description"
       ></video>
       <div class="film-footer">
-        <button id="film-fullscreen" class="film-fullscreen" type="button">
-          Watch fullscreen ↗
-        </button>
-        <p id="film-description">
-          Launch film · 60 seconds · Simulated navigation
-        </p>
-        <a href="./media/gatisaarth-launch-v1.mp4" download
-          >Download film <span aria-hidden="true">↗</span></a
-        >
+        <div class="film-actions">
+          <button
+            id="film-fullscreen"
+            class="film-btn film-fullscreen"
+            type="button"
+          >
+            Watch fullscreen <span aria-hidden="true">↗</span>
+          </button>
+          <a
+            class="film-btn film-download"
+            href="./media/gatisaarth-launch-v1.mp4"
+            download
+          >
+            Download film <span aria-hidden="true">↗</span>
+          </a>
+        </div>
       </div>
       <p id="rotate-hint" hidden>
         For the widest view, turn your phone sideways. If it stays upright,

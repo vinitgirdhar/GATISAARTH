@@ -3165,9 +3165,9 @@ details[open] > summary > .icon {
   width: min(1120px, calc(100vw - 32px));
   max-width: none;
   max-height: calc(100dvh - 32px);
-  padding: 20px;
-  border: 1px solid #38383e;
-  border-radius: 22px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
   background: #171719;
   color: #f5f5f7;
   overflow: auto;
@@ -3179,12 +3179,12 @@ details[open] > summary > .icon {
   backdrop-filter: blur(12px);
 }
 .demo-dialog .dialog-toolbar {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 .demo-dialog .dialog-close {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
 }
 .demo-dialog video {
   display: block;
@@ -3192,24 +3192,56 @@ details[open] > summary > .icon {
   max-height: calc(100dvh - 180px);
   aspect-ratio: 16 / 9;
   background: #000;
+  border: none;
+  outline: none;
   border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 .film-footer {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+.film-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: 10px 24px;
-  margin-top: 16px;
-  font-size: 11px;
-  color: #babac4;
 }
-.film-footer a {
+.film-btn,
+.film-fullscreen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   color: #fff;
-  padding-block: 5px;
+  background: #ffffff16;
+  border: 1px solid #ffffff30;
+  padding: 8px 14px;
+  border-radius: 24px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition:
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    transform 0.15s var(--ease);
 }
-.film-footer a:hover {
-  text-decoration: underline;
+.film-btn:hover,
+.film-fullscreen:hover {
+  background: #ffffff24;
+  border-color: #ffffff50;
+  color: #fff;
+  text-decoration: none;
+}
+.film-btn:active,
+.film-fullscreen:active {
+  transform: scale(0.98);
 }
 #film-error {
   margin-top: 12px;
@@ -3217,12 +3249,17 @@ details[open] > summary > .icon {
 }
 @media (max-width: 650px) {
   .demo-dialog {
-    width: calc(100vw - 20px);
-    padding: 12px;
+    width: calc(100vw - 16px);
+    padding: 10px;
     border-radius: 16px;
   }
-  .film-footer {
-    font-size: 10px;
+  .film-actions {
+    gap: 8px;
+  }
+  .film-btn,
+  .film-fullscreen {
+    padding: 7px 12px;
+    font-size: 11px;
   }
 }
 
@@ -3242,18 +3279,11 @@ details[open] > summary > .icon {
   transform-origin: left;
   pointer-events: none;
 }
-.film-fullscreen {
-  color: #fff;
-  background: #ffffff16;
-  border: 1px solid #ffffff30;
-  padding: 10px 14px;
-  border-radius: 24px;
-  font-size: 12px;
-}
 #rotate-hint {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #c7c7cf;
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #9c9ca6;
 }
 #demo-video:fullscreen {
   width: 100%;
