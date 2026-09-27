@@ -1,0 +1,1 @@
+GNSS disappears in tunnels. GatiSaarth keeps navigating: the phone's own sensors, a 15-state Kalman filter and offline maps carry you through on-device, and every fix is verified when the signal returns.

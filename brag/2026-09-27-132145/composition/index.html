@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<title>GatiSaarth — Navigation beyond GNSS</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<script src="assets/audio/rms.js"></script>
+<style>
+  @font-face {
+    font-family: "Inter Display";
+    src: url("assets/fonts/Inter-Variable.ttf") format("truetype");
+    font-weight: 100 900;
+    font-style: normal;
+  }
+  :root {
+    --ink: #1d1d1f;
+    --ink2: #6e6e73;
+    --ink3: #86868b;
+    --paper: #f5f5f7;
+    --blue: #007aff;
+    --blue-dark: #2997ff;
+    --red: #ff3b30;
+    --green: #34c759;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #f5f5f7; }
+  body {
+    font-family: "Inter Display", sans-serif;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #f5f5f7; --rms: 0; --kl: 1; }
+
+  /* ---------- backgrounds ---------- */
+  .layer { position: absolute; inset: 0; pointer-events: none; }
+  #bg-light { background: radial-gradient(ellipse 78% 72% at 64% 44%, #ffffff 0%, #f8f8fa 46%, #ececf0 100%); }
+  #keylight {
+    background: radial-gradient(ellipse 40% 46% at 68% 46%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%);
+    opacity: calc((0.35 + var(--rms) * 0.45) * var(--kl));
+  }
+  #bg-dark {
+    opacity: 0;
+    background:
+      radial-gradient(ellipse 60% 45% at 50% 36%, #1c2029 0%, rgba(20,22,28,0) 70%),
+      radial-gradient(ellipse 90% 55% at 50% 110%, #151a22 0%, rgba(12,13,16,0) 70%),
+      #0a0b0e;
+  }
+  #tunnel { opacity: 0; }
+  .tl {
+    position: absolute; left: 0; top: 0; width: 220px; height: 10px; border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255,241,214,0) 0%, rgba(255,241,214,0.95) 28%, rgba(255,247,232,1) 50%, rgba(255,241,214,0.95) 72%, rgba(255,241,214,0) 100%);
+    box-shadow: 0 0 22px 4px rgba(255,226,180,0.45);
+    opacity: 0;
+  }
+  #road-glow {
+    opacity: 0;
+    background: radial-gradient(ellipse 36% 24% at 50% 100%, rgba(80,120,190,calc(0.16 + var(--rms) * 0.2)) 0%, rgba(80,120,190,0) 100%);
+  }
+
+  /* ---------- 3D stage ---------- */
+  #stage { position: absolute; inset: 0; perspective: 2200px; perspective-origin: 50% 50%; }
+  #world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; --gl: 0.5; }
+  .rig { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+  .phone { position: absolute; left: -234px; top: -507px; width: 468px; height: 1015px; transform-style: preserve-3d; }
+  .slice { position: absolute; inset: 0; border-radius: 74px; }
+  .s1 { transform: translateZ(-18px); background: #8f8f96; }
+  .s2 { transform: translateZ(-15px); background: #b5b5bb; }
+  .s3 { transform: translateZ(-12px); background: #d3d3d8; }
+  .s4 { transform: translateZ(-9px); background: #e6e6ea; }
+  .s5 { transform: translateZ(-6px); background: #eeeef1; }
+  .s6 { transform: translateZ(-3px); background: #dcdce1; }
+  .s7 { transform: translateZ(-1px); background: #c7c7cd; }
+  .front {
+    position: absolute; inset: 3px; border-radius: 71px; background: #070708;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+  }
+  .screen { position: absolute; left: 11px; top: 11px; width: 440px; height: 987px; border-radius: 60px; overflow: hidden; background: #000; }
+  .scr { position: absolute; inset: 0; opacity: 0; }
+  .scr video, .scr img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .glare {
+    position: absolute; inset: 0; border-radius: 60px; pointer-events: none;
+    background: linear-gradient(112deg, rgba(255,255,255,0) 38%, rgba(255,255,255,0.13) 49%, rgba(255,255,255,0.02) 56%, rgba(255,255,255,0) 64%);
+    background-size: 260% 100%;
+    background-position: calc(var(--gl) * 100%) 0;
+    mix-blend-mode: screen;
+  }
+  .shadow {
+    position: absolute; left: -300px; top: 520px; width: 600px; height: 150px; border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(20,24,34,0.30) 0%, rgba(20,24,34,0) 70%);
+    transform: rotateX(90deg);
+    filter: blur(6px);
+  }
+
+  /* satellites (world plane) */
+  #sky { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+  #sky svg { position: absolute; left: -1400px; top: -1200px; width: 2800px; height: 1400px; overflow: visible; }
+  .sat { position: absolute; width: 0; height: 0; opacity: 0; }
+  .sat .dot { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%; background: #0a0a0c; }
+  .sat .ring { position: absolute; left: -26px; top: -26px; width: 52px; height: 52px; border-radius: 50%; border: 3px solid rgba(0,122,255,0.55); }
+  .sat .lab { position: absolute; left: 40px; top: -22px; white-space: nowrap; }
+  .sat.left .lab { left: auto; right: 40px; text-align: right; }
+  .sat .id { font-family: "JetBrains Mono", monospace; font-size: 30px; font-weight: 700; color: #1d1d1f; letter-spacing: 0.02em; line-height: 1.1; }
+  .sat .cons { font-size: 22px; font-weight: 500; color: #6e6e73; line-height: 1.2; }
+  #antenna { position: absolute; left: -22px; top: -562px; width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--blue); opacity: 0; }
+
+  /* sensor axes (world space, around the phone) */
+  #axes { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; opacity: 0; }
+  #gyro-ring { position: absolute; left: -430px; top: -430px; width: 860px; height: 860px; transform: rotateX(90deg); }
+
+  /* floating real-UI cards (2D, lifted from the phone) */
+  .iso { position: absolute; opacity: 0; transform-origin: 50% 50%; }
+  .iso img { display: block; width: 100%; height: auto; border-radius: 22px; box-shadow: 0 30px 60px -18px rgba(18,24,40,0.28), 0 8px 18px -8px rgba(18,24,40,0.18); }
+  .iso.pill img { border-radius: 999px; }
+  .iso.dark img { box-shadow: 0 30px 70px -16px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04); }
+
+  /* ---------- typography (2D HUD) ---------- */
+  .hl { position: absolute; left: 150px; opacity: 0; }
+  .line { display: block; overflow: hidden; padding: 0.04em 0 0.14em; margin-bottom: -0.12em; white-space: nowrap; }
+  .w { display: inline-block; }
+  .h1 { font-size: 92px; font-weight: 600; letter-spacing: -0.034em; line-height: 1.02; color: var(--ink); }
+  .h2 { font-size: 76px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.04; color: var(--ink); }
+  .grey { color: var(--ink3); }
+  .sub { font-size: 46px; font-weight: 500; letter-spacing: -0.018em; color: var(--ink2); }
+  .cap { font-size: 30px; font-weight: 500; letter-spacing: -0.005em; color: var(--ink2); white-space: nowrap; }
+  .on-dark { color: #f5f5f7; }
+  .blue { color: var(--blue); }
+  .blue-d { color: var(--blue-dark); }
+
+  /* brand */
+  #brand { position: absolute; left: 0; right: 0; top: 355px; text-align: center; opacity: 0; }
+  #brand .name { font-size: 196px; font-weight: 600; letter-spacing: -0.045em; color: var(--ink); line-height: 1; }
+  #brand .name .ch { display: inline-block; }
+  #brand .tag { margin-top: 34px; font-size: 50px; font-weight: 500; letter-spacing: -0.02em; color: var(--ink2); }
+
+  /* state grid */
+  #states { position: absolute; left: 150px; top: 440px; width: 660px; height: 260px; opacity: 0; }
+  .sd { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: #d2d2d7; }
+  .sl { position: absolute; top: 196px; width: 150px; margin-left: -75px; text-align: center; font-size: 20px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6e6e73; white-space: nowrap; }
+  #core-dot { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 10px rgba(0,122,255,0.15), 0 0 40px rgba(0,122,255,0.45); opacity: 0; }
+
+  /* physics chips */
+  .chip {
+    position: absolute; left: 150px; width: 640px; height: 116px; border-radius: 28px; opacity: 0;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 24px 50px -22px rgba(18,24,40,0.28), 0 0 0 1px rgba(18,24,40,0.05);
+    display: flex; align-items: center; gap: 28px; padding: 0 34px;
+  }
+  .chip svg { flex: 0 0 auto; }
+  .chip .ct { font-size: 38px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); line-height: 1.1; white-space: nowrap; }
+  .chip .cs { margin-top: 6px; font-size: 19px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #6e6e73; white-space: nowrap; }
+
+  /* lockup */
+  #lockup { position: absolute; left: 0; right: 0; top: 300px; text-align: center; opacity: 0; }
+  #lockup .icon { display: block; width: 168px; height: 168px; margin: 0 auto 44px; border-radius: 38px; overflow: hidden; background: #fff;
+    box-shadow: 0 30px 60px -20px rgba(18,24,40,0.35), 0 0 0 1px rgba(18,24,40,0.06); }
+  #lockup .icon img { width: 100%; height: 100%; display: block; }
+  #lockup .name { font-size: 128px; font-weight: 600; letter-spacing: -0.042em; color: var(--ink); line-height: 1; }
+  #lockup .tag { margin-top: 26px; font-size: 44px; font-weight: 500; letter-spacing: -0.02em; color: var(--ink2); }
+  #lockup .fine { margin-top: 56px; font-size: 24px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #6e6e73; }
+
+  #flash { background: #ffffff; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="60">
+
+  <div class="layer" id="bg-light" data-layout-ignore></div>
+  <div class="layer" id="keylight" data-layout-ignore></div>
+  <div class="layer" id="bg-dark" data-layout-ignore></div>
+  <div class="layer" id="road-glow" data-layout-ignore></div>
+  <div class="layer" id="tunnel" data-layout-ignore></div>
+
+  <div id="stage" data-layout-ignore>
+    <div id="world">
+      <div id="sky">
+        <svg viewBox="-1400 -1200 2800 1400" id="sky-svg"></svg>
+        <div id="antenna"></div>
+      </div>
+
+      <div class="rig" id="rig-l">
+        <div class="shadow"></div>
+        <div class="phone">
+          <div class="slice s1"></div><div class="slice s2"></div><div class="slice s3"></div><div class="slice s4"></div>
+          <div class="slice s5"></div><div class="slice s6"></div><div class="slice s7"></div>
+          <div class="front"><div class="screen">
+            <div class="scr" style="opacity:1"><img src="assets/img/s_simlab.jpg" alt="" /></div>
+            <div class="glare"></div>
+          </div></div>
+        </div>
+      </div>
+      <div class="rig" id="rig-r">
+        <div class="shadow"></div>
+        <div class="phone">
+          <div class="slice s1"></div><div class="slice s2"></div><div class="slice s3"></div><div class="slice s4"></div>
+          <div class="slice s5"></div><div class="slice s6"></div><div class="slice s7"></div>
+          <div class="front"><div class="screen">
+            <div class="scr" style="opacity:1"><img src="assets/img/s_eng.jpg" alt="" /></div>
+            <div class="glare"></div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="rig" id="rig">
+        <div class="shadow" id="shadow"></div>
+        <div class="phone" id="phone">
+          <div class="slice s1"></div><div class="slice s2"></div><div class="slice s3"></div><div class="slice s4"></div>
+          <div class="slice s5"></div><div class="slice s6"></div><div class="slice s7"></div>
+          <div class="front"><div class="screen" id="screen">
+            <div class="scr" id="w-drive"><video id="v-drive" src="assets/video/c_drive_light.mp4" data-start="0" data-duration="7.35" data-track-index="1" muted playsinline></video></div>
+            <div class="scr" id="w-drdark"><video id="v-drdark" src="assets/video/c_dr_dark.mp4" data-start="7.0" data-duration="7.6" data-track-index="2" muted playsinline></video></div>
+            <div class="scr" id="w-recover"><video id="v-recover" src="assets/video/c_recover.mp4" data-start="14.5" data-duration="5.05" data-track-index="3" muted playsinline></video></div>
+            <div class="scr" id="w-sensors"><video id="v-sensors" src="assets/video/c_sensors.mp4" data-start="23.4" data-duration="5.7" data-track-index="4" muted playsinline></video></div>
+            <div class="scr" id="w-live"><video id="v-live" src="assets/video/c_live.mp4" data-start="28.7" data-duration="5.2" data-track-index="5" muted playsinline></video></div>
+            <div class="scr" id="w-drlight"><video id="v-drlight" src="assets/video/c_dr_light.mp4" data-start="33.5" data-duration="5.2" data-track-index="6" muted playsinline></video></div>
+            <div class="scr" id="w-type"><video id="v-type" src="assets/video/c_plan_type.mp4" data-start="38.35" data-duration="2.6" data-track-index="7" muted playsinline></video></div>
+            <div class="scr" id="w-route"><video id="v-route" src="assets/video/c_plan_route.mp4" data-start="40.8" data-duration="2.95" data-track-index="8" muted playsinline></video></div>
+            <div class="scr" id="w-health"><video id="v-health" src="assets/video/c_health.mp4" data-start="43.45" data-duration="4.9" data-track-index="9" muted playsinline></video></div>
+            <div class="scr" id="w-fault"><video id="v-fault" src="assets/video/c_fault.mp4" data-start="48.1" data-duration="4.9" data-track-index="11" muted playsinline></video></div>
+            <div class="scr" id="w-outro"><video id="v-outro" src="assets/video/c_outro.mp4" data-start="52.6" data-duration="7.4" data-track-index="12" muted playsinline></video></div>
+            <div class="glare"></div>
+          </div></div>
+          <div id="ripple" style="position:absolute;left:209px;top:563px;width:50px;height:50px;border-radius:50%;border:4px solid #007aff;opacity:0"></div>
+        </div>
+        <div id="axes">
+          <svg class="gring" id="gyro-ring" viewBox="-430 -430 860 860">
+            <circle cx="0" cy="0" r="400" fill="none" stroke="rgba(10,132,255,0.16)" stroke-width="4" />
+            <circle id="gyro-arc" cx="0" cy="0" r="400" fill="none" stroke="#0a84ff" stroke-width="6" stroke-linecap="round" stroke-dasharray="900 1613" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- lifted real-UI cards -->
+  <div class="iso pill dark" id="iso-dr" style="left:150px; top:596px; width:268px;"><img src="assets/img/iso_dr_badge.png" alt="Dead reckoning" /></div>
+  <div class="iso dark" id="iso-lost" style="left:150px; top:690px; width:600px;"><img src="assets/img/iso_gps_lost.png" alt="GPS lost, following the saved route" /></div>
+  <div class="iso pill" id="iso-sync" style="left:150px; top:830px; width:520px;"><img src="assets/img/iso_syncing.png" alt="Syncing, re-syncing position" /></div>
+  <div class="iso" id="iso-acc" style="left:150px; top:420px; width:600px;"><img src="assets/img/iso_accel.png" alt="Accelerometer" /></div>
+  <div class="iso" id="iso-gyr" style="left:150px; top:540px; width:600px;"><img src="assets/img/iso_gyro.png" alt="Gyroscope" /></div>
+  <div class="iso" id="iso-mag" style="left:150px; top:660px; width:600px;"><img src="assets/img/iso_mag.png" alt="Magnetometer" /></div>
+  <div class="iso" id="iso-nhc" style="left:150px; top:760px; width:640px;"><img src="assets/img/iso_nhc.png" alt="Car dynamics, non-holonomic constraint active" /></div>
+  <div class="iso" id="iso-stats" style="left:1060px; top:735px; width:660px;"><img src="assets/img/iso_stats.png" alt="Route stats with one tunnel, saved for offline use" /></div>
+  <div class="iso" id="iso-gh" style="left:150px; top:340px; width:600px;"><img src="assets/img/iso_gnss_health.png" alt="GNSS health normal" /></div>
+  <div class="iso" id="iso-ai" style="left:150px; top:560px; width:600px;"><img src="assets/img/iso_ai.png" alt="AI speed estimator loaded" /></div>
+  <div class="iso" id="iso-hw" style="left:150px; top:680px; width:600px;"><img src="assets/img/iso_hwcheck.png" alt="Navigation hardware check pass" /></div>
+
+  <!-- headlines -->
+  <div class="hl" id="t-sat" style="top:600px;">
+    <div class="line h1 grey"><span class="w">Guided</span> <span class="w">by</span></div>
+    <div class="line h1"><span class="w">satellites.</span></div>
+  </div>
+  <div class="hl" id="t-until" style="top:600px;">
+    <div class="line h1" id="t-until-1"><span class="w">Until</span> <span class="w">the</span> <span class="w">signal</span></div>
+    <div class="line h1 grey"><span class="w">disappears.</span></div>
+  </div>
+  <div class="hl" id="t-lost" style="top:330px;">
+    <div class="line h1 on-dark"><span class="w">GNSS</span> <span class="w">lost.</span></div>
+  </div>
+  <div class="hl" id="t-cont" style="top:432px;">
+    <div class="line h1 blue-d"><span class="w">Navigation</span> <span class="w">continues.</span></div>
+  </div>
+  <div class="hl" id="t-ret" style="top:586px;">
+    <div class="line h1"><span class="w">Signal</span> <span class="w">returns.</span></div>
+  </div>
+  <div class="hl" id="t-ver" style="top:702px;">
+    <div class="line sub"><span class="w">Verified</span> <span class="w">before</span> <span class="w">it’s</span> <span class="w">trusted.</span></div>
+  </div>
+  <div class="hl" id="t-sens" style="top:150px;">
+    <div class="line h2"><span class="w">Powered</span> <span class="w">by</span> <span class="w">the</span> <span class="w">sensors</span></div>
+    <div class="line h2 grey"><span class="w">already</span> <span class="w">in</span> <span class="w">your</span> <span class="w">phone.</span></div>
+  </div>
+  <div class="hl" id="t-filt" style="top:150px;">
+    <div class="line h1"><span class="w">One</span> <span class="w">filter.</span></div>
+    <div class="line h1 grey"><span class="w">Fifteen</span> <span class="w">states.</span></div>
+  </div>
+  <div class="hl cap" id="c-filt" style="top:760px;">Error-state Kalman filter · predicts up to 100 Hz</div>
+  <div class="hl" id="t-phys" style="top:150px;">
+    <div class="line h1"><span class="w">Grounded</span> <span class="w">in</span> <span class="w">physics.</span></div>
+  </div>
+  <div class="hl" id="t-off" style="top:340px; left:1060px;">
+    <div class="line h1"><span class="w">Offline</span> <span class="w">maps.</span></div>
+    <div class="line h1 blue"><span class="w">Offline</span> <span class="w">routes.</span></div>
+  </div>
+  <div class="hl cap" id="c-off" style="top:588px; left:1062px;">
+    <svg width="30" height="30" viewBox="0 0 24 24" style="vertical-align:-5px;margin-right:12px"><path fill="#6e6e73" d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>Recorded in airplane mode
+  </div>
+  <div class="hl" id="t-trust" style="top:150px;">
+    <div class="line h1"><span class="w">It</span> <span class="w">knows</span> <span class="w">what</span> <span class="w">to</span> <span class="w">trust.</span></div>
+  </div>
+  <div class="hl cap" id="c-trust" style="top:262px;">On-device AI, advisory by design</div>
+  <div class="hl" id="t-test" style="top:92px; left:0; right:0; text-align:center;">
+    <div class="line h2"><span class="w">Tested</span> <span class="w">against</span> <span class="w">every</span> <span class="w">outage</span></div>
+    <div class="line h2 grey"><span class="w">we</span> <span class="w">could</span> <span class="w">build.</span></div>
+  </div>
+  <div class="hl" id="t-move" style="top:420px;">
+    <div class="line h1"><span class="w">Navigation</span> <span class="w">that</span></div>
+    <div class="line h1 blue"><span class="w">keeps</span> <span class="w">moving.</span></div>
+  </div>
+
+  <div id="states">
+    <div id="core-dot"></div>
+  </div>
+
+  <div class="chip" id="chip1" style="top:330px;">
+    <svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="25" fill="#eaf3ff"/><rect x="18" y="18" width="18" height="18" rx="4" fill="#007aff"/></svg>
+    <div><div class="ct">Stops mean zero.</div><div class="cs">Zero-velocity update</div></div>
+  </div>
+  <div class="chip" id="chip2" style="top:466px;">
+    <svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="25" fill="#eaf3ff"/><path d="M27 12 L35 30 L27 26 L19 30 Z" fill="#007aff"/><path d="M13 40 H41" stroke="#ff3b30" stroke-width="3" stroke-linecap="round"/><path d="M13 36 L41 44 M41 36 L13 44" stroke="#ff3b30" stroke-width="2.4" stroke-linecap="round" opacity="0"/></svg>
+    <div><div class="ct">No sideways slip.</div><div class="cs">Non-holonomic constraint</div></div>
+  </div>
+  <div class="chip" id="chip3" style="top:602px;">
+    <svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="25" fill="#eaf3ff"/><path d="M17 44 C 20 30, 34 26, 37 10" stroke="#007aff" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="26" cy="28" r="5" fill="#ff3b30"/></svg>
+    <div><div class="ct">Held to the road.</div><div class="cs">Map-matched dead reckoning</div></div>
+  </div>
+
+  <div id="brand">
+    <div class="name" id="brand-name"></div>
+    <div class="tag" id="brand-tag">Navigation beyond GNSS.</div>
+  </div>
+
+  <div id="lockup">
+    <div class="icon"><img src="assets/img/app_icon.png" alt="GatiSaarth app icon" /></div>
+    <div class="name">GatiSaarth</div>
+    <div class="tag">Navigation beyond GNSS.</div>
+    <div class="fine">Offline-first · On-device · Android</div>
+  </div>
+
+  <div class="layer" id="flash" data-layout-ignore></div>
+
+  <audio id="score" src="assets/audio/mix.wav" data-start="0" data-duration="60" data-track-index="20" data-volume="1"></audio>
+</div>
+
+<script>
+(function () {
+  const tl = gsap.timeline({ paused: true });
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+  // ---------------------------------------------------------------- helpers
+  function reveal(sel, t, opts) {
+    const o = Object.assign({ stagger: 0.075, dur: 0.95 }, opts || {});
+    tl.set(sel, { opacity: 1 }, t);
+    tl.fromTo(sel + " .w", { yPercent: 115, opacity: 0 },
+      { yPercent: 0, opacity: 1, duration: o.dur, ease: "power4.out", stagger: o.stagger }, t);
+  }
+  function fadeIn(sel, t, dur, from) {
+    tl.fromTo(sel, Object.assign({ opacity: 0, y: 18, filter: "blur(8px)" }, from || {}),
+      { opacity: 1, y: 0, filter: "blur(0px)", duration: dur || 0.7, ease: "power3.out" }, t);
+  }
+  function hide(sel, t, dur) {
+    tl.to(sel, { opacity: 0, y: -22, filter: "blur(10px)", duration: dur || 0.45, ease: "power2.in" }, t);
+  }
+  // world camera keyframe: tween #world to a pose
+  function cam(t, dur, ease, p) {
+    const v = { x: p[0], y: p[1], z: p[2], rotationX: p[3], rotationY: p[4], rotationZ: p[5], scale: p[6],
+                "--gl": 0.5 - p[4] / 60, duration: dur, ease: ease };
+    tl.to("#world", v, t);
+  }
+  function screenIn(id, t, dur) {
+    tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: dur || 0.25, ease: "none" }, t);
+  }
+  function screenOut(id, t) { tl.set(id, { opacity: 0 }, t); }
+  // a real UI card lifting out of the phone into the HUD
+  function lift(sel, t, from) {
+    const f = Object.assign({ x: 700, y: -140, scale: 0.55, rotationY: -28 }, from || {});
+    tl.fromTo(sel, { opacity: 0, x: f.x, y: f.y, scale: f.scale, rotationY: f.rotationY, transformPerspective: 1400, filter: "blur(6px)" },
+      { opacity: 1, x: 0, y: 0, scale: 1, rotationY: 0, filter: "blur(0px)", duration: 1.0, ease: "expo.out" }, t);
+  }
+
+  // ---------------------------------------------------------------- satellites
+  const SATS = [
+    { id: "G05", c: "GPS", x: -1010, y: -560, left: true },
+    { id: "E24", c: "Galileo", x: -640, y: -790, left: true },
+    { id: "R12", c: "GLONASS", x: -220, y: -900, left: true },
+    { id: "C19", c: "BeiDou", x: 250, y: -880 },
+    { id: "I03", c: "NavIC", x: 650, y: -660 },
+  ];
+  const ANT = { x: 0, y: -540 };
+  const svg = $("#sky-svg");
+  const NS = "http://www.w3.org/2000/svg";
+  SATS.forEach((s, i) => {
+    const len = Math.hypot(s.x - ANT.x, s.y - ANT.y);
+    const ln = document.createElementNS(NS, "line");
+    ln.setAttribute("x1", s.x); ln.setAttribute("y1", s.y);
+    ln.setAttribute("x2", ANT.x); ln.setAttribute("y2", ANT.y);
+    ln.setAttribute("stroke", "#007aff"); ln.setAttribute("stroke-width", "3");
+    ln.setAttribute("stroke-linecap", "round");
+    ln.setAttribute("stroke-dasharray", len + " " + len);
+    ln.setAttribute("stroke-dashoffset", len);
+    ln.setAttribute("id", "sl" + i);
+    ln.style.opacity = "0.75";
+    svg.appendChild(ln);
+    const pk = document.createElementNS(NS, "circle");
+    pk.setAttribute("r", "7"); pk.setAttribute("fill", "#007aff");
+    pk.setAttribute("cx", s.x); pk.setAttribute("cy", s.y); pk.setAttribute("id", "sp" + i);
+    pk.style.opacity = "0";
+    svg.appendChild(pk);
+    const d = document.createElement("div");
+    d.className = "sat" + (s.left ? " left" : ""); d.id = "sat" + i;
+    d.style.left = s.x + "px"; d.style.top = s.y + "px";
+    d.innerHTML = '<div class="ring"></div><div class="dot"></div><div class="lab"><div class="id">' + s.id + '</div><div class="cons">' + s.c + "</div></div>";
+    $("#sky").appendChild(d);
+    s.len = len;
+  });
+
+  // ---------------------------------------------------------------- tunnel lights
+  const tun = $("#tunnel");
+  const VP = { x: 1010, y: 360 };
+  const RAYS = [{ x: -300, y: -260 }, { x: 2320, y: -260 }];
+  let li = 0;
+  const lights = [];
+  for (let t = 6.9; t < 14.45; t += 0.3) {
+    RAYS.forEach((r, k) => {
+      if (k >= 2 && Math.round((t - 6.9) / 0.3) % 2 === 1) return; // floor rows at half density
+      const el = document.createElement("div");
+      el.className = "tl";
+      const ang = Math.atan2(r.y - VP.y, r.x - VP.x) * 180 / Math.PI;
+      tun.appendChild(el);
+      lights.push({ el, t, r, ang, k });
+      li++;
+    });
+  }
+
+  // ---------------------------------------------------------------- state grid
+  const LABELS = ["Position", "Velocity", "Attitude", "Accel bias", "Gyro bias"];
+  const grid = $("#states");
+  const COLX = (i) => 60 + i * 136;
+  const ROWY = (j) => 26 + j * 56;
+  for (let i = 0; i < 5; i++) {
+    for (let j = 0; j < 3; j++) {
+      const d = document.createElement("div");
+      d.className = "sd c" + i; d.style.left = (COLX(i) - 11) + "px"; d.style.top = (ROWY(j) - 11) + "px";
+      d.dataset.dx = COLX(2) - COLX(i); d.dataset.dy = ROWY(1) - ROWY(j);
+      grid.appendChild(d);
+    }
+    const l = document.createElement("div");
+    l.className = "sl"; l.id = "sl-" + i; l.style.left = COLX(i) + "px"; l.textContent = LABELS[i];
+    grid.appendChild(l);
+  }
+  $("#core-dot").style.left = (COLX(2) - 15) + "px";
+  $("#core-dot").style.top = (ROWY(1) - 15) + "px";
+
+  // brand letters
+  $("#brand-name").innerHTML = "GatiSaarth".split("").map((c) => '<span class="ch">' + c + "</span>").join("");
+
+  // ================================================================ TIMELINE
+  // initial states
+  gsap.set("#world", { x: 420, y: 900, z: -400, rotationX: 30, rotationY: -36, rotationZ: 6, scale: 0.64, "--gl": 1.1 });
+  gsap.set("#rig-l", { x: -1500, z: -150, rotationY: 26, opacity: 0 });
+  gsap.set("#rig-r", { x: 1500, z: -150, rotationY: -26, opacity: 0 });
+  gsap.set("#w-drive", { opacity: 1 });
+
+  // ---- S1 Satellites 0.0 - 4.8
+  cam(0.0, 1.7, "power3.out", [420, 120, 0, 9, -20, 0, 0.64]);
+  cam(1.7, 3.1, "sine.inOut", [400, 110, 60, 7, -15, 0, 0.66]);
+  SATS.forEach((s, i) => {
+    const t = 1.2 + i * 0.6;                        // beat-grid: one lock per beat (1.2 .. 3.6)
+    tl.fromTo("#sat" + i, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, t - 0.25);
+    tl.to("#sl" + i, { attr: { "stroke-dashoffset": 0 }, duration: 0.55, ease: "power2.out" }, t);
+    tl.fromTo("#sp" + i, { attr: { cx: s.x, cy: s.y }, opacity: 1 },
+      { attr: { cx: ANT.x, cy: ANT.y }, opacity: 0.9, duration: 0.8, ease: "power1.in", repeat: 2, repeatDelay: 0.25, immediateRender: false }, t + 0.35);
+    tl.set("#sp" + i, { opacity: 0 }, t + 0.35 + 3 * 0.8 + 2 * 0.25);
+  });
+  tl.fromTo("#antenna", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(2)" }, 1.2);
+  reveal("#t-sat", 0.75);
+  hide("#t-sat", 4.4, 0.33);
+
+  // ---- S2 Into the tunnel 4.8 - 7.2
+  cam(4.8, 2.4, "power2.in", [0, 12, 1780, 0, 0, 0, 0.86]);
+  reveal("#t-until", 4.75, { stagger: 0.06 });
+  SATS.forEach((s, i) => {
+    const t = 5.4 + i * 0.3;                        // snaps on 8ths, descending
+    const k = 4 - i;
+    tl.to("#sl" + k, { attr: { "stroke-dashoffset": -SATS[k].len }, opacity: 0, duration: 0.28, ease: "power2.in" }, t);
+    tl.to("#sat" + k, { opacity: 0, scale: 0.6, duration: 0.3, ease: "power2.in" }, t + 0.05);
+  });
+  tl.to("#antenna", { opacity: 0, duration: 0.3 }, 6.6);
+  // the world dims into the tunnel
+  tl.to("#bg-dark", { opacity: 1, duration: 0.95, ease: "sine.inOut" }, 6.2);
+  tl.to("#root", { "--kl": 0, duration: 0.9, ease: "sine.inOut" }, 6.2);
+  tl.to("#shadow", { opacity: 0, duration: 0.6 }, 6.2);
+  hide("#t-until", 6.2, 0.35);
+  // screen: light approach -> dark dead reckoning, swapped while the screen fills the frame
+  screenIn("#w-drdark", 7.05, 0.2);
+  screenOut("#w-drive", 7.3);
+
+  // ---- S3 Dead reckoning 7.2 - 14.4
+  cam(7.2, 1.7, "power3.out", [360, 20, -60, 3, -9, 0, 0.86]);   // beat-locked: 7.20 tunnel entry
+  cam(8.9, 5.5, "sine.inOut", [330, 10, 40, 2, -3, 0, 0.86]);
+  tl.to("#tunnel", { opacity: 1, duration: 0.6, ease: "sine.out" }, 7.2);
+  tl.to("#road-glow", { opacity: 1, duration: 1.0 }, 7.2);
+  lights.forEach(({ el, t, r, ang, k }) => {
+    const life = k >= 2 ? 1.0 : 1.3;
+    tl.fromTo(el, { x: VP.x - 110, y: VP.y - 5, rotation: ang, scaleX: 0.04, scaleY: 0.2, opacity: 0 },
+      { x: r.x - 110, y: r.y - 5, scaleX: 1.9, scaleY: 1.5, duration: life, ease: "expo.in" }, t);
+    tl.to(el, { keyframes: [{ opacity: k >= 2 ? 0.55 : 0.9, duration: life * 0.35, ease: "sine.out" }, { opacity: 0.9, duration: life * 0.45 }, { opacity: 0, duration: life * 0.2 }] }, t);
+  });
+  reveal("#t-lost", 7.8);
+  reveal("#t-cont", 9.6);                             // beat-locked: 9.60 the drop
+  lift("#iso-dr", 10.8, { x: 980, y: -30 });
+  lift("#iso-lost", 12.0, { x: 900, y: -60 });
+
+  // ---- S4 Exit + recovery 14.4 - 19.2
+  tl.to("#flash", { opacity: 1, duration: 0.2, ease: "power2.in" }, 14.2);  // beat-locked: 14.40 exit
+  tl.set(["#bg-dark", "#tunnel", "#road-glow"], { opacity: 0 }, 14.42);
+  tl.set(["#t-lost", "#t-cont", "#iso-dr", "#iso-lost"], { opacity: 0 }, 14.42);
+  tl.set("#root", { "--kl": 1 }, 14.42);
+  tl.set("#shadow", { opacity: 1 }, 14.42);
+  screenIn("#w-recover", 14.42, 0.05);
+  screenOut("#w-drdark", 14.5);
+  tl.to("#flash", { opacity: 0, duration: 0.75, ease: "power2.out" }, 14.45);
+  tl.set("#world", { x: 380, y: 60, z: 160, rotationX: 5, rotationY: -10, rotationZ: 0, scale: 0.7, "--gl": 0.66 }, 14.42);
+  cam(14.45, 1.75, "power3.out", [420, 120, 0, 8, -18, 0, 0.64]);
+  cam(16.2, 3.0, "sine.inOut", [400, 110, 60, 7, -13, 0, 0.66]);
+  SATS.forEach((s, i) => {
+    const t = 15.0 + i * 0.3;                       // re-lock on 8ths
+    tl.set("#sl" + i, { attr: { "stroke-dashoffset": s.len }, opacity: 0.75 }, 14.42);
+    tl.fromTo("#sat" + i, { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(2)", immediateRender: false }, t - 0.2);
+    tl.to("#sl" + i, { attr: { "stroke-dashoffset": 0 }, duration: 0.5, ease: "power2.out" }, t);
+  });
+  tl.fromTo("#antenna", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)", immediateRender: false }, 15.0);
+  reveal("#t-ret", 15.0);
+  reveal("#t-ver", 16.2, { stagger: 0.05 });
+  lift("#iso-sync", 16.0, { x: 1040, y: -40 });
+
+  // ---- S5 Brand 19.2 - 24.0
+  cam(18.95, 0.5, "power3.in", [400, 1250, -300, 34, -20, 0, 0.66]);
+  SATS.forEach((s, i) => tl.to(["#sat" + i, "#sl" + i], { opacity: 0, duration: 0.3 }, 18.95));
+  tl.to("#antenna", { opacity: 0, duration: 0.3 }, 18.95);
+  hide(["#t-ret", "#t-ver", "#iso-sync"], 18.95, 0.35);
+  tl.fromTo("#brand", { scale: 1 }, { scale: 1.035, duration: 4.3, ease: "sine.inOut", immediateRender: false }, 19.3);
+  tl.set("#brand", { opacity: 1 }, 19.3);
+  tl.fromTo("#brand .ch", { opacity: 0, y: 70, filter: "blur(14px)" },
+    { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.1, ease: "power4.out", stagger: 0.035 }, 19.3);   // beat-locked: 19.20 bloom (+0.1)
+  fadeIn("#brand-tag", 20.4, 0.8);
+  hide("#brand", 23.3, 0.5);
+  screenOut("#w-recover", 19.6);
+
+  // ---- S6 Sensors 24.0 - 28.8
+  tl.set("#world", { x: 440, y: 1000, z: -300, rotationX: 30, rotationY: -40, rotationZ: 0, scale: 0.84, "--gl": 1.2 }, 23.3);
+  tl.set("#w-sensors", { opacity: 1 }, 23.4);
+  cam(23.5, 1.5, "power3.out", [400, 30, 0, 9, -24, 0, 0.84]);
+  cam(25.0, 3.8, "sine.inOut", [380, 20, 40, 7, -16, 0, 0.84]);
+  tl.fromTo("#axes", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "sine.out" }, 24.5);
+  tl.fromTo("#gyro-arc", { attr: { "stroke-dashoffset": 2513 } }, { attr: { "stroke-dashoffset": -2513 }, duration: 4.4, ease: "none" }, 24.5);
+  reveal("#t-sens", 24.3, { stagger: 0.05 });
+  lift("#iso-acc", 25.2, { x: 1000, y: 60 });        // beat-grid: 25.2 / 25.8 / 26.4
+  lift("#iso-gyr", 25.8, { x: 1000, y: -40 });
+  lift("#iso-mag", 26.4, { x: 1000, y: -140 });
+
+  // ---- S7 Filter 28.8 - 33.6
+  hide("#t-sens", 28.6, 0.4);
+  tl.to("#axes", { opacity: 0, duration: 0.4 }, 28.6);
+  ["#iso-acc", "#iso-gyr", "#iso-mag"].forEach((s, i) => {
+    tl.to(s, { x: 180 + i * 40, y: 120 - i * 110, scale: 0.2, opacity: 0, filter: "blur(6px)", duration: 0.55, ease: "power3.in" }, 28.7 + i * 0.06);
+  });
+  screenIn("#w-live", 28.75, 0.3);
+  screenOut("#w-sensors", 29.1);
+  cam(28.8, 1.0, "power2.inOut", [420, 20, 0, 5, -10, 0, 0.84]);
+  cam(29.8, 3.8, "sine.inOut", [400, 10, 60, 4, -6, 0, 0.84]);
+  reveal("#t-filt", 29.0);
+  tl.set("#states", { opacity: 1 }, 29.0);
+  tl.fromTo("#states .sd", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(2)", stagger: { each: 0.02, from: "start" } }, 29.0);
+  tl.fromTo("#states .sl", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.04 }, 29.1);
+  for (let i = 0; i < 5; i++) {
+    const t = 29.4 + i * 0.6;                       // beat-grid: 29.4 .. 31.8, labels stay on
+    tl.to("#states .c" + i, { backgroundColor: "#007aff", scale: 1.25, duration: 0.25, ease: "back.out(3)" }, t);
+    tl.to("#states .c" + i, { scale: 1, duration: 0.3, ease: "power2.out" }, t + 0.25);
+    tl.to("#sl-" + i, { color: "#1d1d1f", duration: 0.25 }, t);
+  }
+  fadeIn("#c-filt", 30.4, 0.6);
+  // converge: 15 dots collapse into one
+  tl.to("#states .sd", { x: (i, el) => +el.dataset.dx, y: (i, el) => +el.dataset.dy, duration: 0.55, ease: "power3.in", stagger: 0.01 }, 32.2);
+  tl.to("#states .sd", { opacity: 0, duration: 0.1 }, 32.8);
+  tl.fromTo("#core-dot", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(3)" }, 32.75);
+  tl.to("#core-dot", { x: 1040, y: -60, scale: 0.35, opacity: 0, duration: 0.55, ease: "power3.in" }, 33.05);
+  tl.fromTo("#ripple", { opacity: 0.9, scale: 0.4 }, { opacity: 0, scale: 3.2, duration: 0.9, ease: "power2.out", immediateRender: false }, 33.55);
+
+  // ---- S8 Physics 33.6 - 38.4
+  hide(["#t-filt", "#c-filt", "#states .sl"], 33.4, 0.4);
+  screenIn("#w-drlight", 33.55, 0.3);
+  screenOut("#w-live", 33.9);
+  cam(33.6, 1.0, "power2.inOut", [380, 20, 0, 6, 14, 0, 0.84]);
+  cam(34.6, 3.8, "sine.inOut", [360, 10, 50, 5, 8, 0, 0.84]);
+  reveal("#t-phys", 33.9);
+  ["#chip1", "#chip2", "#chip3"].forEach((c, i) => {
+    const t = 34.8 + i * 0.9;                       // beat-grid, 1.5 beats apart so each line reads
+    tl.fromTo(c, { opacity: 0, x: -40, filter: "blur(8px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out" }, t);
+  });
+  tl.to("#chip2 path:last-child", { opacity: 1, duration: 0.3 }, 35.9);
+  lift("#iso-nhc", 36.3, { x: 1000, y: -500 });
+
+  // ---- S9 Offline 38.4 - 43.2
+  hide(["#t-phys", "#chip1", "#chip2", "#chip3", "#iso-nhc"], 38.2, 0.4);
+  screenIn("#w-type", 38.35, 0.25);
+  screenOut("#w-drlight", 38.7);
+  cam(38.4, 1.0, "power3.inOut", [-400, 20, 0, 6, 18, 0, 0.84]);
+  cam(39.4, 3.8, "sine.inOut", [-380, 10, 60, 5, 12, 0, 0.84]);
+  reveal("#t-off", 38.7);
+  fadeIn("#c-off", 40.2, 0.6);
+  screenIn("#w-route", 40.8, 0.25);
+  screenOut("#w-type", 41.1);
+  lift("#iso-stats", 41.4, { x: -760, y: -60, rotationY: 30 });
+
+  // ---- S10 Trust 43.2 - 48.0
+  hide(["#t-off", "#c-off", "#iso-stats"], 43.0, 0.4);
+  screenIn("#w-health", 43.45, 0.25);
+  screenOut("#w-route", 43.8);
+  cam(43.2, 1.0, "power3.inOut", [400, 20, 0, 6, -18, 0, 0.84]);
+  cam(44.2, 3.8, "sine.inOut", [380, 10, 50, 5, -12, 0, 0.84]);
+  reveal("#t-trust", 43.5);
+  lift("#iso-gh", 44.4, { x: 1000, y: 0 });          // beat-grid: 44.4 / 45.0 / 45.6
+  lift("#iso-ai", 45.0, { x: 1000, y: -120 });
+  lift("#iso-hw", 45.6, { x: 1000, y: -240 });
+  fadeIn("#c-trust", 46.2, 0.6);
+
+  // ---- S11 Tested 48.0 - 52.8
+  hide(["#t-trust", "#c-trust", "#iso-gh", "#iso-ai", "#iso-hw"], 47.8, 0.4);
+  screenIn("#w-fault", 48.1, 0.25);
+  screenOut("#w-health", 48.45);
+  cam(48.0, 1.0, "power3.inOut", [0, 120, -330, 4, 0, 0, 0.68]);
+  cam(49.0, 3.5, "sine.inOut", [0, 110, -280, 3, 5, 0, 0.68]);
+  tl.to("#rig-l", { x: -700, opacity: 1, duration: 1.0, ease: "power3.out" }, 48.6);   // beat-grid: 48.6 / 49.2
+  tl.to("#rig-r", { x: 700, opacity: 1, duration: 1.0, ease: "power3.out" }, 49.2);
+  reveal("#t-test", 48.3, { stagger: 0.05 });
+
+  // ---- S12 Outro 52.8 - 60
+  hide("#t-test", 52.45, 0.35);
+  tl.to("#rig-l", { x: -1500, opacity: 0, duration: 0.5, ease: "power3.in" }, 52.45);
+  tl.to("#rig-r", { x: 1500, opacity: 0, duration: 0.5, ease: "power3.in" }, 52.45);
+  screenIn("#w-outro", 52.6, 0.3);
+  screenOut("#w-fault", 53.0);
+  cam(52.8, 1.0, "power3.inOut", [380, 20, 0, 6, -14, 0, 0.84]);
+  cam(53.8, 1.4, "sine.inOut", [360, 15, 60, 5, -9, 0, 0.84]);
+  reveal("#t-move", 53.1);
+  hide("#t-move", 54.75, 0.35);
+  cam(54.85, 0.6, "power3.in", [360, 1200, -200, 30, -9, 0, 0.84]);
+  tl.set("#lockup", { opacity: 1 }, 55.2);
+  tl.fromTo("#lockup .icon", { opacity: 0, scale: 0.7, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.9, ease: "back.out(1.6)" }, 55.2);   // beat-locked: 55.20 lockup
+  tl.fromTo("#lockup .name", { opacity: 0, y: 40, filter: "blur(12px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.0, ease: "power4.out" }, 55.55);
+  fadeIn("#lockup .tag", 56.1, 0.8);
+  tl.fromTo("#lockup", { scale: 1 }, { scale: 1.03, duration: 4.6, ease: "sine.out", immediateRender: false }, 55.4);
+  fadeIn("#lockup .fine", 56.7, 0.8);
+  screenOut("#w-outro", 56.2);
+
+  // ---------------------------------------------------------------- audio-reactive light (music RMS)
+  const RMS = window.__RMS || [];
+  const root = $("#root");
+  const proxy = { t: 0 };
+  tl.to(proxy, { t: 60, duration: 60, ease: "none", onUpdate: function () {
+    const f = Math.max(0, Math.min(RMS.length - 1, Math.round(proxy.t * 30)));
+    root.style.setProperty("--rms", (RMS[f] || 0).toFixed(3));
+  } }, 0);
+
+  window.__timelines["main"] = tl;
+})();
+</script>
+</body>
+</html>

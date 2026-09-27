@@ -33,6 +33,7 @@ backend/model_artifacts/*
 *.iml
 flutter_log.txt
 /package-lock.json
+node_modules/
 
 # Signing keys are never committed
 *.keystore
