@@ -1,5 +1,6 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import "./app-simulator.js";
 gsap.registerPlugin(ScrollTrigger);
 
 const mobileMenu = document.querySelector("#mobile-menu");
@@ -498,7 +499,7 @@ motion.add("(prefers-reduced-motion: no-preference)", () => {
     ease: "power3.out",
     clearProps: "transform,opacity",
     scrollTrigger: {
-      trigger: ".download-section",
+      trigger: ".download-inner",
       start: "top 82%",
       once: true,
     },

@@ -16,15 +16,35 @@ Development: http://127.0.0.1:5173. `npm.cmd run build` creates `dist/`; `npm.cm
 
 ## Design and behavior
 
-The visual language pairs white (`#ffffff`), graphite (`#1d1d1f`), cool gray (`#f2f2f4`), and route orange (`#ec5830`) with locally hosted Manrope variable typography. Stronger typography, restrained terrain graphics, neutral product surfaces, and graphite/silver device frames keep the actual app in focus. Interactive navigation scenes explain the product visually.
+The visual language pairs white (`#ffffff`), graphite (`#1d1d1f`), cool gray (`#f2f2f4`), and route orange (`#ec5830`) with locally hosted Manrope variable typography. Stronger typography, restrained terrain graphics, neutral product surfaces, and graphite/silver device frames keep the actual app in focus. Interactive navigation scenes explain the product visually. The engineering summary, fusion diagram, Android download, and their disclosures share one responsive section so the conclusion stays compact.
 
 Motion includes scroll-linked journey progress strokes, a reversible signal-loss comparison with manual controls, expanding confidence rings, gentle FAQ reveals, a staggered hero entrance, a drawn route, scroll-linked phone movement, progressive journey steps, drawn sensor traces, and a sequenced fusion diagram. Scrolling through the tunnel scene advances its positioning stages; choosing a stage manually holds that choice until the next scroll boundary is crossed, in either direction. Native smooth scrolling preserves keyboard and touch behavior, without pinned sections or scroll hijacking. GSAP matchMedia reverts animations and ScrollTriggers when reduced motion is requested, including changes made while the page is open.
 
 The two-track comparison contrasts a downloaded map with an added motion-estimation layer. Its signal toggle moves the estimated position and changes the uncertainty ring. This is a conceptual capability illustration, not a competitor benchmark. Supporting context and primary sources are in a disclosure. The footer credits Team CodeAstra, team ID 120431.
 
-Both phone frames use graphite and silver edge highlights, with shallow 2D rotation to preserve screen readability. The screen itself is not covered by a gloss layer. Click to inspect the full-resolution capture.
+The hero phone is upright and contains an interactive frontend app. **Experience app** or the map's expand control opens the same running app in an immersive native dialog. The second phone retains its full-resolution Android Home capture. Both frames use graphite and silver highlights, without a gloss layer over the screen. Escape closes the current app sheet/page before closing its outer dialog; closing restores scrolling and focus.
 
-Click either phone to inspect its actual screen in a keyboard-accessible native dialog. Escape closes the dialog and restores focus. The mobile menu, FAQs, and technical disclosures work with keyboard controls.
+## Interactive app experience
+
+`src/app-simulator.js` implements an isolated Shadow DOM component, using the running Pixel 9 application and Flutter theme/screens as references. Its state moves intact between the hero and expanded view. Phone screens fill the available viewport; landscape puts map and controls side by side; larger screens show a framed phone with a short introduction.
+
+- **Home:** readiness, journey summary, editable starting point/destination, local place search, map-point selection, route preparation, preview, and navigation.
+- **Map:** Mumbai street geometry, route/position/destination, vehicle-following camera, route-derived guidance distance, collision-filtered street labels, drag/keyboard pan, pinch/button zoom, overview/recenter, accelerated journey playback, arrival, growing uncertainty during signal gaps, and recovery. Tunnel tests cruise at a sample 45 km/h until ended; urban canyon alternates lost/intermittent fixes at 30 km/h. Timed GPS loss has the app's 10/20/30/45/60-second picker, countdown, reacquisition, example scorecard, rerun, and cancellation without a saved result.
+- **Sensors:** status and changing sample diagnostic readings.
+- **Profile:** vehicle selection, light/dark appearance and preferences, local map selection, recordings/JSON export, outage logs, sample benchmark replay, all nine fault presets with single/batch replay, trusted/unrecognized sample portal matching, diagnostics pause/clear/export, and navigation-engine information. Preferences persist in localStorage; routes, recordings, and logs last for the page session. Cancelling a replay does not create results.
+
+`src/simulator-scenarios.js` supplies deterministic illustration values. Benchmark/fault/anchor flows explicitly identify their local sample data; they are not measured engine results, signed evidence, or surveyed anchors. Tunnel/canyon behavior and timed-outage controls were checked against the current Flutter controllers and screens. The component responds to visual-viewport changes for on-screen keyboards and keeps controls scrollable in short viewports.
+
+This is a frontend simulation, not compiled Flutter or the production navigation engine. All sensor values and journey timing are samples. The bounded local street graph does not implement driving restrictions, production routing, live GPS, AI inference, hardware haptics/voice, or physical accuracy measurement. No navigation/backend service, API key, permission prompt, or mobile core change is involved. About and the expanded desktop introduction explain this scope.
+
+The map is bundled in `public/simulator/mumbai.json` (about 981 KB), extracted from the app's existing `frontend/assets/maps/packs/mumbai.pmtiles`. Geometry is drawn in grouped SVG paths; no third-party map requests are made at runtime. OSM/Protomaps attribution stays visible. The derived data retains ODbL 1.0 licensing; the JSON includes provenance and can be obtained directly from the static site. Regenerate from the repository root's app pack with:
+
+```powershell
+cd D:\gathisarthi\landing_page
+node tools/prepare-simulator-map.mjs
+```
+
+The app font is the actual bundled Inter variable font, losslessly repackaged as WOFF in `public/fonts/app-inter.woff`; its license is `public/fonts/Inter-OFL.txt`. Map extraction packages are development dependencies only. Reduced-motion settings suppress decorative app transitions; deliberate navigation playback remains interactive.
 
 ## Assets and provenance
 
@@ -44,7 +64,7 @@ On phone-sized screens, opening the film requests native video fullscreen and th
 
 Replace the APK in `public/downloads/`, then update both download URLs, visible version/size information, the SHA-256 in `index.html`, `SHA256SUMS.txt`, and the release expectations in `tests/launch.spec.js`. Compute the hash with `Get-FileHash -Algorithm SHA256`. Verify package metadata with Android SDK `aapt dump badging`. Do not infer version or architecture from the filename alone.
 
-Capture screenshots from the actual application with ADB screencap, pull the PNG files into `public/screenshots/`, and update the capture version labels if needed. Do not recreate the app interface in HTML or change the screenshot contents.
+Capture screenshots from the actual application with ADB screencap, pull the PNG files into `public/screenshots/`, and update the capture version labels if needed. Keep these actual captures unmodified and distinct from the interactive frontend simulation.
 
 ## Content evidence
 
@@ -69,6 +89,8 @@ npm.cmd audit
 ```
 
 Tests exercise 320, 390, 768, and 1440 px layouts, missing assets/runtime errors, actual capture loading, signal stages, the visual comparison, mobile menu keyboard behavior, screenshot dialogs and focus restoration, expanded technical/FAQ content, APK download and checksum, hidden scrollbars with functional scrolling, GSAP reveals, dynamic reduced-motion changes, team attribution, and automated WCAG A/AA checks.
+
+Simulator tests additionally cover tablet/laptop/landscape sizes, route input and cancellation, map-picked destinations, driving/recording/export, signal loss and restoration, zoom/recenter, preference persistence, state retention during expansion, nested Escape behavior, and accessibility across its four tabs. These browser checks do not establish physical Android/iOS device compatibility or production navigation accuracy.
 
 If a Chromium executable is already installed, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its absolute path before running tests. Browser screenshots are generated in ignored `test-results/`.
 

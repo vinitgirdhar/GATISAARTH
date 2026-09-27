@@ -1,0 +1,768 @@
+[
+ {
+  "drive": "GatiSaarth_Drive_01",
+  "map": "map",
+  "led_s": "206",
+  "10s": {
+   "n": 1,
+   "hold_m": 4.2,
+   "hold_pct": 13.9,
+   "core_m": 20.9,
+   "core_pct": 68.7,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "30s": {
+   "n": 1,
+   "hold_m": 8.8,
+   "hold_pct": 8.3,
+   "core_m": 43.4,
+   "core_pct": 40.8,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "60s": {
+   "n": 1,
+   "hold_m": 118.9,
+   "hold_pct": 37.2,
+   "core_m": 142.6,
+   "core_pct": 44.6,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "120s": {
+   "n": 1,
+   "hold_m": 517.7,
+   "hold_pct": 55.8,
+   "core_m": 474.0,
+   "core_pct": 51.1,
+   "closer": "1/1",
+   "sig3": "0/1"
+  },
+  "skipped": "56 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_Drive_01",
+  "map": "nomap",
+  "led_s": "205",
+  "10s": {
+   "n": 1,
+   "hold_m": 4.4,
+   "hold_pct": 14.3,
+   "core_m": 27.6,
+   "core_pct": 90.2,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "30s": {
+   "n": 1,
+   "hold_m": 15.6,
+   "hold_pct": 14.8,
+   "core_m": 41.9,
+   "core_pct": 39.8,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "60s": {
+   "n": 1,
+   "hold_m": 129.7,
+   "hold_pct": 41.1,
+   "core_m": 160.3,
+   "core_pct": 50.8,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "120s": {
+   "n": 1,
+   "hold_m": 536.1,
+   "hold_pct": 58.3,
+   "core_m": 546.1,
+   "core_pct": 59.4,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "skipped": "56 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_Drive_02",
+  "map": "map",
+  "led_s": "205",
+  "10s": {
+   "n": 1,
+   "hold_m": 4.2,
+   "hold_pct": 13.8,
+   "core_m": 17.9,
+   "core_pct": 59.4,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "30s": {
+   "n": 1,
+   "hold_m": 16.4,
+   "hold_pct": 15.8,
+   "core_m": 39.4,
+   "core_pct": 38.0,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "60s": {
+   "n": 1,
+   "hold_m": 132.9,
+   "hold_pct": 42.7,
+   "core_m": 144.3,
+   "core_pct": 46.4,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "120s": {
+   "n": 1,
+   "hold_m": 542.9,
+   "hold_pct": 59.8,
+   "core_m": 467.4,
+   "core_pct": 51.5,
+   "closer": "1/1",
+   "sig3": "0/1"
+  },
+  "skipped": "56 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_Drive_02",
+  "map": "nomap",
+  "led_s": "205",
+  "10s": {
+   "n": 1,
+   "hold_m": 4.2,
+   "hold_pct": 13.8,
+   "core_m": 26.3,
+   "core_pct": 87.3,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "30s": {
+   "n": 1,
+   "hold_m": 16.4,
+   "hold_pct": 15.8,
+   "core_m": 42.7,
+   "core_pct": 41.2,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "60s": {
+   "n": 1,
+   "hold_m": 132.9,
+   "hold_pct": 42.7,
+   "core_m": 160.1,
+   "core_pct": 51.5,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "120s": {
+   "n": 1,
+   "hold_m": 542.9,
+   "hold_pct": 59.8,
+   "core_m": 539.9,
+   "core_pct": 59.5,
+   "closer": "1/1",
+   "sig3": "0/1"
+  },
+  "skipped": "56 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_Drive_03",
+  "map": "map",
+  "led_s": "176",
+  "10s": {
+   "n": 1,
+   "hold_m": 9.2,
+   "hold_pct": 22.5,
+   "core_m": 51.5,
+   "core_pct": 126.1,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "30s": {
+   "n": 1,
+   "hold_m": 23.6,
+   "hold_pct": 28.4,
+   "core_m": 10.5,
+   "core_pct": 12.6,
+   "closer": "1/1",
+   "sig3": "1/1"
+  },
+  "60s": {
+   "n": 1,
+   "hold_m": 21.5,
+   "hold_pct": 11.3,
+   "core_m": 98.6,
+   "core_pct": 51.7,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "120s": {
+   "n": 1,
+   "hold_m": 264.9,
+   "hold_pct": 38.6,
+   "core_m": 370.5,
+   "core_pct": 54.0,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "skipped": "56 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_Drive_03",
+  "map": "nomap",
+  "led_s": "181",
+  "skipped": "60 x engineNotLeading",
+  "verdict": "not scored."
+ },
+ {
+  "drive": "GatiSaarth_Drive_04",
+  "map": "map",
+  "led_s": "never",
+  "skipped": "",
+  "verdict": "not scored."
+ },
+ {
+  "drive": "GatiSaarth_Drive_04",
+  "map": "nomap",
+  "led_s": "never",
+  "skipped": "",
+  "verdict": "not scored."
+ },
+ {
+  "drive": "GatiSaarth_Drive_05",
+  "map": "map",
+  "led_s": "never",
+  "skipped": "",
+  "verdict": "not scored."
+ },
+ {
+  "drive": "GatiSaarth_Drive_05",
+  "map": "nomap",
+  "led_s": "never",
+  "skipped": "",
+  "verdict": "not scored."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_01",
+  "map": "map",
+  "led_s": "252",
+  "10s": {
+   "n": 14,
+   "hold_m": 14.9,
+   "hold_pct": 15.9,
+   "core_m": 11.4,
+   "core_pct": 10.5,
+   "closer": "8/14",
+   "sig3": "12/14"
+  },
+  "30s": {
+   "n": 14,
+   "hold_m": 78.6,
+   "hold_pct": 24.5,
+   "core_m": 65.7,
+   "core_pct": 26.5,
+   "closer": "5/14",
+   "sig3": "8/14"
+  },
+  "60s": {
+   "n": 13,
+   "hold_m": 220.6,
+   "hold_pct": 43.5,
+   "core_m": 156.6,
+   "core_pct": 29.0,
+   "closer": "7/13",
+   "sig3": "6/13"
+  },
+  "120s": {
+   "n": 12,
+   "hold_m": 543.1,
+   "hold_pct": 52.9,
+   "core_m": 736.0,
+   "core_pct": 59.7,
+   "closer": "5/12",
+   "sig3": "1/12"
+  },
+  "skipped": "2 x noTruthAtEnd, 4 x noRecentFix, 4 x engineNotLeading, 1 x tooLittleTravel",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_01",
+  "map": "nomap",
+  "led_s": "252",
+  "10s": {
+   "n": 14,
+   "hold_m": 13.9,
+   "hold_pct": 14.7,
+   "core_m": 5.9,
+   "core_pct": 7.7,
+   "closer": "9/14",
+   "sig3": "12/14"
+  },
+  "30s": {
+   "n": 14,
+   "hold_m": 78.6,
+   "hold_pct": 24.5,
+   "core_m": 26.6,
+   "core_pct": 11.3,
+   "closer": "8/14",
+   "sig3": "11/14"
+  },
+  "60s": {
+   "n": 14,
+   "hold_m": 191.9,
+   "hold_pct": 40.8,
+   "core_m": 360.9,
+   "core_pct": 55.7,
+   "closer": "6/14",
+   "sig3": "4/14"
+  },
+  "120s": {
+   "n": 12,
+   "hold_m": 543.1,
+   "hold_pct": 52.9,
+   "core_m": 936.7,
+   "core_pct": 80.3,
+   "closer": "3/12",
+   "sig3": "0/12"
+  },
+  "skipped": "1 x noTruthAtEnd, 4 x engineNotLeading, 4 x noRecentFix, 1 x tooLittleTravel",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_02",
+  "map": "map",
+  "led_s": "301",
+  "10s": {
+   "n": 11,
+   "hold_m": 11.8,
+   "hold_pct": 11.6,
+   "core_m": 5.2,
+   "core_pct": 9.7,
+   "closer": "8/11",
+   "sig3": "11/11"
+  },
+  "30s": {
+   "n": 8,
+   "hold_m": 68.4,
+   "hold_pct": 27.1,
+   "core_m": 58.9,
+   "core_pct": 26.3,
+   "closer": "3/8",
+   "sig3": "7/8"
+  },
+  "60s": {
+   "n": 8,
+   "hold_m": 222.5,
+   "hold_pct": 42.4,
+   "core_m": 180.5,
+   "core_pct": 45.4,
+   "closer": "3/8",
+   "sig3": "4/8"
+  },
+  "120s": {
+   "n": 8,
+   "hold_m": 396.0,
+   "hold_pct": 41.0,
+   "core_m": 578.7,
+   "core_pct": 54.3,
+   "closer": "2/8",
+   "sig3": "1/8"
+  },
+  "skipped": "3 x noTruthAtEnd, 20 x engineNotLeading, 4 x noRecentFix",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_02",
+  "map": "nomap",
+  "led_s": "301",
+  "10s": {
+   "n": 11,
+   "hold_m": 11.8,
+   "hold_pct": 11.6,
+   "core_m": 5.0,
+   "core_pct": 9.8,
+   "closer": "9/11",
+   "sig3": "11/11"
+  },
+  "30s": {
+   "n": 8,
+   "hold_m": 68.4,
+   "hold_pct": 27.1,
+   "core_m": 43.2,
+   "core_pct": 19.2,
+   "closer": "4/8",
+   "sig3": "7/8"
+  },
+  "60s": {
+   "n": 8,
+   "hold_m": 222.5,
+   "hold_pct": 42.4,
+   "core_m": 259.4,
+   "core_pct": 51.0,
+   "closer": "3/8",
+   "sig3": "2/8"
+  },
+  "120s": {
+   "n": 8,
+   "hold_m": 396.0,
+   "hold_pct": 41.0,
+   "core_m": 502.1,
+   "core_pct": 55.8,
+   "closer": "2/8",
+   "sig3": "1/8"
+  },
+  "skipped": "3 x noTruthAtEnd, 20 x engineNotLeading, 4 x noRecentFix",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_03",
+  "map": "map",
+  "led_s": "256",
+  "10s": {
+   "n": 13,
+   "hold_m": 13.0,
+   "hold_pct": 11.8,
+   "core_m": 6.9,
+   "core_pct": 7.6,
+   "closer": "8/13",
+   "sig3": "13/13"
+  },
+  "30s": {
+   "n": 11,
+   "hold_m": 108.4,
+   "hold_pct": 42.5,
+   "core_m": 88.6,
+   "core_pct": 30.5,
+   "closer": "5/11",
+   "sig3": "7/11"
+  },
+  "60s": {
+   "n": 9,
+   "hold_m": 265.1,
+   "hold_pct": 64.6,
+   "core_m": 279.6,
+   "core_pct": 59.9,
+   "closer": "3/9",
+   "sig3": "1/9"
+  },
+  "120s": {
+   "n": 6,
+   "hold_m": 439.2,
+   "hold_pct": 55.2,
+   "core_m": 677.3,
+   "core_pct": 86.9,
+   "closer": "0/6",
+   "sig3": "0/6"
+  },
+  "skipped": "7 x noTruthAtEnd, 12 x noRecentFix, 4 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_03",
+  "map": "nomap",
+  "led_s": "256",
+  "10s": {
+   "n": 13,
+   "hold_m": 13.0,
+   "hold_pct": 11.8,
+   "core_m": 8.0,
+   "core_pct": 7.5,
+   "closer": "9/13",
+   "sig3": "13/13"
+  },
+  "30s": {
+   "n": 11,
+   "hold_m": 108.4,
+   "hold_pct": 42.5,
+   "core_m": 57.1,
+   "core_pct": 26.0,
+   "closer": "5/11",
+   "sig3": "7/11"
+  },
+  "60s": {
+   "n": 9,
+   "hold_m": 265.1,
+   "hold_pct": 64.6,
+   "core_m": 255.7,
+   "core_pct": 65.7,
+   "closer": "3/9",
+   "sig3": "2/9"
+  },
+  "120s": {
+   "n": 6,
+   "hold_m": 439.2,
+   "hold_pct": 55.2,
+   "core_m": 720.8,
+   "core_pct": 81.6,
+   "closer": "0/6",
+   "sig3": "0/6"
+  },
+  "skipped": "7 x noTruthAtEnd, 12 x noRecentFix, 4 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_04",
+  "map": "map",
+  "led_s": "217",
+  "10s": {
+   "n": 10,
+   "hold_m": 12.8,
+   "hold_pct": 14.5,
+   "core_m": 5.4,
+   "core_pct": 5.7,
+   "closer": "9/10",
+   "sig3": "10/10"
+  },
+  "30s": {
+   "n": 10,
+   "hold_m": 41.6,
+   "hold_pct": 15.5,
+   "core_m": 47.1,
+   "core_pct": 16.7,
+   "closer": "5/10",
+   "sig3": "8/10"
+  },
+  "60s": {
+   "n": 7,
+   "hold_m": 124.0,
+   "hold_pct": 19.2,
+   "core_m": 391.5,
+   "core_pct": 68.5,
+   "closer": "1/7",
+   "sig3": "2/7"
+  },
+  "120s": {
+   "n": 6,
+   "hold_m": 280.4,
+   "hold_pct": 22.8,
+   "core_m": 950.3,
+   "core_pct": 78.8,
+   "closer": "1/6",
+   "sig3": "0/6"
+  },
+  "skipped": "24 x engineNotLeading, 1 x tooLittleTravel, 4 x noTruthAtEnd",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_04",
+  "map": "nomap",
+  "led_s": "217",
+  "10s": {
+   "n": 10,
+   "hold_m": 12.8,
+   "hold_pct": 14.5,
+   "core_m": 5.4,
+   "core_pct": 5.0,
+   "closer": "9/10",
+   "sig3": "10/10"
+  },
+  "30s": {
+   "n": 10,
+   "hold_m": 41.6,
+   "hold_pct": 15.5,
+   "core_m": 42.5,
+   "core_pct": 15.1,
+   "closer": "6/10",
+   "sig3": "9/10"
+  },
+  "60s": {
+   "n": 7,
+   "hold_m": 124.0,
+   "hold_pct": 19.2,
+   "core_m": 411.0,
+   "core_pct": 68.9,
+   "closer": "0/7",
+   "sig3": "1/7"
+  },
+  "120s": {
+   "n": 6,
+   "hold_m": 280.4,
+   "hold_pct": 22.8,
+   "core_m": 1000.8,
+   "core_pct": 85.6,
+   "closer": "1/6",
+   "sig3": "0/6"
+  },
+  "skipped": "24 x engineNotLeading, 1 x tooLittleTravel, 4 x noTruthAtEnd",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_05",
+  "map": "map",
+  "led_s": "290",
+  "10s": {
+   "n": 13,
+   "hold_m": 10.3,
+   "hold_pct": 9.2,
+   "core_m": 4.5,
+   "core_pct": 5.9,
+   "closer": "8/13",
+   "sig3": "12/13"
+  },
+  "30s": {
+   "n": 10,
+   "hold_m": 75.7,
+   "hold_pct": 28.3,
+   "core_m": 62.5,
+   "core_pct": 23.4,
+   "closer": "4/10",
+   "sig3": "6/10"
+  },
+  "60s": {
+   "n": 11,
+   "hold_m": 118.6,
+   "hold_pct": 24.6,
+   "core_m": 288.2,
+   "core_pct": 57.3,
+   "closer": "3/11",
+   "sig3": "5/11"
+  },
+  "120s": {
+   "n": 9,
+   "hold_m": 346.0,
+   "hold_pct": 32.5,
+   "core_m": 540.6,
+   "core_pct": 48.0,
+   "closer": "1/9",
+   "sig3": "1/9"
+  },
+  "skipped": "4 x noTruthAtEnd, 4 x noRecentFix, 12 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "GatiSaarth_SYNTHETIC_Mumbai_Drive_05",
+  "map": "nomap",
+  "led_s": "290",
+  "10s": {
+   "n": 13,
+   "hold_m": 10.3,
+   "hold_pct": 9.2,
+   "core_m": 4.5,
+   "core_pct": 5.7,
+   "closer": "9/13",
+   "sig3": "12/13"
+  },
+  "30s": {
+   "n": 10,
+   "hold_m": 75.7,
+   "hold_pct": 28.3,
+   "core_m": 63.0,
+   "core_pct": 21.1,
+   "closer": "5/10",
+   "sig3": "6/10"
+  },
+  "60s": {
+   "n": 11,
+   "hold_m": 118.6,
+   "hold_pct": 24.6,
+   "core_m": 332.7,
+   "core_pct": 73.3,
+   "closer": "3/11",
+   "sig3": "4/11"
+  },
+  "120s": {
+   "n": 9,
+   "hold_m": 346.0,
+   "hold_pct": 32.5,
+   "core_m": 678.6,
+   "core_pct": 70.1,
+   "closer": "0/9",
+   "sig3": "0/9"
+  },
+  "skipped": "4 x noTruthAtEnd, 4 x noRecentFix, 12 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "drive-20260926T112916478496",
+  "map": "map",
+  "led_s": "206",
+  "10s": {
+   "n": 1,
+   "hold_m": 4.1,
+   "hold_pct": 13.4,
+   "core_m": 20.0,
+   "core_pct": 66.0,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "30s": {
+   "n": 1,
+   "hold_m": 10.0,
+   "hold_pct": 9.5,
+   "core_m": 48.1,
+   "core_pct": 45.5,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "60s": {
+   "n": 1,
+   "hold_m": 120.1,
+   "hold_pct": 37.9,
+   "core_m": 142.0,
+   "core_pct": 44.8,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "120s": {
+   "n": 1,
+   "hold_m": 519.7,
+   "hold_pct": 56.4,
+   "core_m": 473.6,
+   "core_pct": 51.4,
+   "closer": "1/1",
+   "sig3": "0/1"
+  },
+  "skipped": "56 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ },
+ {
+  "drive": "drive-20260926T112916478496",
+  "map": "nomap",
+  "led_s": "205",
+  "10s": {
+   "n": 1,
+   "hold_m": 4.3,
+   "hold_pct": 14.0,
+   "core_m": 26.3,
+   "core_pct": 86.0,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "30s": {
+   "n": 1,
+   "hold_m": 16.7,
+   "hold_pct": 16.0,
+   "core_m": 45.4,
+   "core_pct": 43.4,
+   "closer": "0/1",
+   "sig3": "1/1"
+  },
+  "60s": {
+   "n": 1,
+   "hold_m": 131.3,
+   "hold_pct": 42.0,
+   "core_m": 162.6,
+   "core_pct": 51.9,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "120s": {
+   "n": 1,
+   "hold_m": 538.8,
+   "hold_pct": 59.0,
+   "core_m": 561.3,
+   "core_pct": 61.5,
+   "closer": "0/1",
+   "sig3": "0/1"
+  },
+  "skipped": "56 x engineNotLeading",
+  "verdict": "FAIL - SIH <10% drift target."
+ }
+]

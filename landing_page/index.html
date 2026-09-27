@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <meta name="theme-color" content="#f5f6f2" />
     <meta
       name="description"
@@ -225,24 +228,19 @@
             />
           </svg>
           <div class="hero-device-position">
-            <button
-              class="device hero-device"
-              type="button"
-              data-screenshot="map"
-              aria-label="Enlarge the actual GatiSaarth navigation screen"
-            >
-              <img
-                src="./screenshots/map.png"
-                alt="Actual GatiSaarth navigation during a simulated 45 km/h drive in Mumbai, with turn guidance and a route to the Gateway of India"
-                width="1280"
-                height="2856"
-                fetchpriority="high"
-              />
-            </button>
+            <div class="device hero-device">
+              <div id="hero-app-mount">
+                <gati-simulator
+                  aria-label="Interactive GatiSaarth application"
+                ></gati-simulator>
+              </div>
+            </div>
           </div>
-          <span class="screenshot-caption"
-            >Mumbai, Maharashtra <span aria-hidden="true">↗</span></span
-          >
+          <div class="screenshot-caption app-preview-caption">
+            <button type="button" data-experience-app aria-haspopup="dialog">
+              Experience app <span aria-hidden="true">↗</span></button
+            ><span>Tap to explore · Mumbai, Maharashtra</span>
+          </div>
         </div>
         <div class="hero-bottom">
           <a href="#the-idea" class="scroll-cue"
@@ -841,6 +839,56 @@
               <span class="status-dot"></span> Position + confidence
             </div>
           </div>
+          <div
+            id="download"
+            class="download-inner"
+            aria-labelledby="download-heading"
+          >
+            <span class="download-brand"
+              >GatiSaarth<span class="brand-dot">.</span></span
+            >
+            <h2 id="download-heading">Take the next journey with you.</h2>
+            <p>Download GatiSaarth for Android.</p>
+            <a
+              class="button button-dark"
+              href="./downloads/gatisaarth-5.2.1.apk"
+              download
+              ><svg class="icon" aria-hidden="true">
+                <use href="#i-download" />
+              </svg>
+              Download APK <span class="button-version">v5.2.1</span></a
+            ><span class="download-meta"
+              >Android 7.0+ · 113.7 MB · Universal APK</span
+            >
+            <p class="release-note">Early access. Built to explore and test.</p>
+            <details class="installation-details">
+              <summary>
+                Installation &amp; file verification
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-plus" />
+                </svg>
+              </summary>
+              <div>
+                <ol>
+                  <li>Download the APK on your Android phone.</li>
+                  <li>
+                    Open it and allow installation from your browser if Android
+                    asks.
+                  </li>
+                  <li>
+                    Open GatiSaarth, allow location access, and prepare your
+                    maps before setting off.
+                  </li>
+                </ol>
+                <p class="checksum-label">SHA-256 of this download</p>
+                <code id="apk-hash"
+                  >0f1ba530e9295f9f7214fe7b20a99c1b043a21d410c7d492a42be36fc0aabcd3</code
+                ><button class="copy-button" type="button" id="copy-hash">
+                  Copy checksum</button
+                ><span id="copy-status" role="status"></span>
+              </div>
+            </details>
+          </div>
           <div id="technical-details" class="technical-details">
             <details>
               <summary>
@@ -887,68 +935,6 @@
               </div>
             </details>
           </div>
-        </div>
-      </section>
-
-      <section
-        id="download"
-        class="download-section"
-        aria-labelledby="download-heading"
-      >
-        <div class="download-path" aria-hidden="true">
-          <svg viewBox="0 0 1400 570" preserveAspectRatio="xMidYMid slice">
-            <path
-              d="M-30 420H175q100 0 100-100V230q0-100 100-100h140q100 0 100 100v160q0 100 100 100h170q100 0 100-100v-95q0-100 100-100h210"
-            />
-          </svg>
-        </div>
-        <div class="download-inner">
-          <span class="download-brand"
-            >GatiSaarth<span class="brand-dot">.</span></span
-          >
-          <h2 id="download-heading">
-            Your next journey.<br />A little more independent.
-          </h2>
-          <p>Meet GatiSaarth for Android.</p>
-          <a
-            class="button button-dark"
-            href="./downloads/gatisaarth-5.2.1.apk"
-            download
-            ><svg class="icon" aria-hidden="true">
-              <use href="#i-download" />
-            </svg>
-            Download APK <span class="button-version">v5.2.1</span></a
-          ><span class="download-meta"
-            >Android 7.0+ · 113.7 MB · Universal APK</span
-          >
-          <p class="release-note">
-            Early access. Built for exploring, testing, and getting better.
-          </p>
-          <details class="installation-details">
-            <summary>
-              Installation &amp; file verification
-              <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>
-            </summary>
-            <div>
-              <ol>
-                <li>Download the APK on your Android phone.</li>
-                <li>
-                  Open it and allow installation from your browser if Android
-                  asks.
-                </li>
-                <li>
-                  Open GatiSaarth, allow location access, and prepare your maps
-                  before setting off.
-                </li>
-              </ol>
-              <p class="checksum-label">SHA-256 of this download</p>
-              <code id="apk-hash"
-                >0f1ba530e9295f9f7214fe7b20a99c1b043a21d410c7d492a42be36fc0aabcd3</code
-              ><button class="copy-button" type="button" id="copy-hash">
-                Copy checksum</button
-              ><span id="copy-status" role="status"></span>
-            </div>
-          </details>
         </div>
       </section>
       <section class="faq-section section-shell" aria-labelledby="faq-heading">
@@ -1098,6 +1084,40 @@
       <p id="film-error" role="status" hidden>
         This browser could not play the film. Use the download link to watch it.
       </p>
+    </dialog>
+    <dialog
+      id="app-experience"
+      class="app-experience"
+      aria-labelledby="app-experience-title"
+      aria-describedby="app-experience-description"
+    >
+      <div class="experience-copy">
+        <p class="experience-brand">GatiSaarth.</p>
+        <h2 id="app-experience-title">
+          Your next journey.<br />In your hands.
+        </h2>
+        <p id="app-experience-description">
+          Explore the app with a sample Mumbai journey. Routes and sensor
+          readings run locally in this browser.
+        </p>
+        <ol>
+          <li>Choose a destination from Home.</li>
+          <li>Start navigation and explore the map.</li>
+          <li>Try a tunnel in Simulation Lab.</li>
+        </ol>
+        <p class="experience-footnote">
+          Web simulation · No installation or location permission needed.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="experience-close"
+        data-close-app
+        aria-label="Close app experience"
+      >
+        ✕
+      </button>
+      <div class="experience-phone"><div id="expanded-app-mount"></div></div>
     </dialog>
     <script type="module" src="./src/main.js"></script>
   </body>

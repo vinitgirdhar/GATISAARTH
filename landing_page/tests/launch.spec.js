@@ -14,7 +14,7 @@ for (const width of [320, 390, 768, 1440]) {
         errors.push(`${response.status()}: ${response.url()}`);
     });
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    await expect(page.locator("#hero-title")).toHaveText(
       "A way forward.Even off-grid.",
     );
     for (const selector of [
@@ -90,12 +90,12 @@ test("mobile menu supports links and Escape", async ({ page }) => {
   await expect(page).toHaveURL(/#your-journey$/);
 });
 
-test("both actual screenshots enlarge and restore keyboard focus", async ({
+test("actual home screenshot enlarges and restores keyboard focus", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  for (const name of ["navigation", "home"]) {
+  for (const name of ["home"]) {
     const trigger = page.getByRole("button", {
       name: `Enlarge the actual GatiSaarth ${name} screen`,
     });
@@ -497,4 +497,53 @@ test("official logo and name branding are rendered and loaded cleanly", async ({
   );
   const favicon = page.locator('link[rel="icon"]');
   await expect(favicon).toHaveAttribute("href", "./assets/brand/logo.png");
+});
+
+test("engineering and download form one compact responsive conclusion", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    const section = page.locator("#intelligence");
+    await expect(section.locator("#download")).toHaveCount(1);
+    await expect(page.locator("section.download-section")).toHaveCount(0);
+    await expect(
+      section.getByRole("link", { name: /Download APK/ }),
+    ).toBeVisible();
+    const sectionHeight = await section.evaluate((element) =>
+      Math.round(element.getBoundingClientRect().height),
+    );
+    expect(sectionHeight).toBeLessThan(
+      viewport.width < 650 ? 1350 : viewport.width <= 1150 ? 900 : 750,
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    if (viewport.width <= 1150) {
+      await expect(section.locator("#download")).toHaveCSS(
+        "text-align",
+        "center",
+      );
+    }
+    if (viewport.width >= 651 && viewport.width <= 1150) {
+      const copy = await section.locator(".intelligence-copy").boundingBox();
+      const diagram = await section.locator(".fusion-visual").boundingBox();
+      const download = await section.locator("#download").boundingBox();
+      expect(Math.abs(copy.x - diagram.x)).toBeLessThan(2);
+      expect(download.x).toBeGreaterThanOrEqual(copy.x + copy.width);
+      expect(download.y).toBeLessThan(diagram.y + diagram.height);
+    }
+    await section.screenshot({
+      path: `test-results/conclusion-${viewport.width}.png`,
+    });
+  }
 });
