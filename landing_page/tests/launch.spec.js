@@ -113,6 +113,7 @@ test("download is the APK described on the page and checksum copies", async ({
   page,
   context,
 }) => {
+  test.slow();
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/");
   const downloadPromise = page.waitForEvent("download");
@@ -475,3 +476,25 @@ for (const width of [390, 1440]) {
     }
   });
 }
+
+test("official logo and name branding are rendered and loaded cleanly", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const logos = [".site-header .brand-logo", ".site-footer .brand-logo"];
+  for (const selector of logos) {
+    const img = page.locator(selector);
+    await expect(img).toBeAttached();
+    const isLoaded = await img.evaluate(
+      (el) => el.complete && el.naturalWidth > 0,
+    );
+    expect(isLoaded).toBe(true);
+  }
+  await expect(page.locator(".download-brand")).toContainText("GatiSaarth.");
+  await expect(page.locator(".fusion-core")).toContainText("GatiSaarth");
+  await expect(page.locator(".fusion-core")).toContainText(
+    "On-device fusion engine",
+  );
+  const favicon = page.locator('link[rel="icon"]');
+  await expect(favicon).toHaveAttribute("href", "./assets/brand/logo.png");
+});

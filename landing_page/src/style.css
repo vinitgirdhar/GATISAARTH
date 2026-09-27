@@ -202,6 +202,14 @@ h2 {
   height: 32px;
   color: var(--orange);
 }
+.brand-logo {
+  width: 28px;
+  height: auto;
+  aspect-ratio: 541 / 578;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}
 .brand-dot {
   color: var(--orange);
 }
@@ -407,8 +415,14 @@ h2 {
 .hero-route {
   stroke: var(--orange);
   stroke-linecap: round;
-  stroke-dasharray: 1;
+  stroke-dasharray: 1460;
   stroke-dashoffset: 0;
+}
+.hero-destination-ping {
+  opacity: 0;
+}
+.hero-destination-dot {
+  transform-origin: 545px 110px;
 }
 .hero-device-position {
   position: absolute;
@@ -528,20 +542,16 @@ h2 {
   letter-spacing: 0.02em;
 }
 .places-strip {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  justify-items: center;
+  text-align: center;
   padding: 32px max(56px, calc((100vw - 1280px) / 2));
   border-top: 1px solid var(--line);
   font-size: 15px;
   letter-spacing: -0.02em;
   white-space: nowrap;
-}
-.places-strip > svg {
-  width: 19px;
-  height: 24px;
-  color: var(--orange);
 }
 /* Interactive signal handoff */
 .signal-section {
@@ -754,7 +764,8 @@ h2 {
   align-items: center;
   gap: 12px;
 }
-.journey-visual-bottom > svg {
+.journey-visual-bottom > svg,
+.journey-compass {
   height: 30px;
   width: 30px;
   color: #677a5e;
@@ -983,11 +994,7 @@ h2 {
   box-shadow: 0 16px 35px #23372017;
   position: relative;
 }
-.fusion-core > svg {
-  width: 28px;
-  height: 32px;
-  color: var(--orange-light);
-}
+
 .fusion-core > span {
   font-size: 20px;
   line-height: 1.5;
@@ -1362,11 +1369,14 @@ details[open] > summary > .icon {
   text-align: center;
   z-index: 1;
 }
-.download-compass {
-  height: 43px;
-  width: 43px;
-  margin-bottom: 23px;
+.download-brand {
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -1.1px;
+  margin-bottom: 22px;
   color: var(--ink);
+  display: inline-flex;
+  align-items: center;
 }
 .download-inner h2 {
   font-size: clamp(36px, 4.5vw, 66px);
@@ -1461,14 +1471,25 @@ details[open] > summary > .icon {
 }
 .faq-list details {
   border-bottom: 1px solid var(--line);
+  overflow: hidden;
 }
 .faq-list summary {
   font-size: 14px;
   padding: 21px 0;
   line-height: 1.6;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: color 0.2s ease;
+}
+.faq-list summary:hover {
+  color: var(--ink);
 }
 .faq-list details:first-child summary {
   padding-top: 5px;
+}
+.faq-answer {
+  overflow: hidden;
 }
 .faq-list p {
   font-size: 12px;
@@ -1479,6 +1500,10 @@ details[open] > summary > .icon {
 .faq-list .icon {
   width: 17px;
   height: 17px;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.faq-list details[open] > summary > .icon {
+  transform: rotate(45deg);
 }
 .site-footer {
   border-top: 1px solid var(--line);
@@ -1494,6 +1519,11 @@ details[open] > summary > .icon {
 .site-footer .brand > svg {
   width: 22px;
   height: 25px;
+}
+.site-footer .brand > .brand-logo {
+  width: 25px;
+  height: auto;
+  aspect-ratio: 541 / 578;
 }
 .site-footer > span {
   font-size: 10px;
@@ -1568,6 +1598,53 @@ details[open] > summary > .icon {
 @media (prefers-reduced-motion: no-preference) {
   .hero-device-position {
     animation: device-enter 1.5s var(--ease) both;
+  }
+  @keyframes device-enter {
+    from {
+      transform: translate(-50%, -46%);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, -51%);
+      opacity: 1;
+    }
+  }
+  .hero-route {
+    animation: hero-route-draw 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both;
+  }
+  @keyframes hero-route-draw {
+    from {
+      stroke-dashoffset: 1460;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  .hero-road-center {
+    stroke-dasharray: 7 10;
+    animation: road-center-flow 2.5s linear infinite;
+  }
+  @keyframes road-center-flow {
+    to {
+      stroke-dashoffset: -34;
+    }
+  }
+  .hero-destination-ping {
+    transform-origin: 545px 110px;
+    animation: destination-ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  @keyframes destination-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.8;
+      stroke-width: 3;
+    }
+    75%,
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+      stroke-width: 0.5;
+    }
   }
   .journey-steps li .step-number {
     transition:
@@ -1903,9 +1980,10 @@ details[open] > summary > .icon {
   .brand {
     font-size: 23px;
   }
-  .brand > svg {
-    width: 23px;
-    height: 28px;
+  .brand > svg,
+  .brand > .brand-logo {
+    width: 26px;
+    height: auto;
   }
   .desktop-nav {
     display: none;
@@ -2048,8 +2126,8 @@ details[open] > summary > .icon {
     white-space: normal;
     font-size: 11px;
   }
-  .places-strip > svg {
-    display: none;
+  .places-strip > span:nth-child(odd) {
+    text-align: left;
   }
   .places-strip > span:nth-child(even) {
     text-align: right;
@@ -2309,10 +2387,9 @@ details[open] > summary > .icon {
     margin-top: 19px;
     margin-bottom: 24px;
   }
-  .download-compass {
-    height: 34px;
-    width: 34px;
-    margin-bottom: 22px;
+  .download-brand {
+    font-size: 20px;
+    margin-bottom: 18px;
   }
   .download-meta {
     font-size: 9px;
@@ -2378,6 +2455,10 @@ details[open] > summary > .icon {
   .brand {
     font-size: 21px;
     gap: 7px;
+  }
+  .brand > .brand-logo {
+    width: 23px;
+    height: auto;
   }
   .header-download {
     padding: 9px 10px;

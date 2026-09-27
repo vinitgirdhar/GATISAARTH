@@ -17,8 +17,12 @@
       content="Offline maps. Motion-aware positioning. A little more independence for every journey. Meet GatiSaarth for Android."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="./assets/brand/logo.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="./assets/brand/logo.png" />
     <title>GatiSaarth — A way forward. Even off-grid.</title>
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./assets/brand/logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="./assets/brand/logo.png" />
     <link
       rel="preload"
       href="./fonts/manrope-latin.woff2"
@@ -58,8 +62,13 @@
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <a class="brand" href="#" aria-label="GatiSaarth home"
-        ><svg aria-hidden="true"><use href="#i-compass" /></svg
-        ><span>GatiSaarth<span class="brand-dot">.</span></span></a
+        ><img
+          class="brand-logo"
+          src="./assets/brand/logo.png"
+          alt=""
+          width="28"
+          height="30"
+        /><span>GatiSaarth<span class="brand-dot">.</span></span></a
       >
       <nav class="desktop-nav" aria-label="Main navigation">
         <a href="#why-gatisaarth">Why GatiSaarth</a
@@ -195,9 +204,18 @@
               class="hero-route"
               d="M760 690H590Q520 690 520 620V552Q520 482 450 482H223Q151 482 151 410V342Q151 270 223 270H480Q545 270 545 198V110"
               stroke-width="5"
-              pathLength="1"
             />
             <circle
+              class="hero-destination-ping"
+              cx="545"
+              cy="110"
+              r="9"
+              fill="none"
+              stroke="#f05b32"
+              stroke-width="2"
+            />
+            <circle
+              class="hero-destination-dot"
               cx="545"
               cy="110"
               r="9"
@@ -236,10 +254,10 @@
         </div>
       </section>
       <section class="places-strip" aria-label="Navigation challenges">
-        <span>Through the tunnel.</span><span>Under the city.</span
-        ><span>Beyond the network.</span
-        ><svg aria-hidden="true"><use href="#i-compass" /></svg
-        ><span>Along for the journey.</span>
+        <span>Through the tunnel.</span>
+        <span>Under the city.</span>
+        <span>Beyond the network.</span>
+        <span>Along for the journey.</span>
       </section>
       <section
         id="the-idea"
@@ -621,8 +639,10 @@
             />
           </button>
           <div class="journey-visual-bottom">
-            <svg aria-hidden="true"><use href="#i-compass" /></svg
-            ><span>Less dependence.<br />More direction.</span>
+            <svg class="journey-compass" aria-hidden="true">
+              <use href="#i-compass" />
+            </svg>
+            <span>Less dependence.<br />More direction.</span>
           </div>
         </div>
         <div class="journey-copy">
@@ -813,8 +833,7 @@
               />
             </svg>
             <div class="fusion-core">
-              <svg aria-hidden="true"><use href="#i-compass" /></svg
-              ><span>GatiSaarth<small>On-device fusion engine</small></span
+              <span>GatiSaarth<small>On-device fusion engine</small></span
               ><span class="engine-light" aria-hidden="true"></span>
             </div>
             <span class="fusion-output-line" aria-hidden="true"></span>
@@ -884,9 +903,9 @@
           </svg>
         </div>
         <div class="download-inner">
-          <svg class="download-compass" aria-hidden="true">
-            <use href="#i-compass" />
-          </svg>
+          <span class="download-brand"
+            >GatiSaarth<span class="brand-dot">.</span></span
+          >
           <h2 id="download-heading">
             Your next journey.<br />A little more independent.
           </h2>
@@ -940,62 +959,76 @@
               Does it work without internet?
               <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>
             </summary>
-            <p>
-              Downloaded maps and saved journeys work offline. You’ll need a
-              connection to download missing map coverage. Offline place search
-              covers the maps already installed on your phone.
-            </p>
+            <div class="faq-answer">
+              <p>
+                Downloaded maps and saved journeys work offline. You’ll need a
+                connection to download missing map coverage. Offline place
+                search covers the maps already installed on your phone.
+              </p>
+            </div>
           </details>
           <details>
             <summary>
               What happens when GPS is unavailable?
               <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>
             </summary>
-            <p>
-              After an initial satellite fix, the app can estimate movement from
-              the phone’s sensors. The uncertainty grows during an outage and is
-              shown in the app. Long outages and poor mounting can make the
-              position unreliable; follow road signs when confidence is low.
-            </p>
+            <div class="faq-answer">
+              <p>
+                After an initial satellite fix, the app can estimate movement
+                from the phone’s sensors. The uncertainty grows during an outage
+                and is shown in the app. Long outages and poor mounting can make
+                the position unreliable; follow road signs when confidence is
+                low.
+              </p>
+            </div>
           </details>
           <details>
             <summary>
               Do I need a special phone or vehicle sensor?
               <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>
             </summary>
-            <p>
-              The APK supports Android 7.0 and newer with ARM or x86_64
-              processors. The navigation engine uses the phone’s available
-              sensors. A stable phone mount matters; sensor availability and
-              quality vary by device.
-            </p>
+            <div class="faq-answer">
+              <p>
+                The APK supports Android 7.0 and newer with ARM or x86_64
+                processors. The navigation engine uses the phone’s available
+                sensors. A stable phone mount matters; sensor availability and
+                quality vary by device.
+              </p>
+            </div>
           </details>
           <details>
             <summary>
               Where can I watch the demo?
               <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>
             </summary>
-            <p>
-              <button
-                class="text-action"
-                type="button"
-                data-demo
-                aria-haspopup="dialog"
-              >
-                Watch the 60-second launch film
-              </button>
-              to see GatiSaarth in motion. The film and app screens show
-              simulated navigation in Mumbai, Maharashtra, rather than a field
-              accuracy test.
-            </p>
+            <div class="faq-answer">
+              <p>
+                <button
+                  class="text-action"
+                  type="button"
+                  data-demo
+                  aria-haspopup="dialog"
+                >
+                  Watch the 60-second launch film
+                </button>
+                to see GatiSaarth in motion. The film and app screens show
+                simulated navigation in Mumbai, Maharashtra, rather than a field
+                accuracy test.
+              </p>
+            </div>
           </details>
         </div>
       </section>
     </main>
     <footer class="site-footer section-shell">
       <a class="brand" href="#" aria-label="GatiSaarth home"
-        ><svg aria-hidden="true"><use href="#i-compass" /></svg
-        ><span>GatiSaarth<span class="brand-dot">.</span></span></a
+        ><img
+          class="brand-logo"
+          src="./assets/brand/logo.png"
+          alt=""
+          width="25"
+          height="27"
+        /><span>GatiSaarth<span class="brand-dot">.</span></span></a
       >
       <div class="team-credit">
         <span>Developed by <strong>Team CodeAstra</strong></span

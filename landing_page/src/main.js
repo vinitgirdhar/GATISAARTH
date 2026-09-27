@@ -290,12 +290,6 @@ motion.add("(prefers-reduced-motion: no-preference)", () => {
       delay: 0.25,
       clearProps: "opacity",
     });
-    gsap.from(".hero-route", {
-      strokeDashoffset: 1,
-      duration: 2.4,
-      delay: 0.35,
-      ease: "power2.inOut",
-    });
   }
 
   gsap.utils.toArray("[data-parallax-scene]").forEach((scene) => {
@@ -509,6 +503,168 @@ motion.add("(prefers-reduced-motion: no-preference)", () => {
       once: true,
     },
   });
+});
+
+// FAQ Accordion: Smooth expansion and desktop hover disclosure
+const faqDetails = Array.from(document.querySelectorAll(".faq-list details"));
+const canHover = () =>
+  window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+function openFaqItem(detail, { immediate = false } = {}) {
+  if (detail.dataset.animating === "open") return;
+  if (detail.open && !detail.dataset.animating) return;
+
+  faqDetails.forEach((other) => {
+    if (other !== detail && other.open) {
+      closeFaqItem(other, { immediate });
+    }
+  });
+
+  const answer = detail.querySelector(".faq-answer");
+  const icon = detail.querySelector("summary .icon");
+  detail.dataset.animating = "open";
+  detail.open = true;
+
+  if (
+    immediate ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    if (answer) {
+      answer.style.height = "auto";
+      answer.style.opacity = "1";
+    }
+    if (icon) icon.style.transform = "rotate(45deg)";
+    delete detail.dataset.animating;
+    ScrollTrigger.refresh();
+    return;
+  }
+
+  if (answer) {
+    gsap.killTweensOf(answer);
+    answer.style.height = "auto";
+    const targetHeight = answer.scrollHeight;
+    const startHeight = answer.offsetHeight || 0;
+
+    gsap.fromTo(
+      answer,
+      { height: startHeight, opacity: startHeight > 0 ? undefined : 0 },
+      {
+        height: targetHeight,
+        opacity: 1,
+        duration: 0.38,
+        ease: "power2.out",
+        onUpdate: () => ScrollTrigger.refresh(),
+        onComplete: () => {
+          answer.style.height = "auto";
+          delete detail.dataset.animating;
+          ScrollTrigger.refresh();
+        },
+      },
+    );
+  }
+  if (icon) {
+    gsap.to(icon, { rotate: 45, duration: 0.3, ease: "power2.out" });
+  }
+}
+
+function closeFaqItem(detail, { immediate = false, force = false } = {}) {
+  if (!detail.open || detail.dataset.animating === "close") return;
+  if (!force) {
+    if (detail.contains(document.activeElement)) return;
+    if (document.querySelector("dialog[open]")) return;
+  }
+
+  const answer = detail.querySelector(".faq-answer");
+  const icon = detail.querySelector("summary .icon");
+  detail.dataset.animating = "close";
+
+  if (
+    immediate ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    detail.open = false;
+    if (answer) {
+      answer.style.height = "0px";
+      answer.style.opacity = "0";
+    }
+    if (icon) icon.style.transform = "rotate(0deg)";
+    delete detail.dataset.animating;
+    ScrollTrigger.refresh();
+    return;
+  }
+
+  if (answer) {
+    gsap.killTweensOf(answer);
+    const startHeight = answer.scrollHeight;
+
+    gsap.fromTo(
+      answer,
+      { height: startHeight, opacity: 1 },
+      {
+        height: 0,
+        opacity: 0,
+        duration: 0.3,
+        ease: "power2.inOut",
+        onUpdate: () => ScrollTrigger.refresh(),
+        onComplete: () => {
+          detail.open = false;
+          delete detail.dataset.animating;
+          ScrollTrigger.refresh();
+        },
+      },
+    );
+  } else {
+    detail.open = false;
+    delete detail.dataset.animating;
+    ScrollTrigger.refresh();
+  }
+  if (icon) {
+    gsap.to(icon, { rotate: 0, duration: 0.28, ease: "power2.inOut" });
+  }
+}
+
+let faqHoverTimeout = null;
+
+faqDetails.forEach((detail) => {
+  const summary = detail.querySelector("summary");
+
+  detail.addEventListener("mouseenter", () => {
+    if (!canHover()) return;
+    if (faqHoverTimeout) {
+      clearTimeout(faqHoverTimeout);
+      faqHoverTimeout = null;
+    }
+    detail.dataset.hoveredAt = String(Date.now());
+    openFaqItem(detail);
+  });
+
+  detail.addEventListener("mouseleave", () => {
+    if (!canHover()) return;
+    delete detail.dataset.hoveredAt;
+    if (faqHoverTimeout) clearTimeout(faqHoverTimeout);
+    faqHoverTimeout = setTimeout(() => {
+      if (detail.contains(document.activeElement)) return;
+      if (document.querySelector("dialog[open]")) return;
+      closeFaqItem(detail);
+    }, 140);
+  });
+
+  if (summary) {
+    summary.addEventListener("click", (event) => {
+      event.preventDefault();
+      const justHovered =
+        detail.dataset.hoveredAt &&
+        Date.now() - Number(detail.dataset.hoveredAt) < 800;
+      if (justHovered) {
+        openFaqItem(detail);
+        delete detail.dataset.hoveredAt;
+      } else if (detail.open && detail.dataset.animating !== "open") {
+        closeFaqItem(detail);
+      } else {
+        openFaqItem(detail);
+      }
+    });
+  }
 });
 
 // Disclosures and late font/image layout changes can move later trigger positions.
