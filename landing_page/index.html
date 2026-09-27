@@ -148,85 +148,599 @@
           </p>
         </div>
         <div class="hero-art" data-parallax-scene>
+          <div class="hero-ambient-glow" aria-hidden="true"></div>
           <svg
-            class="terrain"
-            viewBox="0 0 760 780"
+            class="terrain hero-svg-canvas"
+            viewBox="0 0 860 840"
             fill="none"
             aria-hidden="true"
           >
-            <g class="contours" stroke="currentColor" stroke-width="1">
+            <defs>
+              <filter
+                id="route-glow"
+                x="-20%"
+                y="-20%"
+                width="140%"
+                height="140%"
+              >
+                <feGaussianBlur
+                  in="SourceGraphic"
+                  stdDeviation="6"
+                  result="blur"
+                />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <filter
+                id="beacon-glow"
+                x="-50%"
+                y="-50%"
+                width="200%"
+                height="200%"
+              >
+                <feGaussianBlur
+                  in="SourceGraphic"
+                  stdDeviation="4"
+                  result="blur"
+                />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <linearGradient
+                id="laser-pulse-grad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" stop-color="#ff3e00" stop-opacity="0" />
+                <stop offset="60%" stop-color="#ff6b3d" stop-opacity="0.8" />
+                <stop offset="90%" stop-color="#ffffff" stop-opacity="1" />
+                <stop offset="100%" stop-color="#ff9d7a" stop-opacity="0.9" />
+              </linearGradient>
+              <linearGradient
+                id="cyan-pulse-grad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" stop-color="#0284c7" stop-opacity="0" />
+                <stop offset="70%" stop-color="#38bdf8" stop-opacity="0.8" />
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="1" />
+              </linearGradient>
+              <radialGradient id="radar-beam" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ec5830" stop-opacity="0.25" />
+                <stop offset="60%" stop-color="#ec5830" stop-opacity="0.08" />
+                <stop offset="100%" stop-color="#ec5830" stop-opacity="0" />
+              </radialGradient>
+              <pattern
+                id="geo-grid-dots"
+                x="0"
+                y="0"
+                width="36"
+                height="36"
+                patternUnits="userSpaceOnUse"
+              >
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="1"
+                  fill="#94a3b8"
+                  fill-opacity="0.35"
+                />
+              </pattern>
+            </defs>
+
+            <!-- Coordinate Grid Background -->
+            <rect
+              x="0"
+              y="0"
+              width="860"
+              height="840"
+              fill="url(#geo-grid-dots)"
+            />
+
+            <!-- Topo Contour Elevation Curves -->
+            <g class="hero-contours">
               <path
-                d="M740-20C500 30 730 240 540 275S230 235 230 425 45 530-40 590"
+                d="M840-20C600 30 830 240 640 275S330 235 330 425 145 530 60 590"
+                stroke="#94a3b8"
+                stroke-width="1.2"
+                stroke-opacity="0.35"
               />
               <path
-                d="M760 10C520 60 750 260 557 298S253 252 251 434 75 555-20 615"
+                d="M860 10C620 60 850 260 657 298S353 252 351 434 175 555 80 615"
+                stroke="#94a3b8"
+                stroke-width="1.2"
+                stroke-opacity="0.4"
               />
               <path
-                d="M780 40C540 90 770 280 574 321S276 269 272 443 105 580 0 640"
+                d="M880 40C640 90 870 280 674 321S376 269 372 443 205 580 100 640"
+                stroke="#0ea5e9"
+                stroke-width="1.5"
+                stroke-opacity="0.45"
+                stroke-dasharray="8 6"
               />
               <path
-                d="M800 70C560 120 790 300 591 344S299 286 293 452 135 605 20 665"
+                d="M900 70C660 120 890 300 691 344S399 286 393 452 235 605 120 665"
+                stroke="#94a3b8"
+                stroke-width="1.2"
+                stroke-opacity="0.35"
               />
               <path
-                d="M820 100C580 150 810 320 608 367S322 303 314 461 165 630 40 690"
+                d="M920 100C680 150 910 320 708 367S422 303 414 461 265 630 140 690"
+                stroke="#ec5830"
+                stroke-width="1.6"
+                stroke-opacity="0.45"
               />
               <path
-                d="M840 130C600 180 830 340 625 390S345 320 335 470 195 655 60 715"
+                d="M940 130C700 180 930 340 725 390S445 320 435 470 295 655 160 715"
+                stroke="#94a3b8"
+                stroke-width="1.2"
+                stroke-opacity="0.35"
               />
               <path
-                d="M860 160C620 210 850 360 642 413S368 337 356 479 225 680 80 740"
+                d="M960 160C720 210 950 360 742 413S468 337 456 479 325 680 180 740"
+                stroke="#94a3b8"
+                stroke-width="1.2"
+                stroke-opacity="0.3"
               />
               <path
-                d="M880 190C640 240 870 380 659 436S391 354 377 488 255 705 100 765"
+                d="M-60 40C120-70 150 70 160 160s145 40 152 137-120 30-123 144-120 71-199 45"
+                stroke="#94a3b8"
+                stroke-width="1.2"
+                stroke-opacity="0.35"
               />
               <path
-                d="M900 220C660 270 890 400 676 459S414 371 398 497 285 730 120 790"
-              />
-              <path
-                d="M-60 20C120-90 150 50 160 140s145 40 152 137-120 30-123 144-120 71-199 45"
-              />
-              <path
-                d="M-40 40C100-50 130 60 138 149s148 58 153 128-118 50-123 144-102 53-165 24"
-              />
-              <path
-                d="M-20 60C80-10 110 70 116 158s146 63 154 119-116 70-123 144-84 35-131 3"
+                d="M-40 60C100-30 130 80 138 169s148 58 153 128-118 50-123 144-102 53-165 24"
+                stroke="#0ea5e9"
+                stroke-width="1.4"
+                stroke-opacity="0.4"
+                stroke-dasharray="6 4"
               />
             </g>
-            <path
-              class="hero-road"
-              d="M760 690H590Q520 690 520 620V552Q520 482 450 482H223Q151 482 151 410V342Q151 270 223 270H480Q545 270 545 198V-20"
-              stroke-width="55"
-            />
-            <path
-              class="hero-road-center"
-              d="M760 690H590Q520 690 520 620V552Q520 482 450 482H223Q151 482 151 410V342Q151 270 223 270H480Q545 270 545 198V-20"
-              stroke-width="1.5"
-              stroke-dasharray="7 10"
-            />
-            <path
-              class="hero-route"
-              d="M760 690H590Q520 690 520 620V552Q520 482 450 482H223Q151 482 151 410V342Q151 270 223 270H480Q545 270 545 198V110"
-              stroke-width="5"
-            />
-            <circle
-              class="hero-destination-ping"
-              cx="545"
-              cy="110"
-              r="9"
-              fill="none"
-              stroke="#f05b32"
-              stroke-width="2"
-            />
-            <circle
-              class="hero-destination-dot"
-              cx="545"
-              cy="110"
-              r="9"
-              fill="#f5f6f2"
-              stroke="#f05b32"
-              stroke-width="4"
-            />
+
+            <!-- Concentric Sonar Radar Scan Rings -->
+            <g class="hero-radar-group" transform="translate(430, 420)">
+              <circle
+                class="radar-range-ring r1"
+                r="120"
+                stroke="#cbd5e1"
+                stroke-width="1"
+                stroke-dasharray="3 5"
+                fill="none"
+                opacity="0.6"
+              />
+              <circle
+                class="radar-range-ring r2"
+                r="220"
+                stroke="#cbd5e1"
+                stroke-width="1"
+                stroke-dasharray="4 6"
+                fill="none"
+                opacity="0.5"
+              />
+              <circle
+                class="radar-range-ring r3"
+                r="330"
+                stroke="#e2e8f0"
+                stroke-width="1"
+                stroke-dasharray="5 7"
+                fill="none"
+                opacity="0.4"
+              />
+              <circle
+                class="sonar-wave wave-1"
+                r="50"
+                fill="none"
+                stroke="#ec5830"
+                stroke-width="2"
+              />
+              <circle
+                class="sonar-wave wave-2"
+                r="50"
+                fill="none"
+                stroke="#0ea5e9"
+                stroke-width="1.5"
+              />
+              <circle
+                class="sonar-wave wave-3"
+                r="50"
+                fill="none"
+                stroke="#ec5830"
+                stroke-width="1"
+              />
+              <g class="radar-sweep-arm">
+                <line
+                  x1="0"
+                  y1="0"
+                  x2="310"
+                  y2="0"
+                  stroke="url(#laser-pulse-grad)"
+                  stroke-width="2"
+                  opacity="0.85"
+                />
+                <polygon
+                  points="0,0 310,-45 310,0"
+                  fill="url(#radar-beam)"
+                  opacity="0.6"
+                />
+              </g>
+              <line
+                x1="-340"
+                y1="0"
+                x2="340"
+                y2="0"
+                stroke="#94a3b8"
+                stroke-width="0.75"
+                stroke-dasharray="4 10"
+                opacity="0.4"
+              />
+              <line
+                x1="0"
+                y1="-340"
+                x2="0"
+                y2="340"
+                stroke="#94a3b8"
+                stroke-width="0.75"
+                stroke-dasharray="4 10"
+                opacity="0.4"
+              />
+              <text
+                x="315"
+                y="-6"
+                fill="#94a3b8"
+                font-size="9"
+                font-family="monospace"
+                opacity="0.75"
+              >
+                E 090°
+              </text>
+              <text
+                x="-6"
+                y="-315"
+                fill="#94a3b8"
+                font-size="9"
+                font-family="monospace"
+                opacity="0.75"
+              >
+                N 000°
+              </text>
+              <text
+                x="-335"
+                y="-6"
+                fill="#94a3b8"
+                font-size="9"
+                font-family="monospace"
+                opacity="0.75"
+              >
+                W 270°
+              </text>
+              <text
+                x="-6"
+                y="325"
+                fill="#94a3b8"
+                font-size="9"
+                font-family="monospace"
+                opacity="0.75"
+              >
+                S 180°
+              </text>
+            </g>
+
+            <!-- Secondary Cross-Arterial Road Network (Route B) -->
+            <g class="hero-secondary-network">
+              <path
+                class="road-secondary-bed"
+                d="M60 760 C180 720 220 540 340 480 S560 490 680 340 760 140 850 90"
+                stroke="#e8eaee"
+                stroke-width="32"
+                stroke-linecap="round"
+                fill="none"
+              />
+              <path
+                class="road-secondary-edge"
+                d="M60 760 C180 720 220 540 340 480 S560 490 680 340 760 140 850 90"
+                stroke="#cbd5e1"
+                stroke-width="34"
+                stroke-linecap="round"
+                fill="none"
+                opacity="0.7"
+              />
+              <path
+                class="road-secondary-center"
+                d="M60 760 C180 720 220 540 340 480 S560 490 680 340 760 140 850 90"
+                stroke="#94a3b8"
+                stroke-width="1.5"
+                stroke-dasharray="6 8"
+                fill="none"
+              />
+              <path
+                class="pulse-secondary-laser"
+                d="M60 760 C180 720 220 540 340 480 S560 490 680 340 760 140 850 90"
+                stroke="url(#cyan-pulse-grad)"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                fill="none"
+              />
+            </g>
+
+            <!-- Primary Road Network (Route A) -->
+            <g class="hero-primary-network">
+              <path
+                class="hero-road"
+                d="M830 710H610Q540 710 540 640V572Q540 502 470 502H243Q171 502 171 430V362Q171 290 243 290H500Q565 290 565 218V-20"
+                stroke="#e2e5eb"
+                stroke-width="56"
+                stroke-linecap="round"
+                fill="none"
+              />
+              <path
+                class="hero-road-border"
+                d="M830 710H610Q540 710 540 640V572Q540 502 470 502H243Q171 502 171 430V362Q171 290 243 290H500Q565 290 565 218V-20"
+                stroke="#cbd5e1"
+                stroke-width="58"
+                stroke-linecap="round"
+                fill="none"
+                opacity="0.6"
+              />
+              <path
+                class="hero-road-center"
+                d="M830 710H610Q540 710 540 640V572Q540 502 470 502H243Q171 502 171 430V362Q171 290 243 290H500Q565 290 565 218V-20"
+                stroke="#94a3b8"
+                stroke-width="2"
+                stroke-dasharray="8 12"
+                fill="none"
+              />
+              <path
+                class="hero-route-glow"
+                d="M830 710H610Q540 710 540 640V572Q540 502 470 502H243Q171 502 171 430V362Q171 290 243 290H500Q565 290 565 218V130"
+                stroke="#ec5830"
+                stroke-width="8"
+                stroke-linecap="round"
+                opacity="0.35"
+                filter="url(#route-glow)"
+                fill="none"
+              />
+              <path
+                class="hero-route"
+                d="M830 710H610Q540 710 540 640V572Q540 502 470 502H243Q171 502 171 430V362Q171 290 243 290H500Q565 290 565 218V130"
+                stroke="#ec5830"
+                stroke-width="4.5"
+                stroke-linecap="round"
+                fill="none"
+              />
+              <path
+                class="hero-laser-beam"
+                d="M830 710H610Q540 710 540 640V572Q540 502 470 502H243Q171 502 171 430V362Q171 290 243 290H500Q565 290 565 218V130"
+                stroke="url(#laser-pulse-grad)"
+                stroke-width="6"
+                stroke-linecap="round"
+                filter="url(#route-glow)"
+                fill="none"
+              />
+              <path
+                class="hero-data-packet"
+                d="M830 710H610Q540 710 540 640V572Q540 502 470 502H243Q171 502 171 430V362Q171 290 243 290H500Q565 290 565 218V130"
+                stroke="#ffffff"
+                stroke-width="4"
+                stroke-linecap="round"
+                fill="none"
+              />
+            </g>
+
+            <!-- Route Departure Origin Node -->
+            <g class="hero-origin-node" transform="translate(810, 710)">
+              <circle
+                class="origin-ping"
+                r="6"
+                fill="none"
+                stroke="#ec5830"
+                stroke-width="2"
+              />
+              <circle r="5" fill="#ec5830" />
+            </g>
+
+            <!-- Route Destination Target Node -->
+            <g class="hero-destination-group" transform="translate(565, 130)">
+              <circle
+                class="dest-sonar-ring r-a"
+                r="14"
+                fill="none"
+                stroke="#f05b32"
+                stroke-width="1.5"
+              />
+              <circle
+                class="dest-sonar-ring r-b"
+                r="24"
+                fill="none"
+                stroke="#f05b32"
+                stroke-width="1"
+                stroke-dasharray="3 3"
+              />
+              <circle
+                class="hero-destination-ping"
+                r="10"
+                fill="none"
+                stroke="#f05b32"
+                stroke-width="2"
+              />
+              <circle
+                class="hero-destination-dot"
+                r="7"
+                fill="#ffffff"
+                stroke="#f05b32"
+                stroke-width="3.5"
+                filter="url(#beacon-glow)"
+              />
+              <text
+                x="16"
+                y="4"
+                fill="#1d1d1f"
+                font-size="10"
+                font-weight="700"
+                letter-spacing="0.05em"
+              >
+                DESTINATION
+              </text>
+            </g>
+
+            <!-- Orbital GNSS Satellite Station -->
+            <g class="hero-satellite-station" transform="translate(130, 90)">
+              <path
+                class="sat-rf-wave w1"
+                d="M20 20 A35 35 0 0 1 50 50"
+                stroke="#0ea5e9"
+                stroke-width="2"
+                fill="none"
+                stroke-linecap="round"
+              />
+              <path
+                class="sat-rf-wave w2"
+                d="M28 28 A50 50 0 0 1 70 70"
+                stroke="#0ea5e9"
+                stroke-width="1.8"
+                fill="none"
+                stroke-linecap="round"
+              />
+              <path
+                class="sat-rf-wave w3"
+                d="M36 36 A65 65 0 0 1 90 90"
+                stroke="#0ea5e9"
+                stroke-width="1.5"
+                fill="none"
+                stroke-linecap="round"
+              />
+              <line
+                x1="25"
+                y1="25"
+                x2="280"
+                y2="280"
+                stroke="#0ea5e9"
+                stroke-width="1.2"
+                stroke-dasharray="4 6"
+                opacity="0.35"
+                class="sat-beam-line"
+              />
+              <g transform="rotate(-35)">
+                <rect
+                  x="-38"
+                  y="-7"
+                  width="24"
+                  height="14"
+                  rx="2"
+                  fill="#1e293b"
+                  stroke="#38bdf8"
+                  stroke-width="1.2"
+                />
+                <line
+                  x1="-26"
+                  y1="-7"
+                  x2="-26"
+                  y2="7"
+                  stroke="#38bdf8"
+                  stroke-width="0.8"
+                />
+                <rect
+                  x="14"
+                  y="-7"
+                  width="24"
+                  height="14"
+                  rx="2"
+                  fill="#1e293b"
+                  stroke="#38bdf8"
+                  stroke-width="1.2"
+                />
+                <line
+                  x1="26"
+                  y1="-7"
+                  x2="26"
+                  y2="7"
+                  stroke="#38bdf8"
+                  stroke-width="0.8"
+                />
+                <rect
+                  x="-10"
+                  y="-10"
+                  width="20"
+                  height="20"
+                  rx="3"
+                  fill="#ffffff"
+                  stroke="#0f172a"
+                  stroke-width="1.5"
+                />
+                <circle cx="0" cy="0" r="4" fill="#ec5830" />
+                <circle
+                  class="sat-beacon-blink"
+                  cx="0"
+                  cy="0"
+                  r="7"
+                  fill="none"
+                  stroke="#ec5830"
+                  stroke-width="1.5"
+                />
+              </g>
+              <text
+                x="-35"
+                y="32"
+                fill="#64748b"
+                font-size="9"
+                font-family="monospace"
+                font-weight="600"
+              >
+                GNSS SAT-09
+              </text>
+            </g>
           </svg>
+
+          <!-- Floating Holographic Telemetry Cards -->
+          <div class="hero-telemetry-cluster" aria-hidden="true">
+            <div class="hero-chip chip-gnss">
+              <span class="chip-pulse-dot dot-cyan"></span>
+              <div class="chip-content">
+                <span class="chip-kicker">GNSS CONSTELLATION</span>
+                <span class="chip-val">14 Sats · Dual L1/L5</span>
+              </div>
+              <div class="chip-bars">
+                <span class="bar bar-1"></span>
+                <span class="bar bar-2"></span>
+                <span class="bar bar-3"></span>
+                <span class="bar bar-4"></span>
+              </div>
+            </div>
+
+            <div class="hero-chip chip-imu">
+              <div class="gyro-spinner">
+                <span class="gyro-ring"></span>
+                <span class="gyro-core"></span>
+              </div>
+              <div class="chip-content">
+                <span class="chip-kicker">DEAD RECKONING</span>
+                <span class="chip-val">100Hz Fusion Core</span>
+              </div>
+            </div>
+
+            <div class="hero-chip chip-drift">
+              <span class="chip-pulse-dot dot-orange"></span>
+              <div class="chip-content">
+                <span class="chip-kicker">INERTIAL DRIFT</span>
+                <span class="chip-val">±0.4m · Kalman Active</span>
+              </div>
+            </div>
+
+            <div class="hero-chip chip-offline">
+              <span class="chip-pulse-dot dot-green"></span>
+              <div class="chip-content">
+                <span class="chip-kicker">OFF-GRID VECTOR</span>
+                <span class="chip-val">Zero Cellular Req.</span>
+              </div>
+            </div>
+          </div>
           <div class="hero-device-position">
             <div class="device hero-device">
               <div id="hero-app-mount">

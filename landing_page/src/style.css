@@ -393,24 +393,45 @@ h2 {
   z-index: 1;
   --scroll-shift: 0;
 }
-.terrain {
+.hero-ambient-glow {
   position: absolute;
-  width: 760px;
-  height: 780px;
-  max-width: none;
-  top: -70px;
-  left: -80px;
-  opacity: 0.3;
+  width: 580px;
+  height: 580px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    rgba(236, 88, 48, 0.12) 0%,
+    rgba(14, 165, 233, 0.08) 45%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 50%;
 }
-.contours {
-  color: #d8d8de;
-  opacity: 0.2;
+.terrain.hero-svg-canvas {
+  position: absolute;
+  width: 860px;
+  height: 840px;
+  max-width: none;
+  top: -95px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 1;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
 }
 .hero-road {
-  stroke: #f1f1f4;
+  stroke: #e2e5eb;
+}
+.hero-road-border {
+  stroke: #cbd5e1;
 }
 .hero-road-center {
-  stroke: #d8d8de;
+  stroke: #94a3b8;
 }
 .hero-route {
   stroke: var(--orange);
@@ -418,17 +439,181 @@ h2 {
   stroke-dasharray: 1460;
   stroke-dashoffset: 0;
 }
+.hero-route-glow {
+  stroke: var(--orange);
+  stroke-linecap: round;
+}
+.hero-laser-beam {
+  stroke: url(#laser-grad);
+  stroke-dasharray: 220 1240;
+  stroke-dashoffset: 0;
+}
+.pulse-secondary-laser {
+  stroke-dasharray: 120 700;
+  stroke-dashoffset: 0;
+}
 .hero-destination-ping {
+  transform-origin: 565px 130px;
   opacity: 0;
 }
 .hero-destination-dot {
-  transform-origin: 545px 110px;
+  transform-origin: 565px 130px;
+}
+.hero-radar-group {
+  transform-origin: 430px 420px;
+}
+.radar-sweeper {
+  transform-origin: 0px 0px;
+}
+.sonar-wave {
+  transform-origin: 0px 0px;
+}
+.sat-beacon-blink {
+  transform-origin: 0px 0px;
+}
+
+/* Floating Holographic Telemetry Cards */
+.hero-telemetry-cluster {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.hero-chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 13px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 12px;
+  box-shadow:
+    0 10px 25px -5px rgba(15, 23, 42, 0.08),
+    0 4px 10px -2px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  pointer-events: auto;
+  user-select: none;
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s;
+}
+.hero-chip:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 14px 30px -5px rgba(15, 23, 42, 0.12),
+    0 6px 14px -2px rgba(15, 23, 42, 0.06);
+}
+.chip-content {
+  display: flex;
+  flex-direction: column;
+}
+.chip-kicker {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+.chip-val {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #0f172a;
+  font-family: var(--font-mono, monospace);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.chip-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.chip-pulse-dot.dot-cyan {
+  background: #0ea5e9;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.25);
+}
+.chip-pulse-dot.dot-orange {
+  background: #ec5830;
+  box-shadow: 0 0 0 2px rgba(236, 88, 48, 0.25);
+}
+.chip-pulse-dot.dot-green {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+.chip-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.chip-bars .bar {
+  width: 2.5px;
+  background: #0ea5e9;
+  border-radius: 1px;
+}
+.chip-bars .bar-1 {
+  height: 4px;
+}
+.chip-bars .bar-2 {
+  height: 7px;
+}
+.chip-bars .bar-3 {
+  height: 10px;
+}
+.chip-bars .bar-4 {
+  height: 12px;
+}
+.gyro-spinner {
+  width: 14px;
+  height: 14px;
+  position: relative;
+  flex-shrink: 0;
+}
+.gyro-ring {
+  position: absolute;
+  inset: 0;
+  border: 1.5px dashed #ec5830;
+  border-radius: 50%;
+}
+.gyro-core {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 6px;
+  height: 6px;
+  background: #ec5830;
+  border-radius: 50%;
+}
+.chip-gnss {
+  top: 75px;
+  left: calc(50% - 150px);
+  transform: translateX(-100%);
+}
+.chip-imu {
+  bottom: 110px;
+  left: calc(50% - 150px);
+  transform: translateX(-100%);
+}
+.chip-drift {
+  top: 115px;
+  left: calc(50% + 150px);
+}
+.chip-offline {
+  bottom: 95px;
+  left: calc(50% + 150px);
 }
 .hero-device-position {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -51%);
+  z-index: 10;
 }
 .device {
   position: relative;
@@ -506,6 +691,7 @@ h2 {
   display: flex;
   gap: 12px;
   white-space: nowrap;
+  z-index: 12;
 }
 .hero-bottom {
   position: absolute;
@@ -1847,11 +2033,24 @@ details[open] > summary > .icon {
   .hero-device img {
     border-radius: 26px;
   }
-  .terrain {
-    width: 640px;
-    height: 657px;
-    left: -145px;
-    top: -45px;
+  .terrain.hero-svg-canvas {
+    width: 740px;
+    height: 723px;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -85px;
+  }
+  .chip-drift,
+  .chip-offline {
+    display: none;
+  }
+  .chip-gnss {
+    top: 50px;
+    left: calc(50% - 125px);
+  }
+  .chip-imu {
+    bottom: 80px;
+    left: calc(50% - 125px);
   }
   .hero-bottom {
     left: 26px;
@@ -2117,6 +2316,7 @@ details[open] > summary > .icon {
   .hero-device-position {
     top: 51%;
     left: 51%;
+    z-index: 10;
   }
   .hero-device {
     width: 216px;
@@ -2127,12 +2327,44 @@ details[open] > summary > .icon {
   .hero-device img {
     border-radius: 27px;
   }
-  .terrain {
-    width: 650px;
-    height: 667px;
+  .terrain.hero-svg-canvas {
+    width: 660px;
+    height: 645px;
     left: 50%;
-    transform: translateX(-48%);
-    top: -69px;
+    transform: translateX(-50%);
+    top: -65px;
+  }
+  .hero-telemetry-cluster {
+    inset: auto;
+    top: -12px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    z-index: 2;
+  }
+  .hero-chip {
+    position: static;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 10px;
+    gap: 7px;
+    border-radius: 10px;
+    transform: none !important;
+  }
+  .chip-drift {
+    display: inline-flex;
+  }
+  .chip-imu,
+  .chip-offline {
+    display: none;
+  }
+  .chip-kicker {
+    font-size: 7.5px;
+  }
+  .chip-val {
+    font-size: 10px;
   }
   .screenshot-caption {
     bottom: 2px;
@@ -2490,6 +2722,18 @@ details[open] > summary > .icon {
     margin-left: 8px;
   }
 }
+@media (max-width: 440px) {
+  .hero-telemetry-cluster {
+    justify-content: center;
+  }
+  .chip-drift {
+    display: none;
+  }
+  .chip-gnss {
+    flex: 0 1 auto;
+    max-width: 100%;
+  }
+}
 @media (max-width: 370px) {
   .site-header {
     padding-inline: 17px;
@@ -2577,6 +2821,229 @@ details[open] > summary > .icon {
   }
   .device {
     will-change: auto;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-ambient-glow {
+    animation: hero-glow-breathe 8s ease-in-out infinite alternate;
+  }
+  .hero-laser-beam {
+    animation: hero-laser-travel 4.5s linear infinite;
+  }
+  .pulse-secondary-laser {
+    animation: hero-laser-travel 6s linear infinite reverse;
+  }
+  .hero-destination-ping {
+    animation: hero-dest-ping 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  .radar-sweeper {
+    animation: hero-radar-sweep 7s linear infinite;
+  }
+  .sonar-wave.pulse-1 {
+    animation: hero-sonar-pulse 4.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+  }
+  .sonar-wave.pulse-2 {
+    animation: hero-sonar-pulse 4.5s cubic-bezier(0.1, 0.8, 0.3, 1) 2.25s
+      infinite;
+  }
+  .sat-beacon-blink {
+    animation: hero-sat-blink 1.8s ease-in-out infinite;
+  }
+  .sat-rf-wave.w1 {
+    animation: hero-rf-pulse 2.4s ease-out infinite;
+  }
+  .sat-rf-wave.w2 {
+    animation: hero-rf-pulse 2.4s ease-out 0.4s infinite;
+  }
+  .sat-rf-wave.w3 {
+    animation: hero-rf-pulse 2.4s ease-out 0.8s infinite;
+  }
+  .chip-bars .bar-1 {
+    animation: hero-bar-dance 1.4s ease-in-out infinite alternate;
+  }
+  .chip-bars .bar-2 {
+    animation: hero-bar-dance 1.2s ease-in-out 0.2s infinite alternate;
+  }
+  .chip-bars .bar-3 {
+    animation: hero-bar-dance 1.5s ease-in-out 0.4s infinite alternate;
+  }
+  .chip-bars .bar-4 {
+    animation: hero-bar-dance 1.3s ease-in-out 0.1s infinite alternate;
+  }
+  .gyro-ring {
+    animation: hero-gyro-spin 3s linear infinite;
+  }
+  .chip-pulse-dot {
+    animation: hero-dot-glow 2s ease-in-out infinite alternate;
+  }
+  .chip-gnss {
+    animation: hero-chip-float-1 6s ease-in-out infinite alternate;
+  }
+  .chip-imu {
+    animation: hero-chip-float-2 6.5s ease-in-out 0.5s infinite alternate;
+  }
+  .chip-drift {
+    animation: hero-chip-float-3 7s ease-in-out 1s infinite alternate;
+  }
+  .chip-offline {
+    animation: hero-chip-float-4 6.8s ease-in-out 1.5s infinite alternate;
+  }
+}
+
+@keyframes hero-glow-breathe {
+  0% {
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes hero-laser-travel {
+  0% {
+    stroke-dashoffset: 1460;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes hero-dest-ping {
+  0% {
+    r: 8px;
+    opacity: 0.9;
+    stroke-width: 2.5;
+  }
+  75% {
+    r: 38px;
+    opacity: 0;
+    stroke-width: 0.5;
+  }
+  100% {
+    r: 38px;
+    opacity: 0;
+    stroke-width: 0;
+  }
+}
+
+@keyframes hero-radar-sweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hero-sonar-pulse {
+  0% {
+    r: 15px;
+    opacity: 0.8;
+    stroke-width: 2;
+  }
+  70% {
+    r: 330px;
+    opacity: 0;
+    stroke-width: 0.5;
+  }
+  100% {
+    r: 330px;
+    opacity: 0;
+    stroke-width: 0;
+  }
+}
+
+@keyframes hero-sat-blink {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes hero-rf-pulse {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hero-bar-dance {
+  0% {
+    transform: scaleY(0.4);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+@keyframes hero-gyro-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hero-dot-glow {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes hero-chip-float-1 {
+  0% {
+    transform: translateX(-100%) translateY(0);
+  }
+  100% {
+    transform: translateX(-100%) translateY(-6px);
+  }
+}
+
+@keyframes hero-chip-float-2 {
+  0% {
+    transform: translateX(-100%) translateY(0);
+  }
+  100% {
+    transform: translateX(-100%) translateY(5px);
+  }
+}
+
+@keyframes hero-chip-float-3 {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes hero-chip-float-4 {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(6px);
   }
 }
 
