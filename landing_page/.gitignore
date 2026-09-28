@@ -4,3 +4,6 @@ test-results/
 .vite/
 legacy-assets/
 playwright-report/
+
+.vercel
+.env*
