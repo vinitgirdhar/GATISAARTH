@@ -122,9 +122,9 @@ test("download is the APK described on the page and checksum copies", async ({
     .getByRole("link", { name: "Download APK" })
     .click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("gatisaarth-5.2.1.apk");
+  expect(download.suggestedFilename()).toBe("gatisaarth-5.2.apk");
   const apk = await readFile(await download.path());
-  expect(apk.length).toBe(113704871);
+  expect(apk.length).toBe(113698611);
   expect(apk.subarray(0, 2).toString()).toBe("PK");
   const hash = createHash("sha256").update(apk).digest("hex");
   await page.locator(".installation-details summary").click();

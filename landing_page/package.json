@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "playwright test",
     "check": "node --check src/main.js && prettier --check index.html src/*.js src/*.css *.js tests/*.js",
-    "format": "prettier --write index.html src/*.js src/*.css *.js tests/*.js"
+    "format": "prettier --write index.html src/*.js src/*.css *.js tests/*.js",
+    "sync-apk": "node ../tools/sync_apk.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

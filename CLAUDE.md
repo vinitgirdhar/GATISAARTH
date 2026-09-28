@@ -91,3 +91,32 @@ phone; lane level is **not** claimed (the map data has no lanes).
 - The tool shells don't have Flutter on PATH; use `C:\src\flutter\bin\flutter.bat` and `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`. The bundled `sdkmanager` (cmdline-tools 16111833) crashes — install SDK/NDK packages by downloading them directly.
 - `minSdk`/`compileSdk`/`ndkVersion` come from the Flutter SDK's own gradle config (`flutter.minSdkVersion` etc.) — don't hardcode versions in `android/app/build.gradle`.
 - Assets are large (the 37 MB Delhi map archive, the TFLite model) — first build/index in Android Studio can be slow. The archive is git-ignored: a checkout without `frontend/assets/maps/packs/delhi-ncr.pmtiles` still builds and runs, the map then uses cached tiles (and online Stadia tiles only in a build made with `--dart-define=STADIA_API_KEY=...`) until a region is downloaded (Profile > Offline Maps). Get it with `tools/offline_maps/README.md`.
+
+## Building & Updating APKs (Monorepo & Landing Page Workflow)
+
+Whenever a new APK is built or updated, it must appear in `apks/` and be synchronized to the public landing page.
+
+### 1. One-Command Build & Sync
+Run from repo root:
+- **Windows PowerShell**: `.\scripts\build_and_sync_apk.ps1`
+- **Linux / macOS / Bash**: `./scripts/build_and_sync_apk.sh`
+
+This runs `flutter build apk --release` and automatically synchronizes all APK outputs and landing page assets.
+
+### 2. Synchronizing an Existing APK File
+If you already have an APK file built in `apks/` or elsewhere:
+```bash
+# From repo root (with explicit path or auto-detect):
+node tools/sync_apk.js apks/GatiSaarth-v5.2+51-release.apk
+
+# Or from landing_page directory:
+cd landing_page && npm run sync-apk
+```
+
+### What the Sync Tool (`tools/sync_apk.js`) Automates:
+1. **Canonical naming in `apks/`**: Copies to `apks/GatiSaarth-v<version>+<build>-release.apk` and updates `apks/app-release.apk` + `app-release.apk.sha1`.
+2. **Landing Page Download Asset**: Copies to `landing_page/public/downloads/gatisaarth-<version>.apk` and removes stale APK binaries.
+3. **Checksums**: Re-hashes the file and updates `landing_page/public/downloads/SHA256SUMS.txt`.
+4. **Website UI**: Updates `landing_page/index.html` download buttons (`href`), version pill badge (`v<version>`), file size (`<size> MB`), and the verification code element (`#apk-hash`).
+5. **Vercel & Playwright**: Updates download header in `landing_page/vercel.json` and download filename/byte size expectations in `landing_page/tests/launch.spec.js`.
+6. **Production Bundle**: Re-runs `npm run build` inside `landing_page` so `dist/` is instantly production-ready.

@@ -110,13 +110,13 @@ const captures = {
     src: "./screenshots/map.png",
     title: "A journey through Mumbai, Maharashtra",
     alt: "Actual GatiSaarth navigation during a simulated 45 km/h drive in Mumbai, with turn guidance and a route to the Gateway of India",
-    caption: "Actual app · Simulated Mumbai drive · v5.2.1",
+    caption: "Actual app · Simulated Mumbai drive · v5.2",
   },
   home: {
     src: "./screenshots/home.png",
     title: "Your journey starts here",
     alt: "Actual GatiSaarth home screen with location status and destination selection",
-    caption: "Actual app capture · Android emulator · v5.2.1",
+    caption: "Actual app capture · Android emulator · v5.2",
   },
 };
 let previousBodyOverflow = "";

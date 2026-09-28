@@ -396,7 +396,7 @@ class GatiSimulator extends HTMLElement {
       [
         "engine",
         "GatiSaarth Navigation Engine",
-        "v5.2.1 · Offline ready · Specifications",
+        "v5.2 · Offline ready · Specifications",
         "compass",
       ],
       [
@@ -499,7 +499,7 @@ class GatiSimulator extends HTMLElement {
     if (s.page === "console")
       content = `<p class="subtitle">Live values from this browser's simulated session.</p><div class="card"><div class="row"><h2>Telemetry</h2>${button("pause-diagnostics", s.diagnosticsPaused ? "Resume" : "Pause", "text-button")}</div><dl class="report-grid"><div><dt>Speed</dt><dd><span data-sensor-speed>0</span> km/h</dd></div><div><dt>Position uncertainty</dt><dd data-sensor-accuracy>±5 m</dd></div><div><dt>GNSS</dt><dd data-sensor-signal>Connected</dd></div><div><dt>Motion profile</dt><dd>${esc(s.vehicle)}</dd></div></dl></div><div class="card"><h2>Session events</h2><ol class="event-log">${s.events.map((e) => `<li>${esc(e)}</li>`).join("")}</ol>${button("clear-events", "Clear log", "text-button")}${button("export-events", "Export logs", "text-button")}</div>`;
     if (s.page === "engine")
-      content = `<div class="card"><h2>GatiSaarth Navigation Engine</h2><p>v5.2.1 · Offline ready</p></div>${[
+      content = `<div class="card"><h2>GatiSaarth Navigation Engine</h2><p>v5.2 · Offline ready</p></div>${[
         [
           "Sensor fusion",
           "Satellite fixes, inertial motion, and road context inform the position estimate.",
