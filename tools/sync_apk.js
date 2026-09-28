@@ -11,6 +11,10 @@
  *   node tools/sync_apk.js apks/GatiSaarth-v5.2+51-release.apk
  *   node tools/sync_apk.js frontend/build/app/outputs/flutter-apk/app-release.apk
  *   node tools/sync_apk.js   (auto-detects from frontend build or latest in apks/)
+ *   node tools/sync_apk.js --skip-upload   (local sync only, no Vercel Blob upload)
+ *
+ * Uploads the APK to Vercel Blob using BLOB_READ_WRITE_TOKEN from the env or
+ * landing_page/.env.local.
  */
 
 import fs from "node:fs";
@@ -117,7 +121,39 @@ function parseVersionInfo(apkPath) {
   throw new Error(`Could not determine version from filename ${filename} or pubspec.yaml`);
 }
 
-function syncApk(inputArg) {
+// Git-ignored .env.local written by `vercel link` / `vercel env pull`.
+function readBlobToken() {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+  const envPath = path.join(LANDING_DIR, ".env.local");
+  if (!fs.existsSync(envPath)) return null;
+  const match = fs
+    .readFileSync(envPath, "utf8")
+    .match(/^BLOB_READ_WRITE_TOKEN=["']?([^"'\r\n]+)/m);
+  return match ? match[1] : null;
+}
+
+// The APK is git-ignored and over GitHub's 100 MB limit, so the site serves it
+// from Vercel Blob; vercel.json redirects /downloads/*.apk there.
+function uploadToBlob(apkPath, pathname) {
+  const token = readBlobToken();
+  if (!token) {
+    throw new Error(
+      "BLOB_READ_WRITE_TOKEN not found (env or landing_page/.env.local). " +
+        "Run `npx vercel link` and `npx vercel env pull .env.local` in landing_page, " +
+        "or pass --skip-upload.",
+    );
+  }
+  console.log(`\nUploading ${pathname} to Vercel Blob...`);
+  // Token goes through env, never argv, so it does not show in process lists.
+  execSync(
+    `npx -y vercel@latest blob put "${apkPath}" --access public --pathname ${pathname} ` +
+      "--allow-overwrite true --cache-control-max-age 86400 " +
+      "--content-type application/vnd.android.package-archive",
+    { cwd: LANDING_DIR, stdio: "inherit", env: { ...process.env, BLOB_READ_WRITE_TOKEN: token } },
+  );
+}
+
+function syncApk(inputArg, { skipUpload = false } = {}) {
   console.log("=== GatiSaarth APK & Landing Page Sync ===");
 
   const sourceApk = findSourceApk(inputArg);
@@ -175,6 +211,12 @@ function syncApk(inputArg) {
   const shaSumsPath = path.join(DOWNLOADS_DIR, "SHA256SUMS.txt");
   fs.writeFileSync(shaSumsPath, `${sha256}  ${landingApkName}\n`, "utf8");
   console.log(`Updated SHA256SUMS.txt`);
+
+  if (skipUpload) {
+    console.log("Skipping Vercel Blob upload (--skip-upload). The live download stays on the old APK.");
+  } else {
+    uploadToBlob(landingApkPath, landingApkName);
+  }
 
   // Update landing_page/index.html
   const indexPath = path.join(LANDING_DIR, "index.html");
@@ -261,5 +303,6 @@ function syncApk(inputArg) {
   console.log("\nSync complete! All assets and landing page files are in sync.");
 }
 
-const inputArg = process.argv[2];
-syncApk(inputArg);
+const args = process.argv.slice(2);
+const inputArg = args.find((a) => !a.startsWith("--"));
+syncApk(inputArg, { skipUpload: args.includes("--skip-upload") });
