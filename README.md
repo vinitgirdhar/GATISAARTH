@@ -5,622 +5,241 @@
   </picture>
 </p>
 
-<p align="center"><strong>Intelligent Navigation Beyond GNSS — Software-Defined Dead Reckoning on Commodity Smartphones</strong></p>
+<p align="center"><strong>Keeps a vehicle on the right road when GPS drops, using only the phone already in the car.</strong></p>
 
 <p align="center">
-  <img alt="Android 7.0+" src="https://img.shields.io/badge/Android-7.0%2B%20(API%2024)-3DDC84?logo=android&logoColor=white">
+  <img alt="Smart India Hackathon 2026" src="https://img.shields.io/badge/SIH%202026-SIH26168-orange">
+  <img alt="Android 7.0+" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white">
   <img alt="Flutter 3.47" src="https://img.shields.io/badge/Flutter-3.47-02569B?logo=flutter&logoColor=white">
-  <img alt="Dart 3.13" src="https://img.shields.io/badge/Dart-3.13-0175C2?logo=dart&logoColor=white">
-  <img alt="Architecture: 15-State ES-EKF" src="https://img.shields.io/badge/Filter-15--State%20ES--EKF-blue">
-  <img alt="Maps: Offline PMTiles" src="https://img.shields.io/badge/Maps-Offline%20PMTiles%20v3-green">
-  <img alt="Version 4.5.0" src="https://img.shields.io/badge/Version-4.5.0%20(build%2047)-blueviolet">
-  <img alt="Status: Pre-release" src="https://img.shields.io/badge/Status-Pre--release-orange">
+  <img alt="Fully offline" src="https://img.shields.io/badge/Runs-fully%20offline-green">
 </p>
 
----
-
-## Executive Summary & Problem Statement
-
-**GatiSaarth** (गतिसार्थ — *Companion in Motion*) is an advanced, privacy-first, on-device inertial navigation system for Android. It maintains continuous, reliable vehicle positioning when Global Navigation Satellite Systems (GNSS / GPS / NavIC) become unavailable:
-- **Tunnels & Underpasses** (e.g., Atal Tunnel, Dr. Syama Prasad Mookerjee Tunnel, Mumbai Coastal Road undersea tunnels)
-- **Multi-Level Underground Parking & Basements**
-- **Dense Urban Canyons** where high-rises cause severe multi-path reflection and satellite shading
-- **Double-Decker Flyovers & Elevated Metro Lines**
-- **Electronic Warfare, Spoofing & Jamming Zones**
-
-### Why Consumer Navigation Fails Today
-Standard consumer navigation applications (Google Maps, Apple Maps, MapmyIndia) rely almost entirely on active GNSS fixes. When satellite reception drops, they:
-1. **Freeze** the position marker indefinitely,
-2. **Jump erratically** due to multi-path reflections off glass facades, or
-3. **Extrapolate blindly** along a straight line at the last recorded speed, completely oblivious to curves, turns, stops, or traffic signals.
-
-Commercial automotive solutions address this with dedicated Inertial Measurement Units (IMUs) and wheel-speed odometry tapped into the vehicle's CAN-bus. However, these systems cost thousands of dollars and cannot be retrofitted to everyday vehicles or two-wheelers.
-
-### The GatiSaarth Solution
-GatiSaarth turns **ordinary, off-the-shelf consumer smartphones** into high-grade inertial navigators using **zero external hardware**. By fusing the phone's internal MEMS sensors (3-axis accelerometer, 3-axis gyroscope, 3-axis magnetometer, and barometer) through a rigorous **15-state Error-State Extended Kalman Filter (ES-EKF)**, strapdown inertial mechanization, dynamic vehicle alignment, non-holonomic constraints (NHC), zero-velocity updates (ZUPT), on-device offline vector maps (PMTiles v3), and edge AI speed estimation, GatiSaarth delivers continuous, sub-2% drift navigation throughout extended satellite outages.
-
-**100% On-Device & Zero Cloud Reliance:** No accounts, no subscriptions, no telemetry servers required, and zero location data leaves the device.
+| | |
+|---|---|
+| **Challenge** | SIH26168 (ISRO): *AI-ML based Intelligent Dead Reckoning system for seamless navigation* |
+| **Team** | CodeAstra (ID 120431). Team leader: Vinit Girdhar |
+| **Try it** | Website, demo film and Android APK: **https://gatisaarth.vercel.app/** |
+| **What it is** | An Android app (Flutter). No extra hardware, no accounts, no cloud |
 
 ---
 
-## Table of Contents
+## The problem
 
-1. [Live Presentation & Demonstration Guide](#live-presentation--demonstration-guide)
-2. [Key Innovations & Technical Highlights](#key-innovations--technical-highlights)
-3. [System Architecture & Data Pipeline](#system-architecture--data-pipeline)
-4. [Mathematical & Algorithmic Foundation](#mathematical--algorithmic-foundation)
-5. [Empirical Evidence & Benchmark Results](#empirical-evidence--benchmark-results)
-6. [Competitive Comparison Matrix](#competitive-comparison-matrix)
-7. [Offline Vector Maps](#offline-vector-maps)
-8. [Hardware & Sensor Requirements](#hardware--sensor-requirements)
-9. [Getting Started & Installation](#getting-started--installation)
-10. [Testing & Field Validation](#testing--field-validation)
-11. [Known Limits & Engineering Disclosures](#known-limits--engineering-disclosures)
-12. [Repository Layout](#repository-layout)
-13. [What's new in v4.5](#whats-new-in-v45)
-14. [Features added in September 2026](#features-added-in-september-2026)
-15. [Privacy & Security](#privacy--security)
-16. [Acknowledgements & Data Licences](#acknowledgements--data-licences)
+Every tunnel, underpass, flyover and basement is a guaranteed GPS blackout. When GPS drops, a navigation app **freezes** the marker, lets it **jump**, or keeps it moving in a **straight line** at the last speed. The driver misses an exit, the ETA is wrong, and delivery fleets, ride-hailing and emergency vehicles lose track.
 
----
+The fixes that exist need hardware. Dead-reckoning chips (for example u-blox) need wheel-speed wiring and a fixed install in each vehicle. Tunnel beacons (Waze Beacons) need equipment inside each tunnel. Neither helps a driver whose only navigator is a phone.
 
-## Live Presentation & Demonstration Guide
+## Our solution
 
-To evaluate or pitch GatiSaarth in a presentation or hackathon judging session (3 to 5 minutes), use this structured demonstration playbook:
-
-```
-+--------------------------------------------------------------------------------------------------+
-|                                    LIVE DEMO PLAYBOOK                                            |
-|                                                                                                  |
-| [1. Cold Start]      --> [2. Satellite Lock]    --> [3. Tunnel Outage]    --> [4. Reacquisition] |
-|   Branded boot           Sync capsule slides        Tap "Tunnel test":        Smooth glide back   |
-|   1.4s animation         in: "Finding satellites"   GNSS severed, DR leads,   to satellite fix.   |
-|                          to "Synced".               dashed red track,         No teleport jump.   |
-|                                                     honest uncertainty ring.                     |
-|                                                                                                  |
-| [5. Jamming/Multipath] -> [6. Offline Maps]     --> [7. Auto-Yaw Mount]   --> [8. Outage Bench]  |
-|   "Urban canyon" test:   Airplane mode on:          Aligns phone at any       Bit-exact replay    |
-|   Integrity gate         Vector OSM renders         angle from straight-line  scores core against |
-|   rejects bad fixes.     crisply via PMTiles.       braking/acceleration.     withheld GNSS.      |
-+--------------------------------------------------------------------------------------------------+
-```
-
-### Step 1: Cold Start & The Sync Capsule
-- Launch the application. A clean, branded 1.4-second launch animation transitions seamlessly into the main dashboard.
-- Point out the **Sync Capsule** at the top of the screen. Unlike generic loading spinners, it is wired directly to real hardware state:
-  - Phase 1: *"Syncing · Initializing sensors"*
-  - Phase 2: *"Syncing · Finding satellites"* (with 3-segment progressive telemetry)
-  - Phase 3: *"Synced"* (pill turns green and gently dismisses after 1.6 s)
-
-### Step 2: Normal Driving & Map Experience
-- The vehicle marker (puck) displays your current location with an **honest accuracy ring** drawn strictly to scale in metres.
-- Demonstrate the **camera follow modes** in the Map tab:
-  - **Free:** Pan and explore freely.
-  - **North-Up:** Follows the vehicle with the map locked north.
-  - **Heading-Up:** Rotates the map dynamically with the vehicle's heading, with predictive lookahead easing.
-- As the vehicle travels, the path driven is drawn as a **solid blue line**, signifying verified satellite-backed positioning.
-
-### Step 3: Simulating a Severe Outage ("Tunnel Test")
-- Tap the **"Tunnel test"** button (or trigger via test hook / toggle airplane mode / cut GPS).
-- **Immediate Visual & Haptic Feedback:**
-  - Phone provides a distinct double-pulse haptic alert (if enabled).
-  - Status banner immediately updates to *"Dead Reckoning Active · GNSS Outage"*.
-  - The route track instantly changes from **solid blue to dashed red**, visually indicating that every subsequent metre is calculated by the inertial engine.
-  - The **uncertainty ring expands dynamically and honestly** based on the filter's covariance ($\sigma$) and elapsed distance, rather than hiding error.
-  - Even without GPS, the vehicle marker turns with the vehicle and stops when the vehicle stops (driven by the 15-state EKF, ZUPT, and NHC constraints).
-
-### Step 4: Smooth Satellite Reacquisition
-- Restore GNSS (tap "Exit Tunnel" or re-enable GPS).
-- Notice that the marker does **not snap or teleport** jarringly. GatiSaarth applies an eased glide to smoothly reconcile the dead-reckoned position with the fresh satellite fix.
-
-### Step 5: Urban Canyon & Multipath Outlier Rejection
-- Tap the **"Urban canyon"** demo button.
-- In dense cities, reflected satellite signals cause wild 100-metre jumps (teleports).
-- Observe how GatiSaarth's **GNSS Quality & Integrity Gate** (chi-square innovation filter) intercepts and rejects the implausible fix. The status ticker logs *"GNSS integrity anomaly detected"*, protecting the navigation filter from corruption.
-
-### Step 6: 100% Offline Vector Map Capability
-- Toggle the device into **Airplane Mode** (`adb shell cmd connectivity airplane-mode enable`).
-- Zoom in and out across Delhi NCR or downloaded Maharashtra cities (Pune, Mumbai).
-- The vector map stays razor sharp at zoom levels 0 through 15, with full street labels and smooth light/dark theme switching, because it reads directly from local **PMTiles v3** archives stored in flash memory.
-
-### Step 7: Drive Recording & Scientific Outage Benchmarking
-- Navigate to **Sensors > Record drive** to capture real sensor data to an immutable, bit-exact JSON Lines file.
-- Navigate to **Profile > Outage Benchmark**:
-  - Select the recorded drive or the bundled reference drive.
-  - Run the benchmark directly on-device in a background isolate.
-  - The system systematically withholds GNSS across multiple time windows and computes real median and P95 drift metrics against the ground truth, proving filter performance scientifically.
-  - The **Report** card gives a PASS/FAIL verdict against the SIH <10 % drift target, with cross-track, along-track, max uncertainty and recovery jump. **Export report** shares it as JSON, CSV or PDF, stamped with a SHA-256 hash and an Android Keystore signature.
-
-### Step 8: Simulate GNSS Loss on a Live Drive (v4.5)
-- In the **Map** tab, tap the crossed-out location button → **Simulate GNSS loss**.
-- The sheet first shows a **Dead-reckoning readiness** checklist (alignment, IMU, road lock, velocity, GNSS quality). Pick **10 / 20 / 30 / 45 / 60 s** and press **Start**.
-- Real GPS keeps arriving but is withheld from the navigation engine, so the app runs exactly as in a real outage. The withheld fixes are kept as ground truth.
-- When the timer ends you get a scorecard: *"GNSS blackout simulated at 14:32:18 · 30 s — Travelled 312 m · DR error 24.8 m (7.9 %) — Along-track … · Cross-track … — Uncertainty grew 5 m → 31 m · Recovery jump 1.6 m — PASS vs SIH <10 % target"* (illustrative numbers). It is also saved in **Profile > Outage Log** (marked `sim`).
-
-### Step 9: Trust, Health and Faults (v4.5)
-- The **safety badge** on Home/Map says how far to trust the position: **GREEN** reliable, **AMBER** dead reckoning, **ORANGE** high uncertainty, **RED** unreliable. In RED the app enters **Limited Navigation Mode**: no exact coordinates, guidance paused, "Follow road signs".
-- **Sensors** tab: **Navigation Hardware Check** (PASS/DEGRADED/FAIL for every sensor, rates, timestamp jitter, gyro bias stability, magnetic interference), **Mount quality** score, and **GNSS HEALTH** (NORMAL / DEGRADED / MULTIPATH SUSPECTED / INTERFERENCE SUSPECTED / OUTAGE, with constellation mix, NavIC, clock and multipath evidence).
-- **Profile > Fault Injection Lab**: inject a GNSS jump, integrity anomaly, gyro/accel bias, magnetometer disturbance, sensor dropout or timestamp delay into a replayed drive and see *Injected / Detected / Action*.
-
----
-
-## Key Innovations & Technical Highlights
-
-### 1. 15-State Error-State Kalman Filter (ES-EKF)
-Instead of a naive total-state filter, GatiSaarth implements an indirect **Error-State Kalman Filter** on a local North-East-Down (NED) strapdown mechanization. The filter maintains:
-- **3D Position Error:** $\delta \mathbf{p}^n = [\delta r_N, \delta r_E, \delta r_D]^T$
-- **3D Velocity Error:** $\delta \mathbf{v}^n = [\delta v_N, \delta v_E, \delta v_D]^T$
-- **3D Attitude Error:** $\delta \boldsymbol{\theta}^n = [\delta \phi, \delta \theta, \delta \psi]^T$
-- **3D Accelerometer Bias:** $\delta \mathbf{b}_a^b = [b_{ax}, b_{ay}, b_{az}]^T$
-- **3D Gyroscope Bias:** $\delta \mathbf{b}_g^b = [b_{gx}, b_{gy}, b_{gz}]^T$
-
-### 2. The Non-Holonomic Constraint (NHC) — 11x Drift Reduction
-A road vehicle travels in the direction it points; under normal conditions, it cannot slide laterally or levitate vertically ($v_{lateral}^b \approx 0$, $v_{vertical}^b \approx 0$). GatiSaarth feeds these virtual zero-velocity measurements into the EKF at 10 Hz. In our empirical ablation studies, **NHC is the single most dominant factor**, reducing 60-second outage drift from **15.4% down to 1.36% — an 11x improvement**.
-
-### 3. Dynamic Phone-to-Vehicle Mount Alignment (Auto-Yaw)
-A driver places their phone in a dashboard mount at an arbitrary angle.
-- **Pitch and Roll** are resolved by low-pass filtering the gravity vector during stationary phases.
-- **Yaw (azimuth)** is dynamically regressed by correlating the phone's forward accelerometer readings with the vehicle's GNSS-derived longitudinal acceleration during straight-line speed changes ($> 0.5\text{ m/s}^2$ with yaw rate $< 0.08\text{ rad/s}$). Once 20 valid events are accumulated, the full 3D rotation matrix $\mathbf{C}_b^v$ is locked.
-
-### 4. Zero Velocity Updates (ZUPT) & Zero Angular Rate Updates (ZARU)
-When the vehicle is stopped at a red light or in traffic, sensor noise normally causes rapid velocity and position divergence. GatiSaarth's stillness detector identifies stationary periods and applies ZUPT ($\mathbf{v}^n = \mathbf{0}$) and ZARU ($\boldsymbol{\omega}^b = \mathbf{0}$) updates, resetting velocity error and bounding sensor bias drift.
-
-### 5. GNSS Quality & Integrity Gating
-Every satellite fix passes through a multi-stage integrity gate before reaching the filter:
-- Speed-dependent turn rate validation
-- Acceleration ceiling checks ($< 6\text{ m/s}^2$ for consumer cars)
-- Chi-square ($\chi^2$) innovation thresholding
-- Null-island and mocked-location traps
-Anomalies are labelled truthfully as *"GNSS integrity anomaly detected"* rather than making unverified claims of spoofing.
-
-### 6. Edge AI Speed Estimator (TCN, v4)
-An on-device network (`speed_estimator.tflite`, 209 KB float32, 48.8 k parameters) runs locally: a dilated causal temporal-convolution network trained from scratch on real IO-VNBD windows by `ml/src/training/train_speed_v4.py`. It predicts speed and its uncertainty. On held-out trips its speed error is 3.33 m/s MAE and its uncertainty is far better calibrated than the previous model (61 % of errors inside 1-sigma vs 34 %). It is **gated**: it may only touch the filter after agreeing with GNSS Doppler speed on the same drive (RMS <= 1 m/s), which on the held-out IO-VNBD trips it does not reach, so it stays advisory there.
-
-### 7. Pure-Dart Offline Vector Maps (PMTiles v3)
-Rather than raster images, GatiSaarth uses OpenStreetMap vector tiles packed into PMTiles v3 archives. It renders streets, building footprints, and labels on-device with custom vector shaders. Map packs can be downloaded on-demand directly on the phone via HTTP range requests from planet builds, saving 99% of cellular bandwidth.
-
----
-
-## System Architecture & Data Pipeline
-
-The entire system is architected around a single unidirectional data flow where the **Navigation Core** feeds thin, reactive presentation screens at a bounded 10 Hz update rate.
+When GPS drops, GatiSaarth keeps estimating position from the phone's own motion sensors, keeps that estimate on real roads using an offline map, and tells the driver how far to trust it.
 
 ```mermaid
-flowchart TD
-    subgraph Sensors["Hardware Sensors (Android Platform)"]
-        ACC["3-Axis Accelerometer (~50 Hz)"]
-        GYR["3-Axis Gyroscope (~50 Hz)"]
-        MAG["3-Axis Magnetometer (~15 Hz)"]
-        BAR["Barometer (~10 Hz)"]
-        GPS["GNSS / GPS / NavIC (~1 Hz)"]
-    end
-
-    subgraph Preprocessing["Signal Preprocessing & Synchronization"]
-        TS["TimeSync: Bounded k-Way Merge & Chronological Ordering"]
-        SFD["Sensor Fault Detector (Stalls, Noise, Out-of-range)"]
-        CAL["Calibration Engine: Bias & Soft/Hard-Iron Ellipsoid Fit"]
-        ALIGN["Mount Alignment Engine: Gravity Pitch/Roll + Dynamic Yaw"]
-    end
-
-    subgraph NavigationCore["Pure-Dart Navigation Engine"]
-        INS["Strapdown Inertial Mechanization (WGS-84 NED Frame)"]
-        EKF["15-State Error-State Extended Kalman Filter (ES-EKF)"]
-        GIG["GNSS Quality & Integrity Gate (Chi-Square NIS)"]
-        ZUPT_ENG["Motion Classifier & ZUPT / ZARU Gating"]
-        NHC_ENG["Non-Holonomic Constraints Engine (Lateral/Vertical = 0)"]
-        HMM["HMM Road-Network Map Matcher (Newson-Krumm)"]
-    end
-
-    subgraph AI["On-Device Edge AI"]
-        TFLITE["TCN Speed Estimator v4 (TFLite Float32, 209 KB)"]
-        STILL_GATE["Rule-Based Stillness & Vibration Classifier"]
-    end
-
-    subgraph StateManagement["Application State Management"]
-        LSC["LiveSessionController (Single Source of Truth, <= 10 Hz)"]
-        SYNC["SyncStatus Derived State Machine"]
-        TRAIL["TrackTrail Controller (Solid GNSS vs Dashed DR)"]
-    end
-
-    subgraph Presentation["UI & Offline Maps (Thin Observers)"]
-        HOME["Home Screen: Speed, Heading, Uncertainty, Anomaly Ticker"]
-        MAP["Map Screen: Vector Tiles (PMTiles v3), Follow Modes"]
-        SENSORS["Sensors Screen: Raw Telemetry, Calib Status, Satellite Grid"]
-        BENCH["Outage Benchmark & Replay Screen"]
-        OFFLINE["Offline Maps Manager (HTTP Range Request Downloader)"]
-    end
-
-    ACC --> TS
-    GYR --> TS
-    MAG --> TS
-    BAR --> TS
-    GPS --> GIG
-
-    TS --> SFD --> CAL --> ALIGN
-    ALIGN --> INS
-    INS <--> EKF
-
-    GIG -->|"Valid Fix"| EKF
-    GIG -->|"Anomaly Detected"| LSC
-    ZUPT_ENG -->|"Zero Velocity"| EKF
-    NHC_ENG -->|"Virtual Constraint"| EKF
-    BAR -->|"Relative Height"| EKF
-    MAG -->|"Heading Reference"| EKF
-    HMM -.->|"Heading Feedback"| EKF
-
-    ACC --> TFLITE --> STILL_GATE --> ZUPT_ENG
-
-    EKF -->|"Healthy & Calibrated"| LSC
-    CAL -->|"Fallback Kinematic"| LSC
-
-    LSC --> SYNC
-    LSC --> TRAIL
-    LSC --> HOME
-    LSC --> MAP
-    LSC --> SENSORS
-    LSC --> BENCH
-    LSC --> OFFLINE
+flowchart LR
+    S["Phone sensors<br/>accelerometer, gyroscope,<br/>magnetometer"] --> F["Physics filter<br/>15-state Kalman filter<br/>+ vehicle rules"]
+    G["GPS<br/>while available"] --> Q["Integrity check<br/>rejects bad fixes"] --> F
+    F --> R["Road lock<br/>offline OpenStreetMap"]
+    R --> T["Trust Layer<br/>GREEN / AMBER / ORANGE / RED"]
+    T --> O["Position on the map<br/>+ error radius"]
+    A["AI speed model<br/>advisory only"] -.-> F
 ```
 
----
+1. **Sense.** Accelerometer, gyroscope and magnetometer at about 50 Hz, plus GPS position, velocity and Doppler speed while GPS is available.
+2. **Learn the mount.** The app works out how the phone sits in the vehicle from normal driving. No manual calibration. A rigid mount works best.
+3. **Physics core.** A 15-state error-state Kalman filter (the family used in aircraft inertial navigation) integrates the motion sensors. Vehicle rules keep it honest: a car does not slide sideways, and a stopped car has zero speed.
+4. **Road lock.** During an outage the estimate is held to real roads read from the offline map on the phone, so turns and junctions stay correct. A live GPS fix is never snapped.
+5. **Trust Layer.** The engine takes over the displayed position only while it predicts live GPS at least as well as simply holding the last velocity. Otherwise the app keeps its normal pipeline. A colour-coded status and an error radius show the driver how far to trust the position.
+6. **Safe recovery.** A chi-squared test screens GPS for jumps and multipath, and the first fix after an outage is validated before the marker moves to it. The marker glides back instead of jumping.
 
-## Mathematical & Algorithmic Foundation
-
-### 1. Error-State Dynamics
-The continuous-time error-state differential equation is:
-
-$$\delta \dot{\mathbf{x}}(t) = \mathbf{F}(t) \delta \mathbf{x}(t) + \mathbf{G}(t) \mathbf{w}(t)$$
-
-Where the error state vector is:
-$$\delta \mathbf{x} = \begin{bmatrix} \delta \mathbf{p}^n \\ \delta \mathbf{v}^n \\ \delta \boldsymbol{\theta}^n \\ \delta \mathbf{b}_a^b \\ \delta \mathbf{b}_g^b \end{bmatrix} \in \mathbb{R}^{15}$$
-
-- **Position error:** $\delta \dot{\mathbf{p}}^n = \delta \mathbf{v}^n$
-- **Velocity error:** $\delta \dot{\mathbf{v}}^n = -\lfloor \mathbf{f}^n \times \rfloor \delta \boldsymbol{\theta}^n + \mathbf{C}_b^n \delta \mathbf{b}_a^b - (2\boldsymbol{\omega}_{ie}^n + \boldsymbol{\omega}_{en}^n) \times \delta \mathbf{v}^n + \delta \mathbf{g}^n$
-- **Attitude error:** $\delta \dot{\boldsymbol{\theta}}^n = -\lfloor \boldsymbol{\omega}_{in}^n \times \rfloor \delta \boldsymbol{\theta}^n - \mathbf{C}_b^n \delta \mathbf{b}_g^b$
-- **Biases:** $\delta \dot{\mathbf{b}}_a^b = \mathbf{w}_{ba}$ (random walk), $\delta \dot{\mathbf{b}}_g^b = \mathbf{w}_{bg}$ (random walk)
-
-Here, $\mathbf{C}_b^n$ is the direction cosine matrix from body frame to navigation frame, and $\lfloor \mathbf{f}^n \times \rfloor$ is the skew-symmetric cross-product matrix of specific force.
-
-### 2. Joseph-Form Covariance Measurement Update
-To guarantee numerical stability and preserve positive semi-definiteness of the error covariance matrix $\mathbf{P}$ across thousands of iterations, GatiSaarth uses the **Joseph-form update**:
-
-$$\mathbf{P}_k^+ = (\mathbf{I} - \mathbf{K}_k \mathbf{H}_k) \mathbf{P}_k^- (\mathbf{I} - \mathbf{H}_k \mathbf{K}_k)^T + \mathbf{K}_k \mathbf{R}_k \mathbf{K}_k^T$$
-
-Where:
-- $\mathbf{K}_k = \mathbf{P}_k^- \mathbf{H}_k^T (\mathbf{H}_k \mathbf{P}_k^- \mathbf{H}_k^T + \mathbf{R}_k)^{-1}$ is the optimal Kalman gain.
-- $\mathbf{H}_k$ is the measurement observation matrix.
-- $\mathbf{R}_k$ is the measurement noise covariance matrix.
-
-### 3. Chi-Square ($\chi^2$) Innovation Gating
-Before any measurement $\mathbf{z}_k$ (GNSS position, velocity, barometric height) is assimilated into the filter, its Normalized Innovation Squared (NIS) is computed:
-
-$$\gamma_k = \mathbf{r}_k^T \mathbf{S}_k^{-1} \mathbf{r}_k$$
-
-Where:
-- $\mathbf{r}_k = \mathbf{z}_k - \mathbf{h}(\hat{\mathbf{x}}_k^-)$ is the measurement residual (innovation).
-- $\mathbf{S}_k = \mathbf{H}_k \mathbf{P}_k^- \mathbf{H}_k^T + \mathbf{R}_k$ is the innovation covariance.
-
-If $\gamma_k > \chi_{m, 1-\alpha}^2$ (for $m$ degrees of freedom at significance level $\alpha = 0.01$), the measurement is rejected as an outlier. After a streak of rejected fixes, the filter gently inflates covariance to avoid divergence without jumping.
-
-### 4. Non-Holonomic Constraint (NHC) Formulation
-In the vehicle frame $v$, assuming no lateral side-slip and no vertical lift:
-
-$$\mathbf{v}^v = \begin{bmatrix} v_x^v \\ 0 \\ 0 \end{bmatrix} \implies \begin{cases} v_y^v = 0 \pm \sigma_{lat}^2 \\ v_z^v = 0 \pm \sigma_{vert}^2 \end{cases}$$
-
-Transforming to navigation frame through mount rotation $\mathbf{C}_b^v$ and attitude $\mathbf{C}_n^b$:
-
-$$\mathbf{H}_{NHC} = \begin{bmatrix} \mathbf{0}_{1 \times 3} & (\mathbf{C}_b^v \mathbf{C}_n^b \mathbf{e}_2)^T & \mathbf{0}_{1 \times 9} \\ \mathbf{0}_{1 \times 3} & (\mathbf{C}_b^v \mathbf{C}_n^b \mathbf{e}_3)^T & \mathbf{0}_{1 \times 9} \end{bmatrix}$$
-
-For two-wheelers, the lateral constraint variance $\sigma_{lat}^2$ is dynamically relaxed based on roll/lean angle to accommodate leaning during turns.
+**About the AI.** A 209 KB TensorFlow Lite speed model is **advisory**. It is trusted only while its output agrees with live GPS Doppler speed, and the physics filter always has the final say. The engine runs correctly with the model switched off.
 
 ---
 
-## Empirical Evidence & Benchmark Results
+## Proof
 
-> **Important Disclosure:** Every metric below represents rigorous scientific measurements obtained from simulated drives with modelled sensor errors, seeded ablations, and headless benchmark test suites. They establish the mathematical bounds and relative contributions of each component. Real-world field accuracy must be scored on recorded drives using the built-in Outage Benchmark.
+### Public benchmark: 32 real drives, lab-grade ground truth
 
-### 1. Component Ablation Study (60-Second GNSS Outage)
-Averaged across **5 seeded drives** (740 m travelled, cruising with curves and stops; test suite: `flutter test test/nav/ablation_test.dart`):
+We replayed **32 drives (28.9 hours)** from the public **IO-VNBD** dataset (Coventry and West Midlands, UK) through our engine. Ground truth is a Racelogic VBOX reference receiver. Each drive was scored by withholding GPS for 10 to 120 s at many start times.
 
-| Configuration Level | Included Components | Mean Drift (% Distance) | Worst Run | Best Run | Relative Improvement |
-|:---|:---|:---:|:---:|:---:|:---:|
-| **Level A** | Raw Inertial Mechanization (Double Integration) | 35.13% | 43.73% | 21.65% | Baseline |
-| **Level B** | + GNSS Velocity Integration | 15.37% | 35.55% | 5.93% | 2.3x better |
-| **Level C** | **+ Non-Holonomic Constraints (NHC)** | **1.36%** | **1.52%** | **1.23%** | **11.3x better (Dominant Lever)** |
-| **Level D** | + ZUPT / ZARU (Zero Velocity Updates) | 1.37% | 1.78% | 0.98% | Maintained |
-| **Level E** | + Adaptive GNSS Covariance | 1.37% | 1.78% | 0.98% | Maintained |
-| **Level F** | Complete Navigation Core (Full EKF) | **1.37%** | **1.78%** | **0.98%** | **Sub-1.5% Drift** |
+**Drift** = position error as a percentage of the distance driven during the blackout (median over drives). **Straight-line** = keep the last velocity, which is what apps do today.
 
-**Key Takeaway:** Non-Holonomic Constraints (NHC) constitute the single largest accuracy breakthrough, reducing drift from over 15% to approximately 1.36%.
+| Blackout | GatiSaarth | Straight-line | Error reduction | Drives scored |
+|---:|---:|---:|---:|---:|
+| 10 s | **4.6 %** | 18.0 % | 3.9x | 26 |
+| 30 s | **8.6 %** | 36.3 % | 4.2x | 25 |
+| 60 s | **12.5 %** | 57.8 % | 4.6x | 25 |
+| 120 s | **18.4 %** | 68.8 % | 3.7x | 23 |
 
-### 2. Outage Duration Scaling (Simulated Reference Drive)
-Scored on the bundled reference city drive (5.3 minutes, 50 Hz IMU, 1 Hz GNSS; test suite: `flutter test test/nav/reference_drive_asset_test.dart`):
+- **SIH target (drift under 10 %): met up to 30 s.** Not met at 60 s or 120 s.
+- Closer to the truth than straight-line in **1,061 of 1,282** individual blackout windows (83 %).
+- In metres: at 40 km/h a 60 s blackout is about 667 m of driving. GatiSaarth ends about **83 m** off, straight-line about **385 m** (arithmetic from the percentages above).
+- **What is real and what is a stand-in.** Drives, roads and ground truth are real. The motion sensors are the *car's own built-in sensors* (10 Hz), used as a stand-in for an external IMU. This is not a phone-sensor result. 6 of the 32 drives have no score (the engine did not lead, or no window could be scored).
 
-| Outage Duration | Test Windows ($n$) | Hold Last Velocity Median (P95) | GatiSaarth Core Median (P95) | Core Drift (% Dist) | Improvement Factor |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **10 Seconds** | 9 | 2 m (61 m) | **2 m (3 m)** | 1.7% | 1.0x (Parity) |
-| **30 Seconds** | 10 | 189 m (362 m) | **12 m (41 m)** | **3.1%** | **15.8x Reduction** |
-| **60 Seconds** | 9 | 516 m (730 m) | **25 m (409 m)** | **3.2%** | **20.6x Reduction** |
-| **120 Seconds** | 6 | 1171 m (1765 m) | **281 m (893 m)** | 19.5% | 4.2x Reduction |
+Raw results: [`docs/evidence/iovnbd_outage_benchmark.json`](docs/evidence/iovnbd_outage_benchmark.json). Method and caveats: [`docs/evidence/iovnbd_engine_and_map_evidence.md`](docs/evidence/iovnbd_engine_and_map_evidence.md).
 
-**Analysis of 120s Outage:** Over 2 full minutes without satellites, drift naturally expands to 281 m because smartphone MEMS gyroscopes accumulate unobservable heading drift without an absolute magnetometer/GNSS yaw anchor. GatiSaarth honestly reports this by widening its uncertainty ring.
+### Anyone can re-check our numbers
 
-### 3. Computational Efficiency & Battery Impact
-Measured on Android 16 (Pixel emulator and ARM64 hardware):
+- **Outage Benchmark** (in the app: Profile > Outage Benchmark) replays any recorded drive with GPS withheld and scores the engine and the straight-line baseline against the withheld fixes. It needs no reference receiver, so it works on any phone.
+- Replays are **bit-exact**: the same log always gives the same result.
+- The report exports as JSON, CSV or PDF, stamped with a SHA-256 hash and an Android Keystore signature.
 
-| Metric | Measured Value | Operational Impact |
-|:---|:---:|:---|
-| **EKF Execution Time per Frame** | **20 µs average** (74 µs peak) | Negligible CPU load |
-| **CPU Core Utilization (at 50 Hz)** | **~0.1% of one CPU core** | Near-zero thermal dissipation |
-| **RAM Footprint (Resident)** | **146 MB proportional** (244 MB resident) | Lightweight; runs smoothly on 2 GB devices |
-| **Release APK Size (Single ABI)** | **~58 MB** (77 MB fat APK with Delhi map) | Fast downloads and low storage impact |
-| **Background Power Conservation** | Sensors & GPS pause on backgrounding | Prevents background battery drain |
+### Other measurements
+
+| What | Result | Note |
+|---|---|---|
+| Filter cost | about 20 µs per sensor update (74 µs worst case) | Under 0.5 % of one CPU core at 50 Hz. Measured in a debug build. |
+| Biggest accuracy lever | The vehicle rule "no sideways slide" cut 60 s drift from 15.4 % to 1.4 % | **Simulated** drives with modelled sensor error. Explains the design; not field accuracy. |
+| Automated tests | 1,336 pass, 28 skipped, 5 fail | The 5 failures are out-of-date UI-wording checks after the redesign (for example a hard-coded "v4.5.1"), not engine logic. `flutter test` in `frontend/` |
+| Edge port (C++17) | 1,523x real time on a laptop CPU | Synthetic drive. A separate port for external IMUs; the app does not use it. |
 
 ---
 
-## Competitive Comparison Matrix
+## The Trust Layer
 
-| Feature / Capability | Standard Consumer Apps (Google Maps / Apple Maps) | MapmyIndia (Mappls) | Automotive OEM Dead Reckoning | **GatiSaarth (Our Solution)** |
-|:---|:---:|:---:|:---:|:---:|
-| **Hardware Required** | Smartphone | Smartphone | Vehicle CAN-Bus + Wheel Encoders + $1000+ IMU | **Standard Smartphone Only** |
-| **Tunnel / Outage Response** | Freezes marker or drifts randomly | Freezes marker or displays warning | Continuous dead reckoning via wheel ticks | **Continuous 15-State ES-EKF Dead Reckoning** |
-| **Offline Vector Maps** | Requires manual pre-download; limited | Partial offline map packs | Stored on vehicle hard drive | **Bundled PMTiles v3 + On-Demand Range Downloads** |
-| **Uncertainty Transparency** | Hides uncertainty or shows small fake circle | Static accuracy display | Diagnostic tool only | **Mathematically Modelled Covariance Rings** |
-| **Phone Orientation in Mount** | Must face forward for compass | Assumes screen faces driver | Fixed factory installation | **Dynamic 3D Mount Alignment (Auto-Yaw)** |
-| **Privacy & Data Security** | Tracks telemetry & location to cloud | Cloud sync & account required | OEM proprietary server sync | **100% On-Device, Zero Accounts, Zero Cloud** |
-| **Scientific Verification** | Closed source, unverified | Closed source | Proprietary test benches | **Bit-Exact Replay & Outage Benchmark Suite** |
+The app never pretends. It always shows how far to trust the position.
 
----
-
-## Offline Vector Maps
-
-GatiSaarth features a fully offline vector basemap powered by **OpenStreetMap** and **PMTiles v3** (Protomaps v4 schema).
-
-<p align="center">
-  <img src="frontend/assets/icons/wordmark.png" alt="Offline Maps" width="280">
-</p>
-
-### Included & Downloadable Map Packs
-
-| Region | Coverage Area | Zoom Levels | File Size | Availability |
-|:---|:---|:---:|:---:|:---|
-| **Delhi NCR** | Delhi, Gurugram, Noida, Faridabad, Ghaziabad | Zoom 0 to 15 (Street Level) | **37 MB** | **Bundled inside APK (Zero Network Required)** |
-| **Maharashtra Statewide** | Whole State (Highways, Towns, Coastline) | Zoom 0 to 12 (Regional) | 79 MB | On-demand in-app download |
-| **Mumbai Metropolitan** | Mumbai, Thane, Navi Mumbai, Mira-Bhayandar | Zoom 0 to 15 (Street Level) | 26 MB | On-demand in-app download |
-| **Pune Metropolitan** | Pune, Pimpri-Chinchwad, Hinjawadi | Zoom 0 to 15 (Street Level) | 17 MB | On-demand in-app download |
-| **Nagpur** | Nagpur City & Ring Road | Zoom 0 to 15 (Street Level) | 5 MB | On-demand in-app download |
-| **Nashik** | Nashik City & Suburbs | Zoom 0 to 15 (Street Level) | 4 MB | On-demand in-app download |
-| **Chhatrapati Sambhajinagar** | City & Industrial Areas | Zoom 0 to 15 (Street Level) | 3 MB | On-demand in-app download |
-
-### Engineering Highlights of the Map Stack
-- **Zero-Copy APK Asset Streaming:** The bundled Delhi NCR map is stored uncompressed inside the APK (`noCompress += ["pmtiles"]`). The native Android layer accesses it directly via `AssetManager.openFd` and memory-mapped offsets (`OffsetFileAt`), consuming **zero duplicate storage** on the phone.
-- **On-Device HTTP Range Request Extraction:** When downloading new regions (e.g., Pune 17 MB), the app does not download gigabytes of raw data. It executes HTTP range requests against the Protomaps planet build, extracting **only the necessary spatial bounding box**.
-- **Fail-Safe Atomicity:** Map files are written as `.part` files, verified with checksums, and atomically renamed. The map engine never loads a corrupted or partial file.
-- **Fallback Hierarchy:** Installed PMTiles Vector Maps $\rightarrow$ Disk-Cached Tiles $\rightarrow$ Online Stadia / OSM Raster Tiles (with circuit breakers).
+| Level | Meaning | What the driver sees |
+|---|---|---|
+| **GREEN** | Reliable. Live GPS. | Normal navigation |
+| **AMBER** | Dead reckoning, locked to the road | Dashed red track, growing error radius |
+| **ORANGE** | High uncertainty | Warning, wide error radius |
+| **RED** | Unreliable | *Limited Navigation Mode*: no exact coordinates, guidance paused, "Follow road signs" |
 
 ---
 
-## Hardware & Sensor Requirements
+## What the app does
 
-### Supported Android Versions
-- **Minimum SDK:** Android 7.0 Nougat (API Level 24)
-- **Target SDK:** Android 16 (API Level 36, `compileSdk` 36)
-- **16 KB Memory Page Support:** All bundled native C/C++ libraries are aligned to 16 KB boundaries, guaranteeing full compatibility with modern Android 15 and 16 hardware.
+| Feature | What it does |
+|---|---|
+| **Dead reckoning through outages** | Keeps a live position in tunnels, underpasses, flyovers and basements. Solid blue track with GPS, dashed red track without. |
+| **Offline maps** | OpenStreetMap vector maps (PMTiles). Delhi NCR and Mumbai are bundled. Maharashtra, Pune, Nagpur, Nashik and Chhatrapati Sambhajinagar download once, inside the app, and can be deleted. |
+| **Offline journey planning** | Place search on the installed maps, route preview, next-turn banner, distance and ETA, reroute. During a GPS outage the position follows the saved route. |
+| **Tunnel look-ahead** | "Tunnel ahead, 1.2 km", then metres to the exit, so the engine is prepared before GPS is lost. |
+| **Parking level** | Car-park floor (B1, B2, L1) from the barometer after GPS is lost. |
+| **Simulation Lab** | Tunnel test, urban-canyon test, and a timed GPS-loss test that withholds real GPS for 10 to 60 s on a live drive and gives a scorecard: error in metres, drift %, PASS or FAIL against the 10 % target. |
+| **Health checks** | Sensor hardware check, mount-quality score and GPS health (normal, multipath suspected, interference suspected, outage). |
+| **Fault Injection Lab** | Injects a GPS jump, sensor bias, dropout or timestamp delay into a replayed drive and shows what the app detected. |
+| **Drive recorder and signed reports** | Records real drives for scoring and exports signed benchmark reports. |
+| **Vehicle profile** | Car or two-wheeler. |
 
-### Sensor Requirements Matrix
-
-| Sensor | Requirement Level | Primary Function in Engine | Fallback Behavior if Missing |
-|:---|:---:|:---|:---|
-| **GNSS / GPS** | **Required** | Absolute position, velocity, and filter initialization | App operates in offline simulator mode |
-| **Accelerometer** | **Required for DR** | Inertial mechanization, pitch/roll gravity alignment, ZUPT | Core disengages; falls back to pure GNSS |
-| **Gyroscope** | **Required for DR** | 3D angular rate integration, attitude tracking | Core disengages; falls back to pure GNSS |
-| **Magnetometer** | **Recommended** | Yaw heading reference and fallback compass | Filter relies on GNSS course and NHC |
-| **Barometer** | **Optional** | Relative altitude, ramps, flyovers, multi-level parking | Absolute GNSS altitude used |
-| **Vibration Motor** | **Optional** | Distinct haptic alerts on outage, start, and stop | Visual status ticker only |
+Also: outage haptic alert, share last trusted position with its radius, light and dark themes.
 
 ---
 
-## Getting Started & Installation
+## See it in 3 minutes
 
-### Prerequisites
-- **Flutter SDK:** Version 3.47.4 (stable, bundles Dart 3.13.3)
-- **Android SDK:** Platform 36 (Android 16) with Platform Tools
-- **Java Development Kit (JDK):** Version 17
-- **Android Device or Emulator:** Android 7.0 (API 24) or newer
+| Step | Do | You see |
+|---|---|---|
+| 1 | Open the **Map** tab | Vector map, live position, accuracy ring drawn to scale in metres |
+| 2 | **Simulation Lab** > **Tunnel test** | GPS is cut. Status turns AMBER, the track turns dashed red, the error radius grows honestly. The marker keeps turning and stops when the vehicle stops. |
+| 3 | Tap **End test** | The marker glides back to the GPS fix. No teleport. |
+| 4 | **Simulation Lab** > **Urban canyon test** | Bad GPS fixes are rejected: "GNSS integrity anomaly detected". |
+| 5 | **Simulation Lab** > **Timed GPS loss test** (10 to 60 s) | A scorecard when the timer ends: distance, error in metres, drift %, PASS or FAIL |
+| 6 | Turn on Airplane Mode and zoom around | The map stays sharp. Everything is on the phone. |
+| 7 | Profile > **Outage Benchmark** | Scored run on a recorded or reference drive, with a signed report |
 
-### Clone & Run
+The emulator has no moving sensors, so dead reckoning there stops after a few seconds. Judge accuracy on a real phone in a vehicle, or with the benchmark.
+
+---
+
+## How we compare
+
+| | Nav apps (Google Maps, etc.) | u-blox dead-reckoning chips | Tunnel beacons (Waze) | **GatiSaarth** |
+|---|---|---|---|---|
+| Extra hardware per vehicle | None | Wheel-speed wiring, fixed install | Hardware in every tunnel | **None** |
+| During a GPS blackout | Freeze, jump or straight line | Continuous | Only inside equipped tunnels | **Continuous, road-locked** |
+| Shows how far to trust it | Accuracy circle, not tied to outage drift | n/a | n/a | **Trust Layer and error radius** |
+| Per-drive evidence | Closed | Vendor spec sheets | n/a | **Bit-exact replay, signed report** |
+| Very long outages (2 min+) | n/a | **Holds accuracy longer (wheel ticks)** | n/a | Drift keeps growing, flagged ORANGE or RED |
+
+---
+
+## Honest limits
+
+We prefer to state these ourselves.
+
+1. **Public benchmark uses the car's sensors, not a phone's.** It tests the algorithm against reference-grade truth. Phone-sensor accuracy is a separate question.
+2. **Real phone drives are not yet proof.** We recorded 4 real drives (about 11 km, Mumbai, two realme phones). On three the mount never aligned, so the engine declined to lead. On the one where it led, it was worse than straight-line at 10 to 60 s and slightly better at 120 s. In these cases the Trust Layer keeps the app on its normal pipeline, so the driver is no worse off. A controlled campaign with a rigid mount is the next step. Simulated drives are labelled as simulated and never quoted as field accuracy.
+3. **Long outages.** Above about 60 s the median drift is over 10 %, and at 120 s it is 18 % on the public set. The Trust Layer turns ORANGE or RED as error grows.
+4. **The mount must be learned first.** Alignment needs about 40 s of accelerating and braking on a straight road. Until then the app runs its normal pipeline.
+5. **Road lock needs a map.** It works wherever an installed map pack covers the vehicle, and is off elsewhere. Lane level is not claimed.
+6. **AI model is advisory.** On held-out drives it does not pass the GPS agreement check, so navigation there is identical with or without it.
+7. **Not yet verified on a phone:** offline journey planning and map performance were checked on the Android 16 emulator only. Other Android versions and phones are untested.
+8. **Off by default:** turn speedometer, tyre-vibration speedometer, per-vehicle AI calibration, lean-aware two-wheeler constraint and bend registration are built and tested but stay off until a real drive shows they help.
+
+---
+
+## Run it
+
+**Install:** download the APK from https://gatisaarth.vercel.app/ (Android 7.0 or newer).
+
+**Build from source** (Flutter 3.47.4, Android SDK 36, JDK 17):
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/vidhy/gathisarthi.git
-cd gathisarthi
-
-# 2. Change into frontend directory and fetch dependencies
-cd frontend
+git clone https://github.com/vinitgirdhar/GATISAARTHII.git
+cd GATISAARTHII/frontend
 flutter pub get
-
-# 3. Launch on connected Android device or emulator
-flutter run
+flutter run                     # emulator or phone
+flutter build apk --release     # release APK
 ```
 
-### Simulating GNSS on Android Emulator
-Because emulators lack physical satellite hardware, send mock coordinates via ADB:
+The bundled Delhi NCR (37 MB) and Mumbai (26 MB) map archives are git-ignored. Without them the app still runs; download a region in Profile > Offline Maps. To rebuild them see [`tools/offline_maps/README.md`](tools/offline_maps/README.md).
 
-```bash
-# Set position to Pune, Maharashtra (Lat: 18.5204, Lon: 73.8567)
-adb emu geo fix 73.8567 18.5204
-
-# Simulate movement by sending updated fixes 1 second apart:
-adb emu geo fix 73.8570 18.5210
-adb emu geo fix 73.8575 18.5220
-```
-
-Emulator tips (v4.5):
-- Send fixes **several times a second** from a clock (e.g. every 250 ms) rather than once a second: at 1 Hz the emulator sometimes repeats a fix and then jumps two steps, and the GNSS gate correctly rejects that as an impossible acceleration.
-- If the emulator closes itself while the vector map is drawing, start it with software rendering: `emulator -avd Pixel_9 -gpu swiftshader_indirect`.
-- The emulator's IMU never moves, so dead reckoning there stops after a few seconds and the mount never calibrates. Judge DR accuracy only on a real phone in a vehicle.
-
-### Production & Release Builds
+**Test:**
 
 ```bash
 cd frontend
-
-# Build release APK (fat binary, includes the Delhi and Mumbai map packs)
-flutter build apk --release
-
-# Build split APKs per CPU architecture (smaller download per device)
-flutter build apk --release --split-per-abi
-
-# Build Android App Bundle (for Google Play Distribution)
-flutter build appbundle
-```
-
----
-
-## Testing & Field Validation
-
-GatiSaarth includes an extensive test suite covering unit math, Kalman filter convergence, sensor synchronization, offline map rendering, and widget layouts.
-
-```bash
-cd frontend
-
-# Run static analysis
 flutter analyze
-
-# Run headless automated test suite (1,260+ passing tests)
 flutter test
 ```
 
-### Executing the Headless Outage Benchmark
-Score the navigation engine against the bundled simulated reference drive without needing an emulator or device:
+**Re-run the public benchmark** (needs the IO-VNBD dataset, which is not in the repo):
+
+```bash
+python ml/src/dataset/fetch_iovnbd.py
+python ml/src/dataset/iovnbd_to_drive_log.py --imu vehicle --all --min-minutes 5 --out ml/data/processed/drive_logs_vehicle
+cd frontend
+IOVNBD_LOG_DIR=../ml/data/processed/drive_logs_vehicle EVIDENCE_DIR=../docs/evidence flutter test test/nav/iovnbd_outage_benchmark_test.dart
+```
+
+**Score your own drive:** Profile > Vehicle, then Sensors > Record drive, drive, stop. Score it in the app (Profile > Outage Benchmark) or on a PC:
 
 ```bash
 cd frontend
-flutter test test/nav/reference_drive_asset_test.dart
+DRIVE_LOG=path/to/drive.jsonl.gz flutter test test/nav/score_drive_test.dart
 ```
 
-### Scoring Your Own Real-World Drive
-1. Mount the phone in your vehicle and open GatiSaarth.
-2. Go to **Profile > Vehicle** and choose **Car** or **Two-Wheeler**.
-3. Go to **Sensors > Record drive**, then drive through your route (tunnels, flyovers, city).
-4. Tap **Stop recording**. The drive is stored as a compressed JSONL log in app-private storage.
-5. Score the drive directly on your PC:
-   ```bash
-   cd frontend
-   DRIVE_LOG=path/to/drive.jsonl.gz flutter test test/nav/score_drive_test.dart
-   ```
+**Emulator GPS:** `adb emu geo fix <lon> <lat>`. Send fixes several times a second; at 1 Hz the emulator repeats fixes and the integrity check rightly rejects the jump.
 
 ---
 
-## Known Limits & Engineering Disclosures
-
-In the interest of rigorous engineering integrity and technical transparency, the following limitations are explicitly noted:
-
-1. **Simulated vs. Real-World Field Benchmarks:** The headline drift benchmarks (1.36% drift at 60s) were measured using simulated vehicle trajectories with realistic sensor noise models. While the filter is mathematically proven, field accuracy on real vehicles depends on vehicle suspension, road vibrations, and specific phone IMU quality.
-2. **Mount Alignment Calibration Period:** Dynamic yaw alignment requires approximately 40 seconds of straight-line driving with at least 20 accelerate/brake events ($> 0.5\text{ m/s}^2$). Until alignment converges, the system runs on its kinematic fallback pipeline.
-3. **Long Outage Degradation:** Without external velocity references or magnetic anchors, consumer MEMS gyroscopes drift over time. In 120-second outages, error expands significantly (~281 m median).
-4. **Gated Neural Speed Model:** The speed model (`speed_estimator.tflite`, v4) only enters the filter after passing live GNSS validation; on the held-out IO-VNBD trips it does not pass, so navigation there is the same with or without it.
-5. **Road Graph Map Matching:** The phone builds its road graph from the installed offline map packs (maxZoom >= 13); outside them map matching reports unavailable.
-6. **Fault detection limits (v4.5):** the Fault Injection Lab reports what is really detected. A 0.3 m/s² accelerometer bias is not detected (the filter's own bias estimate wanders 0.06–0.09 m/s² on clean drives), and the read-only fault monitor raises some flags on one of the three real drives recorded so far.
-7. **Off-by-default features:** turn speedometer, tyre-vibration speedometer, per-vehicle AI speed calibration, lean-aware two-wheeler constraint and bend registration are implemented and tested but stay off until a real recorded drive shows they help (see "Features added in September 2026").
-
----
-
-## Repository Layout
+## Repository map
 
 ```
-gathisarthi/
-├── frontend/                     # Primary Product: Flutter Android Application
-│   ├── lib/
-│   │   ├── main.dart             # Application entry point & lifecycle management
-│   │   ├── app_widget.dart       # Theme host, routing, and background lifecycle
-│   │   ├── core/
-│   │   │   ├── nav/              # Pure-Dart Navigation Core (Zero Flutter dependencies)
-│   │   │   │   ├── ekf/          # 15-State Error-State Kalman Filter (Joseph update, NIS)
-│   │   │   │   ├── ins/          # Strapdown Inertial Mechanization (WGS-84 NED)
-│   │   │   │   ├── math/         # Matrix, quaternion, and geodesy math libraries
-│   │   │   │   ├── gnss/         # Quality scoring & integrity outlier rejection
-│   │   │   │   ├── motion/       # Motion classifier, ZUPT gating, NHC constraints
-│   │   │   │   ├── alignment/    # Mount alignment engine (gravity + auto-yaw)
-│   │   │   │   ├── calibration/  # Gyro, accel, and magnetometer ellipsoid calibration
-│   │   │   │   ├── sensors/      # TimeSync (k-way merge) & fault detection
-│   │   │   │   ├── map/          # HMM road matcher (Newson-Krumm)
-│   │   │   │   ├── replay/       # Bit-exact deterministic drive replayer
-│   │   │   │   ├── monitor/      # Read-only fault monitor (gyro/accel bias, integrity, latency)
-│   │   │   │   ├── outage/       # GNSS loss preparation (tunnel pre-lock)
-│   │   │   │   └── benchmark/    # Outage benchmark, fault injection lab, report data
-│   │   │   └── platform/         # Hardware drivers, PMTiles vector maps, storage
-│   │   └── features/             # UI Presentation & State Management
-│   │       ├── navigation_ui/    # LiveSessionController, Home, Map, Sensors tabs
-│   │       ├── offline_maps/     # Offline map manager & HTTP range downloader
-│   │       ├── benchmark/        # On-device Outage Benchmark runner and report export
-│   │       ├── fault_lab/        # Fault Injection Lab screen
-│   │       ├── about/            # Navigation Engine technical specs & model cards
-│   │       └── ai_motion/        # TFLite speed estimator integration
-│   ├── assets/                   # Offline maps (Delhi NCR PMTiles), TFLite models, icons
-│   └── test/                     # 1,260+ automated unit, widget, and EKF tests
-├── ml/                           # IO-VNBD data pipeline and the v4 speed-model training script
-├── cpp-core/                     # C++17 edge engine (ES-EKF, SPSC pipeline, CSV/UDP input)
-├── maps/                         # Overpass JSON -> road-graph JSON builder
-├── tools/                        # Offline map cutting scripts (PMTiles CLI wrapper)
-├── docs/                         # Architecture specifications & evolution audit plans
-└── CLAUDE.md                     # Engineering notes, clock traps, and developer gotchas
+frontend/      Flutter Android app
+  lib/core/nav/          Navigation engine (pure Dart): filter, GPS integrity, road matching,
+                         alignment, replay, outage benchmark, journey routing
+  lib/core/platform/     Sensors, GPS, offline maps (PMTiles), storage
+  lib/features/          Screens and state
+  assets/                Bundled maps, speed model, icons
+  test/                  Automated tests
+cpp-core/      C++17 edge port for external IMUs (not used by the app)
+ml/            IO-VNBD data pipeline and speed-model training
+docs/          Evidence (docs/evidence), architecture notes, field-test protocol, paper draft
+landing_page/  Project website with an interactive simulator (illustration, not the engine)
+tools/         Offline map cutting, APK sync
 ```
 
 ---
 
-## What's new in v4.5
+## Privacy
 
-Version 4.5.0 (build 47) adds nine features that let a judge (or a driver) see how the navigation engine behaves when GNSS fails and how far it should be trusted. Nothing in this table claims field accuracy: numbers from the simulated reference drive, the Fault Lab or an emulator are simulated.
+- No accounts, no ads, no tracking, no backend. Navigation needs no network.
+- After the one-time map download, everything runs on the phone.
+- Drive recordings stay in the app's private storage and leave only if the user shares them. App backup is disabled so location traces are not copied to the cloud.
 
-| Feature | Where | What it does |
-|---|---|---|
-| GNSS Outage Simulator | Map tab → Simulate GNSS loss | Withholds live GNSS for 10–60 s and scores dead reckoning against the withheld fixes: distance, endpoint error, along/cross-track, drift %, uncertainty growth, recovery jump, PASS vs <10 %. |
-| Tunnel-aware pre-lock | Tunnel card (Map tab), Simulate sheet | Within 600 m of a mapped tunnel: "GNSS loss preparation", a 5-row readiness checklist, and a saved known-good speed/course that seeds DR at the portal. |
-| Navigation Safety Controller | Home, Map, fullscreen nav | GREEN / AMBER / ORANGE / RED with hysteresis; RED = Limited Navigation Mode (no fake precision, guidance paused). |
-| Navigation Hardware Check | Sensors tab | Per-sensor PASS/DEGRADED/FAIL: accelerometer, gyroscope, magnetometer, GNSS rate, sampling rate, timestamp jitter, mount stability, magnetic interference, gyro bias stability. |
-| Mount-change detection | Sensors tab, engine notes | A moved phone invalidates the calibration and shows "Mount change detected · Recalibrating vehicle frame…". |
-| Mount quality score | Sensors tab | Stability, vibration, magnetic field and alignment sub-scores, overall EXCELLENT/GOOD/FAIR/POOR (FAIR at best until alignment is learned), "Mount unstable" warning. |
-| GNSS Health | Sensors tab, Home chip | NORMAL / DEGRADED / MULTIPATH SUSPECTED / INTERFERENCE SUSPECTED / OUTAGE from C/N0, constellation mix, NavIC, jump rejects, accuracy trend, and Android GnssClock / AGC / multipath indicators where the phone reports them. Says "GNSS integrity anomaly", never "spoofing". |
-| Fault Injection Lab | Profile → Fault Injection Lab | Replays a drive clean and faulted. Detected on the reference drive: GNSS jump, integrity-anomaly ramp, gyro bias, timestamp delay, sensor dropout. Not detected: 0.3 m/s² accel bias; magnetometer faults can't be tested on it (it has no magnetometer data). |
-| Benchmark report export | Profile → Outage Benchmark | PASS/FAIL verdict, cross/along-track, max uncertainty, recovery jump; JSON / CSV / PDF with SHA-256 and a Keystore signature. |
+## Credits and licences
 
-Also in v4.5: the dead-reckoning uncertainty now covers travel the last GNSS speed implies but the IMU did not register (a smooth cruise the stationary gate took for a stop), so the margin never claims precision it does not have.
-
-## Features added in September 2026
-
-Every item has tests; the ones marked *off* stay off until a real recorded drive shows they help (the rule in `frontend/lib/core/nav/CLAUDE.md`).
-
-| Feature | Where | Status and evidence |
-|---|---|---|
-| Error-at-recovery card | Map tab | On. Scores each outage the moment GNSS returns: duration, distance, error, drift %. |
-| Outage log | Profile > Outage Log | On. Every scored outage this session, CSV copy/share. |
-| Tunnel look-ahead | Map tab | On. "Tunnel ahead · 1.2 km", then metres to the exit, from the offline map's tunnel roads. |
-| Parking level | Map tab | On. Car-park floor (B1, B2, L1) from the barometer after GNSS is lost. |
-| Share my position | Map tab | On. Last trusted position with its radius and time since GNSS loss. |
-| Why the position moved | Diagnostics | On. Per correction source: used or refused, and why. |
-| Bump label | Recording controls | On. Labels bumps in a recording for a future vibration classifier. |
-| Turn speedometer (v = a_lat / yaw rate) | Core | *Off.* Real IO-VNBD A/B on 21 trips: no drift reduction (`docs/evidence/iovnbd_turn_speed_ab.json`). |
-| Tyre-vibration speedometer | Core | *Off.* Needs >= 30 Hz phone data; simulated 85 s outage 722 m -> 16 m. IO-VNBD (10 Hz) cannot test it. |
-| Per-vehicle AI speed calibration | Core | *Off.* No change on held-out IO-VNBD trips. |
-| Lean-aware two-wheeler constraint | Core | *Off.* No real two-wheeler drive yet. |
-| Bend registration (road-locked DR) | Road follower | *Off.* Synthetic L-road: along-track error cut by more than 40 %. |
-| External IMU over UDP | `cpp-core` | `replay_external_imu --input udp:5005`; identical to file replay on a real trip (`docs/evidence/edge_udp_external_imu.json`). |
-
----
-
-## Privacy & Security
-
-- **100% On-Device Processing:** Sensor data, GPS coordinates, and dead-reckoning calculations are processed exclusively in smartphone memory.
-- **No Compulsory Network Access:** Core navigation operates with zero cellular or Wi-Fi connection.
-- **Local Storage:** Drive recordings are stored strictly in app-private sandboxed storage (`/data/user/0/com.gatisaarth.app/`). They are never uploaded automatically.
-- **Android Backup Exclusion:** App storage explicitly disables `allowBackup` to ensure location traces are never mirrored to external cloud backups.
-
----
-
-## Acknowledgements & Data Licences
-
-- **Map Data:** © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, provided under the Open Database License (ODbL).
-- **Vector Tiles:** Cut from [Protomaps](https://protomaps.com) daily builds using the Protomaps basemap schema.
-- **Raster Fallback (only in builds made with a `STADIA_API_KEY`):** © [Stadia Maps](https://stadiamaps.com), © OpenMapTiles, © OpenStreetMap contributors.
-- **Core Dependencies:** Built with [Flutter](https://flutter.dev), [flutter_map](https://pub.dev/packages/flutter_map), [vector_map_tiles](https://pub.dev/packages/vector_map_tiles), [pmtiles](https://pub.dev/packages/pmtiles), [geolocator](https://pub.dev/packages/geolocator), [sensors_plus](https://pub.dev/packages/sensors_plus), and [tflite_flutter](https://pub.dev/packages/tflite_flutter).
+- Map data: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL). Vector tiles cut from [Protomaps](https://protomaps.com) builds.
+- Benchmark data: IO-VNBD, Onyekpe et al., *Data in Brief*, vol. 35, 2021.
+- Built with [Flutter](https://flutter.dev), [flutter_map](https://pub.dev/packages/flutter_map), [pmtiles](https://pub.dev/packages/pmtiles), [geolocator](https://pub.dev/packages/geolocator), [sensors_plus](https://pub.dev/packages/sensors_plus) and [tflite_flutter](https://pub.dev/packages/tflite_flutter).
+- Optional online raster fallback (only in builds made with a `STADIA_API_KEY`): © Stadia Maps, © OpenMapTiles, © OpenStreetMap contributors.
